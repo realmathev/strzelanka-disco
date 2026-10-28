@@ -5,3 +5,5 @@ import './street.js';
 import './cars.js';
 import './nature.js';
 import './shops.js';
+import './estate.js';
+import './osiedle.js';

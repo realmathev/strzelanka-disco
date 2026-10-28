@@ -76,7 +76,7 @@ function build(){
       g.position.set(x+w/2-bb.getCenter(new THREE.Vector3()).x*0,0,z+Math.max(sz.x,sz.z,1.2)/2+1);
       wrap.add(g);rowD=Math.max(rowD,Math.max(sz.x,sz.z)+3);
       const el=document.createElement('div');el.className='lbl';labels.appendChild(el);
-      const dd=d.dims,tol=dd?Math.max(Math.abs(sz.x-dd[0])/dd[0],Math.abs(sz.y-dd[1])/dd[1],Math.abs(sz.z-dd[2])/dd[2]):0;
+      const dd=(d.dimsV&&v&&d.dimsV[v])||d.dims,tol=dd?Math.max(Math.abs(sz.x-dd[0])/dd[0],Math.abs(sz.y-dd[1])/dd[1],Math.abs(sz.z-dd[2])/dd[2]):0;
       const it={def:d,variant:v,g,el,size:sz,w,idx:list.length};
       el.innerHTML=`<b>${d.name}${v?' · '+v:''}</b> <i>${d.id}</i><br>${sz.x.toFixed(2)} × ${sz.y.toFixed(2)} × ${sz.z.toFixed(2)} m`+(dd?` <i>(real ${dd.join('×')})</i>`:'')+`<br><i>${g.userData.tris} tri + kontur ${g.userData.ink}`+(g.userData.cover?' · osłona':'')+`</i>`;
       if(tol>.35)el.classList.add('warn');

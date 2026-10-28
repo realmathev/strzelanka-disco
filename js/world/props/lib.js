@@ -171,7 +171,7 @@ function worldCol(c,x,y,z,rotY){
  */
 export function defProp(id,meta,build){
   const def={
-    id,name:meta.name||id,cat:meta.cat||'',dims:meta.dims||null,variants:meta.variants||null,note:meta.note||'',
+    id,name:meta.name||id,cat:meta.cat||'',dims:meta.dims||null,dimsV:meta.dimsV||null,variants:meta.variants||null,note:meta.note||'',
     parts(opts={}){
       const o=Object.assign({},meta.defaults,opts);if(o.seed==null)o.seed=autoSeed++;
       const r=rng(o.seed*7919+id.length*131),P=new Parts();P.cover=!!meta.cover;P.opts=o;build(P,o,r);return P;
