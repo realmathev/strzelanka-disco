@@ -1,0 +1,211 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disco Strzelnica</title>
+<link rel="icon" href="data:,">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="css/main.css">
+
+<div id="app">
+  <canvas id="gl" aria-label="Widok gry"></canvas>
+  <div class="halftone" id="halftone"></div>
+  <div class="grain"></div>
+  <canvas id="fx"></canvas>
+
+  <div id="hud" hidden>
+    <div class="cross"></div>
+    <div class="hud-tl">
+      <div class="caption" id="hWave">Fala 1</div>
+      <div class="chip" id="hLeft">Wrogowie: 0</div>
+    </div>
+    <div class="hud-tr">
+      <div class="money"><span id="hCoins">0</span> ZD</div>
+      <div class="combo" id="hCombo">x1.0</div>
+      <div class="chip" id="hKeys">Klucze: 0</div>
+    </div>
+    <div class="hud-bl">
+      <div class="hpbar"><i id="hHp"></i><span id="hHpTxt">100</span></div>
+      <div class="chip" id="hMed">Apteczki: 0 [H]</div>
+    </div>
+    <div class="hud-br">
+      <div class="chip" id="hWeap">Pistolet</div>
+      <div class="ammo"><span id="hAmmo">12</span><small>/<span id="hMag">12</span></small></div>
+      <div id="hReload" hidden>Przeładowanie</div>
+    </div>
+    <div class="caption narr" id="narr" hidden></div>
+    <div id="panels" hidden>
+      <div class="cpanel"><b id="pc1">BLAM!</b><canvas width="240" height="180"></canvas></div>
+      <div class="cpanel"><b id="pc2">UGH</b><canvas width="240" height="180"></canvas></div>
+      <div class="cpanel"><b id="pc3">KONIEC</b><canvas width="240" height="180"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Epilepsy warning -->
+  <section class="screen" id="scrWarn">
+    <div class="panel warn" role="alertdialog" aria-labelledby="warnT">
+      <h1 id="warnT">Ostrzeżenie o epilepsji fotogennej</h1>
+      <p>U niewielkiego odsetka osób migające światła, błyski i szybko zmieniające się wzory mogą wywołać napad padaczkowy, także u osób, które nigdy wcześniej nie miały napadu.</p>
+      <p>Ta gra zawiera błyski wystrzałów, migające światła automatów, szybkie zmiany kolorów i wstrząsy ekranu. Jeśli poczujesz zawroty głowy, zaburzenia widzenia, drganie mięśni, dezorientację albo utratę świadomości, natychmiast przerwij grę i skontaktuj się z lekarzem.</p>
+      <p>Graj w dobrze oświetlonym pomieszczeniu, siedź z dala od ekranu i rób przerwy co godzinę.</p>
+      <div class="row">
+        <button class="btn red" id="warnFull">Pełne efekty</button>
+        <button class="btn paper" id="warnSafe">Ogranicz błyski</button>
+      </div>
+      <small>Poziom efektów zmienisz w każdej chwili w Opcjach. Kliknięcie włącza dźwięk.</small>
+    </div>
+  </section>
+
+  <!-- Menu -->
+  <section class="screen" id="scrMenu" hidden>
+    <div class="menu">
+      <div class="title">
+        <h1>Disco<em>Strzelnica</em></h1>
+        <div class="caption">Godzina 23:14. Remiza w Dolnym Zadupiu. Gang Jednorękiego Bandyty przejął kasyno, a DJ nie przestaje grać. Masz pistolet i rytm.</div>
+        <div class="keysHelp"><b>WSAD</b> ruch · <b>Mysz</b> celowanie · <b>LPM</b> strzał · <b>R</b> przeładuj · <b>1–4</b> / kółko broń · <b>Shift</b> sprint · <b>Spacja</b> skok · <b>H</b> apteczka · <b>Esc</b> pauza</div>
+        <div id="touchNote" hidden>Strzelanie wymaga myszy i klawiatury. Kasyno, skrzynki i sklep działają też na telefonie.</div>
+      </div>
+      <nav class="panel menu-btns" aria-label="Menu główne">
+        <div class="wallet"><span class="zd"><b class="w-coins">0</b> ZD</span><span>Klucze: <b class="w-keys">0</b></span><span>Rekord: fala <b class="w-best">0</b></span></div>
+        <button class="btn play" id="mPlay">Graj</button>
+        <button class="btn" data-go="scrShop">Sklep u Heńka</button>
+        <button class="btn" data-go="scrCasino">Kasyno „Złoty Bandyta”</button>
+        <button class="btn" data-go="scrCrates">Skrzynki</button>
+        <button class="btn" data-go="scrInv">Ekwipunek i skórki</button>
+        <button class="btn paper" id="mOpts">Opcje</button>
+      </nav>
+    </div>
+  </section>
+
+  <!-- Options -->
+  <section class="screen" id="scrOptions" hidden>
+    <div class="wrap">
+      <div class="topbar"><h2>Opcje</h2><button class="btn paper" id="optBack">Wróć</button></div>
+      <div class="panel opts">
+        <h3>Grafika</h3>
+        <div class="opt"><label>Preset jakości</label><div class="seg" id="oPreset">
+          <button data-v="low">Niska</button><button data-v="med">Średnia</button><button data-v="high">Wysoka</button><button data-v="ultra">Ultra</button></div></div>
+        <div class="opt"><label for="oScale">Rozdzielczość renderu <output id="oScaleV"></output></label><input type="range" id="oScale" min="0.5" max="1.5" step="0.05"></div>
+        <div class="opt"><label for="oFov">Pole widzenia (FOV) <output id="oFovV"></output></label><input type="range" id="oFov" min="60" max="110" step="1"></div>
+        <div class="opt"><label for="oDraw">Zasięg widzenia <output id="oDrawV"></output></label><input type="range" id="oDraw" min="50" max="180" step="5"></div>
+        <div class="opt"><label>Cienie</label><div class="seg" data-key="shadows"><button data-v="1">Włączone</button><button data-v="0">Wyłączone</button></div></div>
+        <div class="opt"><label>Kontury komiksowe</label><div class="seg" data-key="outlines"><button data-v="1">Włączone</button><button data-v="0">Wyłączone</button></div></div>
+        <div class="opt"><label>Raster (halftone)</label><div class="seg" data-key="halftone"><button data-v="1">Włączony</button><button data-v="0">Wyłączony</button></div></div>
+        <div class="opt"><label>Kadry komiksu przy headshocie</label><div class="seg" data-key="panels"><button data-v="1">Włączone</button><button data-v="0">Wyłączone</button></div></div>
+        <div class="opt"><label>Napisy dźwiękowe (BLAM, tap tap)</label><div class="seg" data-key="onoma"><button data-v="1">Włączone</button><button data-v="0">Wyłączone</button></div></div>
+        <h3>Efekty i bodźce</h3>
+        <div class="opt"><label>Intensywność błysków i wstrząsów</label><div class="seg" data-key="fx"><button data-v="0">Bezpieczna</button><button data-v="1">Normalna</button><button data-v="2">Maksymalna</button></div></div>
+        <h3>Dźwięk</h3>
+        <div class="opt"><label for="oMusic">Muzyka <output id="oMusicV"></output></label><input type="range" id="oMusic" min="0" max="1" step="0.05"></div>
+        <div class="opt"><label for="oSfx">Efekty <output id="oSfxV"></output></label><input type="range" id="oSfx" min="0" max="1" step="0.05"></div>
+        <div class="opt"><label>Utwór w grze</label><div class="seg" data-key="track"><button data-v="A">Biesiada w Kasynie</button><button data-v="B">Ołowiane Wesele</button><button data-v="C">Remiza Turbo</button></div></div>
+        <h3>Sterowanie</h3>
+        <div class="opt"><label for="oSens">Czułość myszy <output id="oSensV"></output></label><input type="range" id="oSens" min="0.2" max="3" step="0.05"></div>
+        <div class="opt"><label>Odwróć oś Y</label><div class="seg" data-key="invert"><button data-v="0">Nie</button><button data-v="1">Tak</button></div></div>
+        <div class="opt"><label>Postęp</label><div class="seg"><button id="oReset">Wyzeruj zapis gry</button></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shop -->
+  <section class="screen" id="scrShop" hidden>
+    <div class="wrap">
+      <div class="topbar"><h2>Bazar pod remizą</h2>
+        <div class="wallet"><span class="zd"><b class="w-coins">0</b> ZD</span><span>Klucze: <b class="w-keys">0</b></span><button class="btn paper sm" data-go="scrMenu">Wróć</button></div></div>
+      <div class="tabs" role="tablist" id="shopTabs">
+        <button role="tab" data-npc="heniek">Pan Heniek · sklep</button>
+        <button role="tab" data-npc="zdzichu">Zdzichu Spluwa · broń</button>
+        <button role="tab" data-npc="halina">Siostra Halina · medyk</button>
+      </div>
+      <div class="panel npc">
+        <div><div class="portrait" id="npcPic"></div><div class="nameplate" id="npcName"></div><div class="role" id="npcRole"></div></div>
+        <div><div class="bubble" id="npcSay"></div><div class="items" id="npcItems"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Casino -->
+  <section class="screen" id="scrCasino" hidden>
+    <div class="wrap">
+      <div class="topbar"><h2>Kasyno „Złoty Bandyta”</h2>
+        <div class="wallet"><span class="zd"><b class="w-coins">0</b> ZD</span><button class="btn paper sm" data-go="scrMenu">Wróć</button></div></div>
+      <div class="panel casino">
+        <div class="slot">
+          <div class="bulbs" id="bulbs"></div>
+          <div class="marquee">JEDNORĘKI DISCO</div>
+          <div class="reels" id="reels">
+            <div class="reel"><div class="strip"></div></div>
+            <div class="reel"><div class="strip"></div></div>
+            <div class="reel"><div class="strip"></div></div>
+            <div class="payline"></div>
+          </div>
+          <div class="slot-ctl">
+            <div class="bets" id="bets"><button data-bet="10">10</button><button data-bet="50">50</button><button data-bet="100">100</button><button data-bet="250">250</button></div>
+            <button class="btn" id="spin">Zakręć</button>
+          </div>
+          <div id="slotMsg" aria-live="polite"></div>
+        </div>
+        <aside>
+          <h3 style="font-size:28px">Tabela wygranych</h3>
+          <table class="pays"><tbody id="paysBody"></tbody></table>
+          <p class="note">Dwa takie same symbole na pierwszych bębnach zwracają 2× stawki. Gra używa wyłącznie wirtualnych złotówek disco (ZD), zarobionych w strzelaninie. Nie da się tu wpłacić ani wypłacić prawdziwych pieniędzy.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- Crates -->
+  <section class="screen" id="scrCrates" hidden>
+    <div class="wrap">
+      <div class="topbar"><h2>Skrzynki</h2>
+        <div class="wallet"><span class="zd"><b class="w-coins">0</b> ZD</span><span>Klucze: <b class="w-keys">0</b></span><button class="btn paper sm" data-go="scrMenu">Wróć</button></div></div>
+      <div class="cratesRow">
+        <div class="panel crate"><h3>Skrzynia Remizowa</h3><div class="box">REMIZA</div>
+          <div class="odds"><span>Zwykła 70%</span><span>Rzadka 22%</span><span>Epicka 7%</span><span>Legenda 1%</span></div>
+          <button class="btn" data-open="remiza">Otwórz · 1 klucz</button></div>
+        <div class="panel crate wesele"><h3>Skrzynia Weselna</h3><div class="box">WESELE</div>
+          <div class="odds"><span>Zwykła 40%</span><span>Rzadka 35%</span><span>Epicka 19%</span><span>Legenda 6%</span></div>
+          <button class="btn red" data-open="wesele">Otwórz · 2 klucze</button></div>
+      </div>
+      <div class="spinner" id="spinner" hidden><div class="ctrack" id="ctrack"></div><div class="marker"></div></div>
+      <div class="panel" id="cresult" hidden></div>
+      <p class="caption" style="text-transform:none;align-self:flex-start">Klucze kupisz u Pana Heńka. Wypadają też z wrogów i za bossa.</p>
+    </div>
+  </section>
+
+  <!-- Inventory -->
+  <section class="screen" id="scrInv" hidden>
+    <div class="wrap">
+      <div class="topbar"><h2>Ekwipunek</h2>
+        <div class="wallet"><span class="zd"><b class="w-coins">0</b> ZD</span><button class="btn paper sm" data-go="scrMenu">Wróć</button></div></div>
+      <div class="panel"><div class="wlist" id="wlist"></div></div>
+      <div class="panel"><div class="skinGrid" id="skinGrid"></div></div>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section class="screen dim" id="scrPause" hidden>
+    <div class="panel card">
+      <h2>Pauza</h2>
+      <div class="caption" style="text-transform:none">Muzyka gra dalej. Gang czeka.</div>
+      <button class="btn red" id="pResume">Wznów</button>
+      <button class="btn paper" id="pOpts">Opcje</button>
+      <button class="btn paper" id="pQuit">Wyjdź do menu</button>
+    </div>
+  </section>
+
+  <!-- Game over -->
+  <section class="screen dim" id="scrOver" hidden>
+    <div class="panel card">
+      <h2>Leżysz.</h2>
+      <div class="caption" id="overCap" style="text-transform:none"></div>
+      <div class="stats" id="overStats"></div>
+      <button class="btn teal" id="oRevive" hidden>Użyj Drugiej Szansy</button>
+      <div class="row"><button class="btn red" id="oAgain">Jeszcze raz</button><button class="btn paper" id="oMenu">Menu</button><button class="btn paper" data-go="scrCrates">Skrzynki</button></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="js/main.js"></script>

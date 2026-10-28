@@ -1,0 +1,27 @@
+{
+  "$schema": "https://juicyjuicy.games/schema/juicy.json",
+  "slug": "disco-strzelnica",
+  "title": "Disco Strzelnica",
+  "description": "Godzina 23:14, remiza w Dolnym Zadupiu. Gang Jednorękiego Bandyty zajebał kasyno, a DJ wali disco polo tak, że uszy krwawią. Ty masz pistolet i chuj, ale za to rytm. Rozwalaj kolejne fale pojebów w komiksowej strzelance FPS, zbieraj ZD i wal je w kasynie na automatach, aż stracisz wszystko. Otwieraj skrzynki, odpal Złoty Ząb, wydawaj kasę u Heńka i Zdzicha Spluwy. Nie leczy gówna, ale apteczka pomoże. WSAD + mysz.",
+  "buildDir": ".",
+  "entry": "index.html",
+  "engine": "vanilla",
+  "madeWith": [
+    "Claude Sonnet 5.5",
+    "Claude Code"
+  ],
+  "tags": [
+    "shooter",
+    "fps",
+    "comic",
+    "polish"
+  ],
+  "input": [
+    "keyboard",
+    "mouse"
+  ],
+  "orientation": "any",
+  "aspectRatio": "16:9",
+  "thumbnail": "thumbnail.png",
+  "remixable": false
+}

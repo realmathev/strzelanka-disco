@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Prop viewer — Disco Strzelnica</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&display=swap">
+<style>
+  html,body{margin:0;height:100%;background:#1b1612;color:#f4e7c5;font:12px/1.3 system-ui,sans-serif;overflow:hidden}
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #bar{position:fixed;left:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;z-index:5;max-width:calc(100% - 16px)}
+  #bar button,#bar select{background:#2b2218;color:#f4e7c5;border:1px solid #6b5640;border-radius:4px;padding:3px 8px;font:inherit;cursor:pointer}
+  #bar button:hover{background:#44331f}
+  #bar span{opacity:.8}
+  .lbl{position:fixed;transform:translate(-50%,0);pointer-events:auto;cursor:pointer;background:rgba(20,15,10,.78);border:1px solid #6b5640;border-radius:3px;padding:1px 5px;white-space:nowrap;text-align:center;font-size:11px}
+  .lbl b{color:#ffe14a}.lbl i{font-style:normal;opacity:.75}
+  .lbl.warn{border-color:#ff5a4a}
+  #info{position:fixed;right:8px;top:8px;background:rgba(20,15,10,.85);border:1px solid #6b5640;border-radius:4px;padding:6px 9px;font-size:11px;z-index:5;min-width:170px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="bar">
+  <button id="bAll">Wszystkie</button>
+  <button id="bPrev">&larr;</button><button id="bNext">&rarr;</button>
+  <button id="bSeed-">seed &minus;</button><span id="seedv">seed 1</span><button id="bSeed+">seed +</button>
+  <button id="bOut">kontury</button><button id="bDum">manekin 1,8 m</button>
+  <button id="bNeon">neony: mruganie</button>
+  <select id="cat"><option value="">wszystkie</option></select>
+</div>
+<div id="info"></div>
+<div id="labels"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module">
+import {DS} from '../js/core/ds.js';
+import {opt} from '../js/core/save.js';
+import {renderer,scene,camera,sun,hemi} from '../js/render/renderer.js';
+import {toon,outlines} from '../js/render/materials.js';
+import '../js/world/props/index.js';
+
+try{await Promise.race([document.fonts.load('96px Bangers'),new Promise(r=>setTimeout(r,1500))])}catch(e){}
+
+camera.fov=42;scene.fog.near=400;scene.fog.far=900;camera.far=1200;
+renderer.shadowMap.enabled=true;sun.castShadow=true;
+Object.assign(sun.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:1,far:300});sun.shadow.camera.updateProjectionMatrix();sun.shadow.mapSize.set(4096,4096);
+sun.position.set(40,80,30);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(400,400),toon(0x8f8470));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const grid=new THREE.GridHelper(200,200,0x3a3026,0x7a6e5a);grid.position.set(35,.01,35);grid.material.opacity=.3;grid.material.transparent=true;scene.add(grid);
+
+// Manekin 1,8 m dla skali.
+const dummy=new THREE.Group();
+{const m=toon(0x4a90d9);const b=new THREE.Mesh(new THREE.CylinderGeometry(.22,.2,1.45,10),m);b.position.y=.725;const h=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),toon(0xe8b890));h.position.y=1.67;dummy.add(b,h);dummy.visible=false;scene.add(dummy)}
+
+let showDummy=false;
+let seed=1,items=[],cur=-1,filterCat='';
+const labels=document.getElementById('labels'),info=document.getElementById('info');
+const wrap=new THREE.Group();scene.add(wrap);
+
+function clearAll(){
+  for(let i=outlines.length-1;i>=0;i--){let p=outlines[i];while(p.parent)p=p.parent;if(p===wrap)outlines.splice(i,1)}
+  while(wrap.children.length){const c=wrap.children.pop();c.traverse(o=>{if(o.geometry&&!(o.material&&o.material.userData&&o.material.userData.shared&&false))o.geometry.dispose()})}
+  labels.innerHTML='';items=[];
+}
+function category(id){return (DS.props.get(id).cat)||''}
+function build(){
+  clearAll();
+  const defs=DS.props.all().filter(d=>d.make&&(!filterCat||d.cat===filterCat));
+  let x=0,z=0,rowD=0,maxX=0;const W=70,list=[];
+  for(const d of defs){
+    const variants=d.variants&&d.variants.length?d.variants:[null];
+    for(const v of variants){
+      const g=d.make(v?{seed,variant:v}:{seed});
+      const bb=new THREE.Box3().setFromObject(g);const sz=bb.getSize(new THREE.Vector3());
+      const w=Math.max(sz.x,sz.z,1.2)+2.4;
+      if(x+w>W){x=0;z+=rowD;rowD=0}
+      g.position.set(x+w/2-bb.getCenter(new THREE.Vector3()).x*0,0,z+Math.max(sz.x,sz.z,1.2)/2+1);
+      wrap.add(g);rowD=Math.max(rowD,Math.max(sz.x,sz.z)+3);
+      const el=document.createElement('div');el.className='lbl';labels.appendChild(el);
+      const dd=d.dims,tol=dd?Math.max(Math.abs(sz.x-dd[0])/dd[0],Math.abs(sz.y-dd[1])/dd[1],Math.abs(sz.z-dd[2])/dd[2]):0;
+      const it={def:d,variant:v,g,el,size:sz,w,idx:list.length};
+      el.innerHTML=`<b>${d.name}${v?' · '+v:''}</b> <i>${d.id}</i><br>${sz.x.toFixed(2)} × ${sz.y.toFixed(2)} × ${sz.z.toFixed(2)} m`+(dd?` <i>(real ${dd.join('×')})</i>`:'')+`<br><i>${g.userData.tris} tri + kontur ${g.userData.ink}`+(g.userData.cover?' · osłona':'')+`</i>`;
+      if(tol>.35)el.classList.add('warn');
+      el.onclick=()=>focus(it.idx);list.push(it);
+      x+=w;maxX=Math.max(maxX,x);
+    }
+  }
+  items=list;overview(maxX,z+rowD);
+}
+let tgt=new THREE.Vector3(),dist=40,yaw=.6,pitch=.55,tTgt=tgt.clone(),tDist=dist;
+function overview(wx,wz){cur=-1;dummy.visible=false;tTgt.set(Math.min(wx,70)/2,0,wz/2);tDist=Math.max(35,Math.max(Math.min(wx,70),wz)*1.05);pitch=.75;yaw=.0}
+function focus(i){
+  if(!items.length)return;cur=(i+items.length)%items.length;const it=items[cur];
+  tTgt.copy(it.g.position);tTgt.y=Math.max(.6,it.size.y*.45);tDist=Math.max(it.size.x,it.size.y,it.size.z)*1.7+2;
+  dummy.visible=showDummy;dummy.position.copy(it.g.position).add(new THREE.Vector3(it.size.x/2+.6,0,it.size.z/2+.2));
+  yaw=.7;pitch=.3;
+  info.innerHTML=`<b>${it.def.name}</b>${it.variant?' · '+it.variant:''}<br>${it.def.note||''}`;
+}
+document.getElementById('bAll').onclick=()=>{build()};
+document.getElementById('bPrev').onclick=()=>focus(cur<0?0:cur-1);
+document.getElementById('bNext').onclick=()=>focus(cur<0?0:cur+1);
+const sv=document.getElementById('seedv');
+const setSeed=s=>{seed=s;sv.textContent='seed '+seed;const c=cur;build();if(c>=0)focus(c)};
+document.getElementById('bSeed-').onclick=()=>setSeed(seed-1);document.getElementById('bSeed+').onclick=()=>setSeed(seed+1);
+document.getElementById('bOut').onclick=()=>{opt.outlines=opt.outlines?0:1;outlines.forEach(o=>o.visible=!!opt.outlines)};
+document.getElementById('bDum').onclick=()=>{showDummy=!showDummy;dummy.visible=showDummy&&cur>=0};
+let flick=true;document.getElementById('bNeon').onclick=e=>{flick=!flick;e.target.textContent='neony: '+(flick?'mruganie':'stałe')};
+const catSel=document.getElementById('cat');
+for(const c of [...new Set(DS.props.all().filter(d=>d.make&&d.cat).map(d=>d.cat))]){const o=document.createElement('option');o.value=o.textContent=c;catSel.appendChild(o)}
+{const q=new URLSearchParams(location.search).get('cat');if(q){filterCat=q;catSel.value=q;build()}}
+catSel.onchange=()=>{filterCat=catSel.value;build()};
+
+// Orbit: LPM obrót, kółko zoom, PPM/Shift przesuw.
+const cv=renderer.domElement;let drag=null;
+cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,pan:e.button===2||e.shiftKey};cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointerup',()=>drag=null);
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+  if(drag.pan){const k=dist*.0016;const r=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));tTgt.addScaledVector(r,-dx*k);tTgt.y=Math.max(0,tTgt.y+dy*k)}
+  else{yaw-=dx*.006;pitch=Math.max(-.1,Math.min(1.5,pitch+dy*.006))}});
+cv.addEventListener('wheel',e=>{e.preventDefault();tDist=Math.max(1.2,Math.min(150,tDist*Math.exp(e.deltaY*.0012)))},{passive:false});
+addEventListener('keydown',e=>{if(e.key==='ArrowRight')focus(cur+1);if(e.key==='ArrowLeft')focus(cur-1);if(e.key==='Escape')build()});
+
+function resize(){const w=innerWidth,h=innerHeight;renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+
+const v3=new THREE.Vector3();
+function frame(t){
+  requestAnimationFrame(frame);t*=.001;
+  tgt.lerp(tTgt,.15);dist+=(tDist-dist)*.15;
+  camera.position.set(tgt.x+Math.sin(yaw)*Math.cos(pitch)*dist,tgt.y+Math.sin(pitch)*dist,tgt.z+Math.cos(yaw)*Math.cos(pitch)*dist);camera.lookAt(tgt);
+  // Neony: mruganie jak w animateWorld (przygaszenie koloru, nigdy visible=false).
+  let k=0;wrap.traverse(o=>{if(o.userData&&o.userData.neon){o.material.color.setScalar(flick&&Math.sin(t*7+k*3)>.97?.3:1);k++}});
+  for(const it of items){
+    v3.copy(it.g.position);v3.y=it.size.y+.3;v3.project(camera);
+    const vis=v3.z<1&&Math.abs(v3.x)<1.2&&Math.abs(v3.y)<1.2&&(cur<0?dist<130:it.idx===cur);
+    it.el.style.display=vis?'block':'none';
+    if(vis){it.el.style.left=((v3.x+1)/2*innerWidth)+'px';it.el.style.top=((1-v3.y)/2*innerHeight)+'px'}
+  }
+  renderer.render(scene,camera);
+}
+build();requestAnimationFrame(frame);
+window.__pv={build,focus,snap:()=>{tgt.copy(tTgt);dist=tDist},setSeed,get items(){return items},overview:()=>build(),cam:(y,p,d)=>{yaw=y;pitch=p;if(d)tDist=d},THREE,DS,renderer,scene};
+</script>
+</body>
+</html>

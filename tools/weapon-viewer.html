@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Weapon viewer — Disco Strzelnica</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  html,body{margin:0;height:100%;background:#1b1612;color:#f4e7c5;font:12px/1.3 system-ui,sans-serif;overflow:hidden}
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #bar{position:fixed;left:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;z-index:5;max-width:calc(100% - 330px)}
+  #bar button,#bar select{background:#2b2218;color:#f4e7c5;border:1px solid #6b5640;border-radius:4px;padding:3px 8px;font:inherit;cursor:pointer}
+  #bar button:hover{background:#44331f}#bar button.on{background:#7a5a22;border-color:#ffe14a}
+  #bar label{display:flex;gap:4px;align-items:center;background:#2b2218;border:1px solid #6b5640;border-radius:4px;padding:2px 8px}
+  #info{position:fixed;right:8px;top:8px;width:300px;background:rgba(20,15,10,.88);border:1px solid #6b5640;border-radius:4px;padding:6px 9px;font-size:11px;z-index:5;white-space:pre-wrap}
+  #info b{color:#ffe14a}.ok{color:#8be08b}.bad{color:#ff7a6a}
+  #hint{position:fixed;left:8px;bottom:8px;opacity:.6;font-size:11px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="ov" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;display:none;z-index:2"></canvas>
+<div id="bar">
+  <select id="sel"></select>
+  <button id="bPrev">&larr;</button><button id="bNext">&rarr;</button>
+  <button data-v="side">bok</button><button data-v="sideR" title="prawa strona (okno wyrzutowe)">prawy</button><button data-v="iso">3/4</button><button data-v="top">góra</button><button data-v="front">przód</button><button data-v="rear">tył</button>
+  <button data-v="hip" title="tak jak w grze (FOV z opcji, pozycja gunRoot)">hip</button>
+  <button data-v="ads" title="widok przez przyrządy: kamera w sightAnchor">ADS</button>
+  <button id="bWorld">model świata</button>
+  <button id="bOut" class="on">kontury</button>
+  <button id="bSpin">obrót</button>
+  <label>anim <input id="anim" type="range" min="0" max="1" step="0.01" value="0" style="width:90px"></label>
+</div>
+<div id="info"></div>
+<div id="hint">LPM: obrót · kółko: zoom · PPM/Shift+LPM: przesuń · URL: ?w=glock17&amp;view=ads&amp;world=1&amp;anim=.5&amp;out=0&amp;fov=50</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module">
+import {DS} from '../js/core/ds.js';
+import {opt} from '../js/core/save.js';
+import {renderer,scene,sun,hemi} from '../js/render/renderer.js';
+import {toon,hull,outlines,inkMat} from '../js/render/materials.js';
+
+const $=s=>document.querySelector(s),info=$('#info');
+const Q=new URLSearchParams(location.search);
+let err='';
+await import('../js/weapons/legacy.js');await import('../js/weapons/data/index.js');
+try{await import('../js/weapons/models/index.js')}
+catch(e){err+='models/index.js: '+e.message+'\n';console.error(e);try{await import('../js/weapons/models/pistols.js')}catch(e2){err+='pistols.js: '+e2.message+'\n';console.error(e2)}}
+
+const gunMat1=toon(0x3a3835),gunMat2=toon(0x8a857c);
+scene.background=new THREE.Color(0x8d8478);scene.fog=null;
+renderer.setPixelRatio(1);
+const cam=new THREE.PerspectiveCamera(40,1,.01,200);
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+
+/* — scena: stojak, tarcza ADS, oś lufy — */
+const stand=new THREE.Group();scene.add(stand);
+{const m=toon(0x4a3c2c);const d=new THREE.Mesh(new THREE.CylinderGeometry(.17,.19,.012,28),m);d.position.y=-.2;stand.add(d);
+ const r=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.07,8),m);r.position.y=-.16;stand.add(r);
+ const grid=new THREE.GridHelper(.8,16,0x3a3026,0x6a5f50);grid.position.y=-.2;stand.add(grid)}
+const target=new THREE.Group();scene.add(target);
+{const mats=[0xf2efe6,0xd8321f,0xf2efe6,0xd8321f];for(let i=0;i<4;i++){const c=new THREE.Mesh(new THREE.CircleGeometry(.5-i*.12,24),new THREE.MeshBasicMaterial({color:mats[i]}));c.position.z=.001*i;target.add(c)}}
+const boreLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]),new THREE.LineBasicMaterial({color:0x22d0ff}));scene.add(boreLine);
+const sightLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]),new THREE.LineBasicMaterial({color:0xff3df0}));scene.add(sightLine);
+const guides=[boreLine,sightLine];
+
+/* — wybór broni — */
+const sel=$('#sel');
+const ids=DS.weapons.ids();
+const isReal=id=>{const W=DS.weapons.get(id);return typeof W.getViewModel==='function'};
+const modeled=ids.filter(isReal);
+for(const id of ids){const o=document.createElement('option');o.value=id;o.textContent=(isReal(id)?'● ':'○ ')+DS.weapons.get(id).name+' ('+id+')';sel.appendChild(o)}
+let curId=Q.get('w')||modeled[0]||ids[0];if(!ids.includes(curId))curId=ids[0];sel.value=curId;
+
+let world=Q.get('world')==='1',view=Q.get('view')||'side',spin=Q.has('view')?false:true,animT=+Q.get('anim')||0;
+opt.outlines=Q.get('out')==='0'?0:1;
+$('#anim').value=animT;
+const gunHolder=new THREE.Group();scene.add(gunHolder);
+let gun=null,gunInfo=null;
+
+/** Wiernik buildGun z weapons/viewmodel.js (dla modeli bez getViewModel). */
+function legacyBuild(id){
+  const g=new THREE.Group(),muzzle=new THREE.Vector3();
+  const B=(w,h,d,x,y,z,m,rx=0)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.rotation.x=rx;hull(mesh,.09);g.add(mesh);return mesh};
+  DS.weapons.get(id).model({B,group:g,mat1:gunMat1,mat2:gunMat2,muzzle,hull});
+  g.userData.muzzle=muzzle.clone();return g;
+}
+function countTris(root){
+  let tri=0,ink=0,meshes=0;
+  root.traverse(o=>{if(!o.isMesh)return;const gm=o.geometry,n=(gm.index?gm.index.count:gm.attributes.position.count)/3;
+    if(o.material===inkMat||o.userData.hull)ink+=n;else tri+=n;meshes++});
+  return {tri,ink,meshes};
+}
+function build(){
+  for(let i=outlines.length-1;i>=0;i--){let p=outlines[i];while(p.parent)p=p.parent;if(p!==scene)outlines.splice(i,1)}
+  if(gun)gunHolder.remove(gun);
+  const W=DS.weapons.get(curId);
+  try{
+    if(world&&W.getWorldModel)gun=W.getWorldModel({m1:gunMat1,m2:gunMat2});
+    else if(W.getViewModel)gun=W.getViewModel({m1:gunMat1,m2:gunMat2});
+    else gun=legacyBuild(curId);
+  }catch(e){console.error(e);err+=curId+': '+e.message+'\n';gun=new THREE.Group()}
+  gunHolder.add(gun);setOutlines(opt.outlines);
+  applyView(true);
+}
+function setOutlines(on){opt.outlines=on?1:0;for(const o of outlines)o.visible=!!on;$('#bOut').classList.toggle('on',!!on)}
+
+/* — kamera — */
+let theta=-.9,phi=1.25,dist=.5,tgt=new THREE.Vector3(),pan=new THREE.Vector3();
+const PRE={side:[-Math.PI/2,Math.PI/2],sideR:[Math.PI/2,Math.PI/2],iso:[-.9,1.25],top:[-Math.PI/2,.05],front:[0,Math.PI/2],rear:[Math.PI,Math.PI/2]};
+const tmp=new THREE.Vector3();
+function applyView(reset){
+  const W=DS.weapons.get(curId);
+  stand.visible=!['hip','ads'].includes(view);
+  if(view==='hip'){gunHolder.position.set(.22,-.2,-.42);}
+  else gunHolder.position.set(0,0,0);
+  const adsOn=view==='ads';
+  target.visible=adsOn;
+  const bb=new THREE.Box3().setFromObject(gun);
+  if(reset&&PRE[view]){[theta,phi]=PRE[view];bb.getCenter(tgt);const s=bb.getSize(tmp);dist=(Math.max(s.x,s.y,s.z)*1.9+.05)*(+Q.get('zoom')||1);pan.set(0,0,0)}
+  document.querySelectorAll('#bar [data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+  updateGuides();
+  adsExtras(adsOn);
+}
+/** Dodatki modeli z optyką/przełącznikami: userData.setAds(on) (chowa lunetę), userData.reticle (siatka 2D na ADS), userData.toggles. */
+const ov=$('#ov');
+function adsExtras(adsOn){
+  const u=gun.userData||{};
+  if(u.setAds)u.setAds(adsOn);
+  if(adsOn&&u.reticle&&!world){
+    import('../js/weapons/models/reticles.js').then(m=>{ov.width=innerWidth;ov.height=innerHeight;m.drawReticle(u.reticle,ov.getContext('2d'),ov.width,ov.height);ov.style.display='block'});
+  }else ov.style.display='none';
+  document.querySelectorAll('#bar [data-tg]').forEach(b=>b.remove());
+  for(const [i,tg] of (world?[]:(u.toggles||[])).entries()){
+    const b=document.createElement('button');b.dataset.tg=i;b.textContent=tg.label;
+    b.onclick=()=>{b.classList.toggle('on');tg.set(b.classList.contains('on'))};
+    $('#bar').insertBefore(b,$('#bWorld'));
+    if((Q.get('tg')||'').split(',').includes(String(i)))b.click();   // ?tg=0,1 – włącz przełączniki od razu
+  }
+}
+addEventListener('resize',()=>{if(ov.style.display==='block')applyView(false)});
+function sightWorld(name){
+  const u=gun&&gun.userData&&gun.userData[name];if(!u)return null;return gun.localToWorld(u.clone());
+}
+function updateGuides(){
+  gun.updateMatrixWorld(true);
+  const m=sightWorld('muzzle'),a=sightWorld('sightAnchor'),r=sightWorld('sightRear'),f=sightWorld('sightFront');
+  const show=view!=='hip'&&!!m;
+  boreLine.visible=sightLine.visible=show&&view!=='ads';
+  if(m){boreLine.position.copy(m);boreLine.scale.set(1,1,.6);boreLine.visible=show&&view!=='ads'}
+  if(r&&f){sightLine.position.copy(r);sightLine.scale.set(1,1,.6)}else sightLine.visible=false;
+  if(view==='ads'&&a&&r&&f){
+    target.position.set(f.x,f.y,f.z-25);target.scale.setScalar(.6);
+    boreLine.visible=false;sightLine.visible=false;
+  }
+}
+
+/* — pętla — */
+const H=new THREE.Vector3();
+function frame(){
+  requestAnimationFrame(frame);
+  const W=DS.weapons.get(curId);
+  if(spin&&view!=='ads'&&view!=='hip')theta+=.006;
+  if(gun&&gun.userData.anim)gun.userData.anim(animT);
+  if(view==='ads'&&gun.userData.sightAnchor){
+    gun.updateMatrixWorld(true);
+    cam.position.copy(sightWorld('sightAnchor'));cam.rotation.set(0,0,0);cam.fov=+Q.get('fov')||gun.userData.viewFov||55;
+  }else if(view==='hip'){cam.position.set(0,0,0);cam.rotation.set(0,0,0);cam.fov=opt.fov||80}
+  else{
+    cam.fov=40;
+    cam.position.set(tgt.x+pan.x+dist*Math.sin(phi)*Math.sin(theta),tgt.y+pan.y+dist*Math.cos(phi),tgt.z+pan.z+dist*Math.sin(phi)*Math.cos(theta));
+    cam.lookAt(tmp.copy(tgt).add(pan));
+  }
+  cam.updateProjectionMatrix();
+  renderer.render(scene,cam);
+}
+
+/* — informacje — */
+function refreshInfo(){
+  const W=DS.weapons.get(curId);gun.updateMatrixWorld(true);
+  const c=countTris(gun);let s=`<b>${W.name}</b> · ${curId}${world?' · model świata':''}\n`;
+  s+=`trójkąty: ${c.tri|0} + kontur ${c.ink|0} = <b>${(c.tri+c.ink)|0}</b> (siatek ${c.meshes})  budżet ${world?300:1500}\n`;
+  const bb=new THREE.Box3().setFromObject(gun),sz=bb.getSize(new THREE.Vector3());
+  s+=`wymiary: dł ${(sz.z*1000).toFixed(0)} · wys ${(sz.y*1000).toFixed(0)} · szer ${(sz.x*1000).toFixed(0)} mm\n`;
+  const u=gun.userData;
+  if(u.sightAnchor&&!world){
+    const a=u.sightAnchor,r=u.sightRear,f=u.sightFront,m=u.muzzle;
+    // odległość muszki od prostej oko→szczerbinka (powinno być ~0), równoległość do osi lufy
+    const d=r.clone().sub(a).normalize(),v=f.clone().sub(a),cross=v.clone().cross(d).length();
+    const dx=(r.x-f.x)*1000,dy=(r.y-f.y)*1000;
+    const ok=cross*1000<.2&&Math.abs(dx)<.05&&Math.abs(m.x-a.x)<1e-6&&Math.abs(d.x)<1e-6&&Math.abs(d.y)<1e-6;
+    s+=`<b>ADS</b>: oko→szczerbinka→muszka: odchyłka ${(cross*1000).toFixed(3)} mm  ${ok?'<span class="ok">OK</span>':'<span class="bad">BŁĄD</span>'}\n`;
+    s+=`  linia celowania ${((f.y-m.y)*1000).toFixed(1)} mm nad osią lufy, oś x ${(a.x*1000).toFixed(1)}; eye relief ${(u.eyeRelief*1000).toFixed(0)} mm\n`;
+    s+=`  promień celowania ${(Math.abs(r.z-f.z)*1000).toFixed(0)} mm, wylot z=${(m.z*1000).toFixed(0)} mm\n`;
+  }
+  if(u.parts){const n=Object.keys(u.parts).filter(k=>!['root','muzzle','sightAnchor','sightRear','sightFront','ejectionPort'].includes(k));s+=`ruchome: ${n.join(', ')}\n`}
+  if(err)s+=`<span class="bad">${err.replace(/</g,'&lt;')}</span>`;
+  info.innerHTML=s;
+}
+window.addEventListener('keydown',e=>{if(e.code==='ArrowRight')step(1);if(e.code==='ArrowLeft')step(-1)});
+function step(d){const list=modeled.length?modeled:ids;let i=list.indexOf(curId);i=(i+d+list.length)%list.length;set(list[i])}
+function set(id){curId=id;sel.value=id;build();refreshInfo()}
+
+sel.onchange=()=>set(sel.value);
+$('#bPrev').onclick=()=>step(-1);$('#bNext').onclick=()=>step(1);
+document.querySelectorAll('#bar [data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;if(view==='ads'||view==='hip')spin=false;applyView(true);refreshInfo()});
+$('#bWorld').onclick=()=>{world=!world;$('#bWorld').classList.toggle('on',world);build();refreshInfo()};
+$('#bOut').onclick=()=>setOutlines(!opt.outlines);
+$('#bSpin').onclick=()=>{spin=!spin;$('#bSpin').classList.toggle('on',spin)};
+$('#anim').oninput=e=>animT=+e.target.value;
+
+/* — mysz — */
+let drag=null;const cv=$('#gl');
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,pan:e.button===2||e.shiftKey};cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointerup',()=>drag=null);
+cv.addEventListener('pointermove',e=>{if(!drag||view==='ads'||view==='hip')return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+  if(drag.pan){const k=dist*.0014;const r=new THREE.Vector3().setFromMatrixColumn(cam.matrix,0),u=new THREE.Vector3().setFromMatrixColumn(cam.matrix,1);pan.addScaledVector(r,-dx*k).addScaledVector(u,dy*k)}
+  else{theta-=dx*.008;phi=Math.max(.02,Math.min(Math.PI-.02,phi-dy*.008))}});
+cv.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(.05,Math.min(3,dist*Math.exp(e.deltaY*.0012)))},{passive:false});
+
+$('#bSpin').classList.toggle('on',spin);$('#bWorld').classList.toggle('on',world);
+window.WV={DS,set,build,get gun(){return gun},get cam(){return cam},refreshInfo,setView(v){view=v;applyView(true);refreshInfo()},countTris};
+build();refreshInfo();frame();
+</script>
+</body>
+</html>
