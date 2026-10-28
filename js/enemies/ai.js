@@ -278,7 +278,7 @@ function act(e,dt){
       if(a.react>0){a.react-=dt}
       let gx=a.sees||a.hunt>0?P.pos.x:a.lx,gz=a.sees||a.hunt>0?P.pos.z:a.lz;
       if(c.weave){const sw=Math.sin(a.age*1.7+e.walk0)*c.weave;gx+=-ctx.nz*sw;gz+=ctx.nx*sw}      // slalom (np. pijak)
-      const stop=c.melee?Math.max(1.1,c.range[0]):c.range[1]*.9;
+      const stop=c.melee?Math.max(1.1,c.range[0]):(a.sees?c.range[1]*.9:1.5);        // strzelec staje dopiero, gdy widzi gracza
       moveToward(e,dt,gx,gz,sp,stop);
       break}
     case 'attack':{
@@ -310,7 +310,7 @@ function defaultAttack(e,dt){
 }
 
 /* ---------- animacja ---------- */
-function animate(e,dt){
+export function animateHuman(e,dt){
   const a=e.ai,c=e.cfg;
   const sp=a.sp,k=Math.min(1,dt*10);
   e.walk+=dt*(1.5+sp*2.1);
@@ -350,7 +350,7 @@ export function updateAI(e,dt,eye){
   const want=a.face===1?Math.atan2(-ctx.dx,-ctx.dz):a.face===2?a.faceYaw:(a.sp>.4?a.moveYaw:e.g.rotation.y);
   const dy=angDiff(e.g.rotation.y,want),step=c.turn*dt;
   e.g.rotation.y+=Math.abs(dy)<step?dy:Math.sign(dy)*step;
-  if(c.animate)c.animate(e,dt);else animate(e,dt);
+  if(c.animate)c.animate(e,dt);else animateHuman(e,dt);
 }
 
 /* ---------- trafienie i śmierć ---------- */
@@ -387,7 +387,8 @@ export function dyingHuman(e,dt){
     e.fallX=clamp(-(hx*fx+hz*fz),-1,1);e.fallZ=clamp(-(hx*rx+hz*rz),-1,1);
     if(Math.abs(e.fallX)<.35&&Math.abs(e.fallZ)<.35)e.fallX=.6;
     e.splay=rand(.3,1.0);e.crouch=0;e.glow=0;
-    if(e.beam&&e.beam.release)e.beam.release();
+    if(e.beam&&e.beam.release){e.beam.release();e.beam=null}
+    if(e.beams){e.beams.forEach(b=>b.release());e.beams=null}
     if(e.onDieInit)e.onDieInit(e);
   }
   e.dieT+=dt;

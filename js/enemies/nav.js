@@ -5,10 +5,11 @@ import {world} from '../world/state.js';
 
 const CELL_AUTO=1;                    // m
 const R0=.6,R1=1.15;                  // promienie zajęcia: klasa 0 (ludzie), klasa 1 (boss, Maluch)
-const LOS_H=1.7;                      // collider niższy niż to nie zasłania widoku (osłona niska)
+const LOS_H=1.7;                      // collider niższy niż to nie zasłania widoku stojącego
+const LOW_H=1.3;                      // ...ale chowa kucającego (osłona częściowa: skrzynie, auta, murki)
 const MAX_EXP=5000;                   // limit węzłów jednego zapytania A*
 
-let N=null;                           // aktualna siatka: {key,x0,z0,cols,rows,cell,b0,b1,los,graph,cover}
+let N=null;                           // aktualna siatka: {key,x0,z0,cols,rows,cell,b0,b1,los,low,graph,cover}
 let stamp=0,gS,par,seen,closed,hk,hv,hn=0;  // bufory A* (jedno zadanie naraz, więc współdzielone)
 const jobs=[];let cur=null;
 
@@ -36,7 +37,8 @@ function build(key){
   }else{
     cols=Math.ceil((2*A+2)/cell);rows=cols;b0=new Uint8Array(cols*rows);b1=new Uint8Array(cols*rows);los=new Uint8Array(cols*rows);
   }
-  N={key,x0,z0,cols,rows,cell,b0,b1,los,graph:null,cover:null};
+  N={key,x0,z0,cols,rows,cell,b0,b1,los,low:null,graph:null,cover:null};
+  N.low=new Uint8Array(los);
   if(!(ln&&ln.blocked)){
     for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){            // poza areną = zablokowane
       const cx=x0+(c+.5)*cell,cz=z0+(r+.5)*cell;
@@ -45,13 +47,13 @@ function build(key){
     for(const k of world.colliders){
       const i0=Math.max(0,Math.floor((k.x0-R1-x0)/cell)),i1=Math.min(cols-1,Math.floor((k.x1+R1-x0)/cell));
       const j0=Math.max(0,Math.floor((k.z0-R1-z0)/cell)),j1=Math.min(rows-1,Math.floor((k.z1+R1-z0)/cell));
-      const tall=k.h===undefined||k.h>=LOS_H;
+      const tall=k.h===undefined||k.h>=LOS_H,mid=k.h===undefined||k.h>=LOW_H;
       for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){
         const cx=x0+(i+.5)*cell,cz=z0+(j+.5)*cell;
         const dx=Math.max(k.x0-cx,0,cx-k.x1),dz=Math.max(k.z0-cz,0,cz-k.z1),d2=dx*dx+dz*dz;
         const id=j*cols+i;
         if(d2<R0*R0)b0[id]=1;if(d2<R1*R1)b1[id]=1;
-        if(tall&&dx<cell*.5&&dz<cell*.5)los[id]=1;               // komórka zachodzi na collider
+        if(dx<cell*.5&&dz<cell*.5){if(tall)los[id]=1;if(mid)N.low[id]=1}   // komórka zachodzi na collider
       }}
   }
   if(ln&&ln.points&&ln.points.length)N.graph=buildGraph(ln);
@@ -77,10 +79,10 @@ export function blocked(x,z,cls=0){grid();const i=idx(x,z);return i<0||(cls?N.b1
 export const isFree=(x,z,cls=0)=>!blocked(x,z,cls);
 
 /** Widok między punktami nie jest zasłonięty wysokim colliderem (próbkowanie co 0,5 m). Tania alternatywa dla raycastu. */
-export function gridLos(x0,z0,x1,z1){
+export function gridLos(x0,z0,x1,z1,low=false){
   grid();
-  const dx=x1-x0,dz=z1-z0,d=Math.hypot(dx,dz),n=Math.ceil(d/.5);
-  for(let i=1;i<n;i++){const t=i/n,j=idx(x0+dx*t,z0+dz*t);if(j>=0&&N.los[j])return false}
+  const L=low?N.low:N.los,dx=x1-x0,dz=z1-z0,d=Math.hypot(dx,dz),n=Math.ceil(d/.5);
+  for(let i=1;i<n;i++){const t=i/n,j=idx(x0+dx*t,z0+dz*t);if(j>=0&&L[j])return false}
   return true;
 }
 /** Bezpośrednie przejście (próbkowanie co 0,4 m po siatce zajęć). */
@@ -226,14 +228,14 @@ function graphPath(sx,sz,gx,gz,cls){
 
 /* ---------- osłony ---------- */
 const COV={x:0,z:0};
-/** Najbliższe miejsce w promieniu maxD od (fx,fz), z którego (tx,tz) nie widzi (collider wyższy niż 1,7 m). {x,z} (wspólny obiekt) albo null. */
+/** Najbliższe miejsce w promieniu maxD od (fx,fz), z którego (tx,tz) nie widzi (collider ≥1,3 m, bo wróg kuca). {x,z} (wspólny obiekt) albo null. */
 export function findCover(fx,fz,tx,tz,maxD=16,cls=0){
   grid();
   let best=null,bs=1e9;
   const test=(x,z,pen)=>{
     if(!isFree(x,z,cls))return;
     const dT=Math.hypot(x-tx,z-tz);if(dT<5)return;
-    if(gridLos(x,z,tx,tz))return;
+    if(gridLos(x,z,tx,tz,true))return;                         // osłona = wysokie przeszkody albo skrzynie (kucanie)
     const s=Math.hypot(x-fx,z-fz)+pen+(walkable(fx,fz,x,z,cls)?0:6);
     if(s<bs){bs=s;COV.x=x;COV.z=z;best=COV}
   };
