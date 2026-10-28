@@ -5,7 +5,7 @@ DS.weapons.register({
   id:'mossberg500', name:'Mossberg 500', short:'Mossberg', key:'12', price:650,
   dmg:13, rate:.8, mag:6, reload:2, spread:.09, pellets:9, auto:false,
   snd:'BUUUM!', sfx:'shotgun', kick:1, pitchKick:.035, shake:.35, burst:true,
-  slot:3, adsFov:.8, adsTime:.29, moveMult:.78, moveMultAds:.47, recoil:{pitch:.0178, yaw:.0044, recovery:4},
+  slot:3, adsFov:.8, adsSpread:.8, adsTime:.29, moveMult:.78, moveMultAds:.47, recoil:{pitch:.0178, yaw:.0044, recovery:4},
   real:{cal:'12/70 (śrut 00 buck, 9 śrutów - niepotwierdzone w źródle)', mag:6, rpm:null, v0:null, bulletG:null, weight:3.18, length:917, barrel:null, range:null,
     fire:'pompka', action:'pump action',
     src:['https://en.wikipedia.org/wiki/Mossberg_500'],

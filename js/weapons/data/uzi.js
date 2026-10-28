@@ -6,7 +6,7 @@ DS.weapons.register({
   id:'uzi', name:'Uzi', short:'Uzi', key:'9', price:450,
   dmg:30, rate:.1, mag:32, reload:1.6, spread:.03, pellets:1, auto:true,
   snd:'RATATA!', sfx:'smg', kick:.45, pitchKick:.012, shake:.08, burst:false,
-  slot:2, adsFov:.8, adsTime:.31, moveMult:.76, moveMultAds:.46, recoil:{pitch:.0048, yaw:.0012, recovery:25},
+  slot:2, adsFov:.8, adsSpread:.5, adsTime:.31, moveMult:.76, moveMultAds:.46, recoil:{pitch:.0048, yaw:.0012, recovery:25},
   real:{cal:'9×19 mm Parabellum', mag:32, rpm:600, v0:400, bulletG:8.0, weight:3.5, length:445, barrel:null, range:200,
     fire:'automatyczny', action:'blowback, otwarty zamek',
     src:['https://en.wikipedia.org/wiki/Uzi'],

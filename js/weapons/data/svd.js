@@ -5,7 +5,7 @@ DS.weapons.register({
   id:'svd', name:'SVD Dragunow', short:'SVD', key:'17', price:1800,
   dmg:40, rate:.3, mag:10, reload:1.8, spread:.003, pellets:1, auto:false,
   snd:'PAF!', sfx:'rifle', kick:.45, pitchKick:.012, shake:.08, burst:false,
-  slot:5, adsFov:.4, adsTime:.46, moveMult:.70, moveMultAds:.42, recoil:{pitch:.0109, yaw:.0027, recovery:8.3},
+  slot:5, adsFov:.4, adsSpread:.3, adsTime:.46, moveMult:.70, moveMultAds:.42, recoil:{pitch:.0109, yaw:.0027, recovery:8.3},
   real:{cal:'7.62×54 mm R', mag:10, rpm:null, v0:830, bulletG:9.6, weight:4.3, length:1225, barrel:null, range:800,
     fire:'półautomat', action:'gas-operated, short-stroke piston, rotating bolt', sight:'PSO-1', mag_x:4,
     src:['https://en.wikipedia.org/wiki/SVD_Dragunov'],
