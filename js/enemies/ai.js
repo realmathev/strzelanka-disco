@@ -417,3 +417,8 @@ export function dyingHuman(e,dt){
   g.position.y=.2*ease-(e.dieT>3.8?(e.dieT-3.8)*.5:0);
   for(const m of e.mats)m.emissive.setRGB(0,0,0);
 }
+// „Druga szansa” (flow.revive wyzerowuje tylko shootT gangsterów): wrogowie AI też dostają ~2,5 s karencji przed następnym atakiem.
+DS.bus.on('heal',ev=>{
+  if(!ev||ev.source!=='revive'||!S.G)return;
+  for(const o of S.G.enemies)if(o.alive&&o.ai){o.ai.cd=Math.max(o.ai.cd,2.5);o.ai.cd2=Math.max(o.ai.cd2,2.5);o.ai.hunt=Math.max(o.ai.hunt,6)}
+});
