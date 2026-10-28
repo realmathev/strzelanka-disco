@@ -109,4 +109,5 @@ DS.bus.on('kill',({enemy:e})=>{
 });
 DS.bus.on('levelLoad',()=>nav.resetNav());
 DS.bus.on('levelUnload',()=>nav.resetNav());
-DS.bus.on('levelEnd',clearProj);
+// koniec biegu: zwolnij też zbuforowane modele wariantów (geometrie wracają do stanu sprzed biegu; kolejny bieg zbuduje je od nowa)
+DS.bus.on('levelEnd',()=>{clearProj();pruneModels(new Set(),0)});
