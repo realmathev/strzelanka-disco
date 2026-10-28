@@ -27,11 +27,12 @@ export function fire(){
   const moving=P.vel.length()>2?1.8:1;const air=P.ground?1:2;
   const targets=world.meshes.slice();for(const e of G.enemies)if(e.alive)targets.push(...e.meshes);
   const muzzle=gunRoot.localToWorld(muzzleLocal.clone());
-  let hitAny=false;
+  let hitAny=false;const hits=[],sm=DS.player.spreadMul?DS.player.spreadMul():1;
   for(let i=0;i<W.pellets;i++){
-    const s=W.spread*moving*air;rayc.setFromCamera({x:rand(-s,s)*2,y:rand(-s,s)*2},camera);
+    const s=W.spread*moving*air*sm;rayc.setFromCamera({x:rand(-s,s)*2,y:rand(-s,s)*2},camera);
     const h=rayc.intersectObjects(targets,false)[0];
     const end=h?h.point:rayc.ray.at(120,new THREE.Vector3());
+    if(h)hits.push({point:h.point.clone(),normal:h.face?h.face.normal.clone().transformDirection(h.object.matrixWorld):null,object:h.object,enemy:h.object.userData.enemy||null});
     if(i<3)addTracer(muzzle,end,0xffe14a,.05);
     if(h){const e=h.object.userData.enemy;
       if(e&&e.alive){hitAny=true;const head=h.object.userData.part==='head';damageEnemy(e,W.dmg*dmgMult()*(head?2.2:1)*(W.pellets>1?rand(.8,1.1):1),head,h.point)}
@@ -43,7 +44,7 @@ export function fire(){
   G.shake+=W.shake;
   if(opt.onoma&&(!W.auto||G.shots%6===0))addFloater(W.snd,{x:innerWidth*.62+rand(-20,30),y:innerHeight*.6+rand(-20,20),size:W.auto?34:44,life:.45,color:'#ffe14a',rot:rand(-.3,.1),burst:W.burst});
   if(G.ammo[G.weapon]===0)setTimeout(()=>{const g=S.G;if(g&&g.ammo[g.weapon]===0)startReload()},250);
-  DS.bus.emit('shot',{weapon:G.weapon,def:W,hit:hitAny,muzzle});
+  DS.bus.emit('shot',{weapon:G.weapon,def:W,hit:hitAny,muzzle,hits});
 }
 export function startReload(){const G=S.G,W=DS.weapons.get(G.weapon);if(G.reloadT>0||G.ammo[G.weapon]===W.mag)return;G.reloadT=W.reload;sfx('reload')}
 /** Zmienia broń na `w` (musi być posiadana; stare id z zapisów, np. 'smg', są mapowane na aktualne). */

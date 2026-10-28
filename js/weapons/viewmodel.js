@@ -44,9 +44,11 @@ export function tickFlash(dt){if(flash.visible){flash.userData.t-=dt;if(flash.us
 /** Bazowa animacja broni (kołysanie, przeładowanie, odrzut) + efekty skórek. Wołane raz na klatkę gry. */
 export function updateViewmodel(dt){
   const G=S.G,W=DS.weapons.get(G.weapon),o=vmOffset;
+  if(!DS.player.feelOwnsView){
   const rl=G.reloadT>0?Math.sin(Math.min(1,(W.reload-G.reloadT)/W.reload)*Math.PI):0;
   gunRoot.position.set(.22+Math.cos(P.bob)*.012+o.pos.x,-.2+Math.abs(Math.sin(P.bob))*.012-rl*.12+o.pos.y,-.42+G.recoil*.06+o.pos.z);
   gunRoot.rotation.set(G.recoil*.18-rl*.8+o.rot.x,o.rot.y,rl*.4+o.rot.z);
+  }
   // skin fx
   const sk=SKINS.find(k=>k.id===save.skin);
   if(sk&&sk.fx==='rainbow'){gunMat1.color.setHSL((G.time*.25)%1,.8,.55);gunMat1.emissive.setHSL((G.time*.25+.5)%1,.8,.15)}

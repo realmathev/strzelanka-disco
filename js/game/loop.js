@@ -16,6 +16,9 @@ import {updateHud} from '../ui/hud.js';
 
 export const clock=new THREE.Clock();
 let menuT=0;
+/** Oficjalny hit-stop: DS.time.freeze(ms) zatrzymuje symulacje (dt=0) na ms (max 80), render idzie dalej. Wolajacy sprawdza opt.hitStop / opt.fx. */
+let freezeUntil=0;
+DS.time={freeze(ms){ms=Math.min(80,Math.max(0,+ms||0));if(ms>0)freezeUntil=Math.max(freezeUntil,performance.now()+ms)},frozen(){return performance.now()<freezeUntil}};
 const MENU_CAM={r:26,y:7,look:[0,4,0]};
 
 export function updateGame(dt){
@@ -40,7 +43,7 @@ export function updateGame(dt){
 
 export function loop(){
   requestAnimationFrame(loop);
-  const dt=Math.min(clock.getDelta(),.05);const t=clock.elapsedTime;
+  const dt=DS.time.frozen()?(clock.getDelta(),0):Math.min(clock.getDelta(),.05);const t=clock.elapsedTime;
   animateWorld(t,dt);
   const G=S.G;
   if(S.mode==='game'&&G&&!G.paused)updateGame(dt);

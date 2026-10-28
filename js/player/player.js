@@ -24,6 +24,11 @@ Object.assign(DS.player,{
   speedMul(){const G=S.G;return G&&G.adrenT>0?CFG.adrenaline.sprintMul:1},
   /** Mnożnik odrzutu (adrenalina: CFG.adrenaline.recoilMul = .7). Hook dla ds-gunfeel: mnóż nim podrzut/sprężynę odrzutu. */
   recoilMul(){const G=S.G;return G&&G.adrenT>0?CFG.adrenaline.recoilMul:1},
+  /** Mnoznik rozrzutu (weapons/fire.js). Domyslnie 1; ds-gunfeel podmienia go na wartosc zalezna od postepu ADS (W.adsSpread). */
+  spreadMul(){return 1},
+  /** Flaga: gdy true, kamere (rotation/position bez wstrzasu) i viewmodel sklada ds-gunfeel w zdarzeniu 'update', a updateCamera/updateViewmodel pomijaja
+   *  swoje warstwy (bob, wstrzas rand, odrzut bazowy); zanikanie G.shake/G.recoil i efekty skorek nadal dzialaja. Domyslnie false = zachowanie bez zmian. */
+  feelOwnsView:false,
 });
 
 export function resetPlayer(){const sp=world.level&&world.level.spawn||{x:0,z:30,yaw:0};P.pos.set(sp.x,0,sp.z);P.vel.set(0,0,0);P.vy=0;P.yaw=sp.yaw||0;P.pitch=0}
@@ -47,6 +52,7 @@ export function updateCamera(dt){
   const G=S.G,o=camOffset;
   G.shake=Math.max(0,G.shake-dt*2.5);const shk=G.shake*[.25,1,1.7][opt.fx]*.03;
   G.recoil=Math.max(0,G.recoil-dt*6);
+  if(DS.player.feelOwnsView)return;
   camera.position.set(P.pos.x+o.pos.x,P.pos.y+EYE+Math.sin(P.bob*2)*.04+o.pos.y,P.pos.z+o.pos.z);
   camera.rotation.set(P.pitch+rand(-shk,shk)+o.pitch,P.yaw+rand(-shk,shk)+o.yaw,(G.dead?Math.min(G.deadT=(G.deadT||0)+dt,1)*.5:0)+o.roll);
   const fov=opt.fov*DS.player.fovMul;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix()}
