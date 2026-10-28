@@ -89,8 +89,11 @@ const uzis=DS.weapons.all().filter(w=>/^Uzi/.test(w.name)).map(w=>w.id);ok('regi
 Q.flow.quitToMenu();Q.frames(3);
 {const wl=await import('/js/world/world.js'),w=Q.wst.world,sc=()=>Q.rend.scene.children.length;
  const base={sc:sc(),col:w.colliders.length,mesh:w.meshes.length,neon:w.neon.length,out:Q.mat.outlines.length};
- wl.loadLevel('remiza');Q.frames(3);const g1=geo();
- for(let k=0;k<5;k++){wl.loadLevel('remiza');Q.frames(2)}await Q.sleep(30);Q.frames(2);
+ // renderer.info.memory.geometries liczy geometrie dopiero po wgraniu na GPU, a wgrywa je pierwszy render, w ktorym obiekt jest w frustum.
+ // Zywa petla (rAF) obraca kamere menu miedzy pomiarami, wiec wczesniej +13 geometrii pojawialo sie losowo. warm() renderuje scene w 8 kierunkach.
+ const cam=Q.rend.camera,warm=()=>{const p=cam.position.clone(),r=cam.rotation.clone();cam.position.set(0,3,0);for(let a=0;a<8;a++){cam.rotation.set(0,a*Math.PI/4,0);Q.rend.renderer.render(Q.rend.scene,cam)}cam.position.copy(p);cam.rotation.copy(r)};
+ wl.loadLevel('remiza');Q.frames(3);warm();const g1=geo();
+ for(let k=0;k<5;k++){wl.loadLevel('remiza');Q.frames(2)}await Q.sleep(30);Q.frames(2);warm();
  const now={sc:sc(),col:w.colliders.length,mesh:w.meshes.length,neon:w.neon.length,out:Q.mat.outlines.length};
  ok('level.reloadStable',JSON.stringify(base)===JSON.stringify(now)&&geo()-g1<=3,JSON.stringify(base)+' -> '+JSON.stringify(now)+' geo +'+(geo()-g1));
  ok('level.neonsAfterReload',w.neon.length===4&&w.neon.every(s=>s.parent===Q.rend.scene));
