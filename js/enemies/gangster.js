@@ -28,7 +28,7 @@ function bake(list,ox,oy,oz,hullOnly){
 }
 
 DS.enemies.register({
-  id:'gangster',
+  id:'gangster',name:'Bandyta',
   /** Buduje model i statystyki. Zwraca obiekt wroga (manager ustawia pozycję i dodaje do sceny). */
   create({boss=false,wave=0}={}){
     const g=new THREE.Group();const meshes=[];
@@ -64,7 +64,7 @@ DS.enemies.register({
       hp:boss?520+w*45:62+w*7,maxHp:0,speed:boss?2.6:rand(2.8,3.4)+Math.min(w*.12,1.6),dmg:boss?14+w:5+w*.55,acc:boss?.55:.4+Math.min(w*.02,.25),
       shootT:rand(1.2,2.6),walk:rand(0,6),strafe:rand(-1,1),stepT:0,flashT:0,radius:boss?.8:.5,
       headY:1.94}; // wysokość środka głowy w układzie modelu (kadry komiksu)
-    e.maxHp=e.hp;
+    e.maxHp=e.hp;e.name=boss?'Baron Jackpot':'Bandyta';
     return e;
   },
   /** AI żywego wroga: dystans, krążenie, chód, błysk trafienia, strzał. eye = oczy gracza. */
