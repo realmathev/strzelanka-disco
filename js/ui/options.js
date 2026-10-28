@@ -125,6 +125,7 @@ export function openOptionsTab(id,focus){
   range(p,{id:'oUiScale',key:'uiScale',label:'Rozmiar napisów i HUD',min:.85,max:1.5,step:.05,fmt:pct});
   seg(p,{key:'contrast',label:'Wysoki kontrast interfejsu',choices:ONOFF.map(([v,t])=>[v==='1'?'1':'0',t])});
   seg(p,{key:'motion',label:'Animacje interfejsu',num:false,choices:[['auto','Jak w systemie'],['reduce','Ogranicz']]});
+  seg(p,{key:'hitStop',label:'Zatrzymanie klatki przy zabiciu (hit-stop)',choices:ONOFF,hint:'Ułamek sekundy zamrożenia przy zabójstwie. „Bezpieczna” intensywność wyłącza go zawsze.'});
   seg(p,{key:'onoma',label:'Onomatopeje (BLAM, tap tap)',choices:ONOFF,hint:'Wyłącz, jeśli napisy dźwiękowe zasłaniają widok.'});
 }
 /* Gra */

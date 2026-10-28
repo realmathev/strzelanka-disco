@@ -25,6 +25,7 @@ export const OPT_DEFAULTS={
   // Gra
   difficulty:'normal',   // 'easy' | 'normal' | 'hard'
   dmgInd:1,              // czerwona poświata przy obrażeniach i niskim HP
+  hitStop:1,             // hit-stop przy zabiciu (ds-gunfeel czyta opt.hitStop; 0 = wylaczony)
   dmgNum:1,              // liczby obrażeń nad wrogami
   level:'remiza',        // wybrany poziom
 };
