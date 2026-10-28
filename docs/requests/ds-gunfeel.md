@@ -40,3 +40,14 @@ i owija kilka funkcji `DS.player` w czasie działania. Poniższe zmiany zastąpi
 1. Gunfeel animuje części: `slide|bolt`, `magazine` (Python: `cylinderSwing`), `trigger`, `hammer`, `cylinder`, `pump`, `boltHandle`,
    `cover`, `belt`, `beltBox`, `ejectionPort`, `scope` (`userData.setAds`). Proszę nie zmieniać tych nazw ani punktów obrotu bez znaku tutaj.
 2. Legacy `pistol/shotgun/rifle` nie mają `sightAnchor`: punkt oka jest wpisany ręcznie w `gunfeel/tuning.js` (`WEAPON.*.anchor`).
+
+## Status po spinaniu (integrator, po commicie 270d8a9) i co gunfeel ma przepiąć
+Zrobione po stronie architekta: #1 (`spreadMul` w fire.js, domyślny hook w player.js, `adsSpread` w danych), #2 (`hits` w `shot`), #6 (`DS.time.freeze(ms)` w loop.js),
+#5 (flaga `DS.player.feelOwnsView`, domyślnie false), opcja `opt.hitStop` w Dostępności, `adsSpread` per broń, Mosin `adsFov` .65. #3 i #4 celowo bez zmian
+(owijki działają stabilnie i są opisane w ARCHITECTURE.md; podwójne mnożenie `recoilMul` byłoby błędem).
+Do zrobienia w `js/gunfeel/` (integrator tam nie edytuje):
+1. `feel.js`: ustawić `DS.player.feelOwnsView=true` po załadowaniu (wtedy base camera/viewmodel nie liczą się dwa razy). Uwaga: przy fladze `updateCamera` nie aktualizuje też FOV,
+   ale gunfeel i tak robi to sam (feel.js:163).
+2. `feel.js`/`fx.js`: zamiast własnego raycastu do śladów/iskier czytać `DS.bus.on('shot', e => e.hits)` (punkt + normalna świata, wszystkie śruty).
+3. `overlay.js`: hit-stop przez `DS.time.freeze(ms)` zamiast owijki `clock.getDelta` (zostawić owijkę nie szkodzi).
+4. `feel.js:54` `spreadMul`: po wprowadzeniu `adsSpread` w danych gunfeel dostaje wartości z `W.adsSpread` (już czyta). Kompensacja FOV (tan f0/tan f1) jest nadal potrzebna, bo fire.js losuje w NDC.

@@ -22,7 +22,7 @@ js/world/props/     rekwizyty (lib.js = defProp/Parts/instance)            ds-wo
 js/world/levels/    poziomy                                                ds-level-designer
 js/pickups/         znajdźki, leczenie, pancerz, automaty, dropy           ds-healing
 js/progression/     XP, poziomy, perki (BALANCE.md)                        ds-progression
-js/gunfeel/         stub                                                   ds-gunfeel
+js/gunfeel/         feel (ADS, odrzut, sway), anim, fx, overlay, tuning     ds-gunfeel (nie edytuj; prośby: docs/requests/ds-gunfeel.md)
 js/input/           domyślne akcje, rebind, warstwa działania akcji        ds-input-menus
 js/ui/              ekrany, HUD, opcje, sklep, kasyno, skrzynki            ds-input-menus
 ```
@@ -171,7 +171,7 @@ z `group`.
 
 | zdarzenie | payload | kiedy |
 |---|---|---|
-| `shot` | `{weapon, def, hit, muzzle}` | po każdym strzale gracza |
+| `shot` | `{weapon, def, hit, muzzle, hits}` | po każdym strzale gracza; `hits` = `[{point, normal (świat, albo null), object, enemy (albo null)}]`, po jednym na śrut, który w coś trafił |
 | `hit` | `{enemy, dmg, head, point}` | trafienie wroga |
 | `kill` | `{enemy, head, value, combo}` | zabójstwo |
 | `damage` | `{amount, hp}` | gracz oberwał; `amount` = obrażenia, które trafiły w **HP** (po pancerzu), `hp` = HP po ciosie |
@@ -210,8 +210,28 @@ DS.player.recoilMul()      // mnożnik odrzutu (adrenalina x0,7): HOOK dla ds-gu
 Offsety nie są zerowane automatycznie: kto je ustawia, ten je wygasza (np. w `DS.bus.on('update', dt => ...)`).
 Kosmetyka (camOffset, vmOffset, shake) ma być oddzielona od balansu (spread, rate, pitchKick).
 **Adrenalina:** pickup ustawia `S.G.adrenT` (s, `CFG.adrenaline.time`), timer maleje w `pickups/status.js`. `player.js` mnoży prędkość (marsz i sprint) przez
-`DS.player.speedMul()`. **Odrzut zostaje po stronie ds-gunfeel:** mnóż swój podrzut/sprężynę przez `DS.player.recoilMul()`
-(dziś `weapons/fire.js` woła `addRecoil(W.pitchKick, 0)` bez mnożnika; gdy gunfeel przejmie odrzut, ma tam użyć `recoilMul()`).
+`DS.player.speedMul()`. **Odrzut zostaje po stronie ds-gunfeel:** mnóż swój podrzut/sprężynę przez `DS.player.recoilMul()`.
+
+### Hooki dodane przy spinaniu gunfeela
+
+```js
+DS.player.spreadMul()      // mnożnik rozrzutu (domyślnie 1); fire.js mnoży przez niego spread. Gunfeel: ADS -> W.adsSpread (dane broni)
+DS.player.feelOwnsView     // false domyślnie. true = updateCamera/updateViewmodel pomijają bob, wstrząs i odrzut bazowy (liczy je gunfeel w 'update');
+                           // G.shake/G.recoil nadal gasną, skórki działają. Gunfeel jeszcze go nie ustawia (patrz docs/requests/ds-gunfeel.md)
+DS.time.freeze(ms)         // hit-stop: dt=0 w pętli przez ms (max 80), render idzie dalej. DS.time.frozen() -> bool. Wołający sprawdza opt.hitStop i opt.fx
+// zdarzenie 'shot' ma hits:[{point, normal, object, enemy}]; gunfeel jeszcze robi własny raycast (patrz request #2)
+```
+**Owijki gunfeela (zostają, działają stabilnie, testy 92/92):** `js/gunfeel/` w czasie ładowania owija `DS.player.addRecoil` (mnoży przez `recoilMul()` i rozkłada
+podrzut na ok. 3 klatki, suma bez zmian; dlatego `fire.js` woła `addRecoil(W.pitchKick, 0)` BEZ `recoilMul()`, inaczej mnożyłoby się dwa razy),
+`DS.player.speedMul` (ADS: `moveMultAds/moveMult`; adrenalina nadal się liczy, bo owijka woła poprzednią wersję), `DS.player.spreadMul` (zastępuje domyślną 1)
+oraz `clock.getDelta()` z `game/loop.js` (hit-stop; równolegle istnieje `DS.time.freeze`, oba dają dt=0). Po klatce `update` gunfeel nadpisuje `camera.*` i `gunRoot.*`.
+Kto dodaje kolejny mnożnik prędkości/rozrzutu, owija wcześniejszą wersję tak samo (albo czeka na `speedMods`, request #4).
+
+### Gunfeel: strojenie
+Wszystkie liczby feelingu (sprężyny odrzutu, sway, ADS, błysk, dźwięk) są w `js/gunfeel/tuning.js`, uzasadnienia w `js/gunfeel/TUNING.md`. W konsoli:
+`DS.gunfeel.T.CLASS.rifle.kick.z=.05; DS.gunfeel.invalidate()`. Granica: feel (kopniak modelu, trzęsienie, bob) nie zmienia celności; balans zostaje w `weapons/data`
+(`spread`, `adsSpread`, `pitchKick`, `recoil`, `adsFov`, `adsTime`, `moveMult*`). Pola ADS na broni: `adsFov` (mnożnik FOV; przyrządy mechaniczne ok. 0,65-0,8, luneta 0,4),
+`adsSpread` (mnożnik rozrzutu w pełnym ADS, niezależny od zoomu, wartości klasowe w `weapons/data/BALANCE.md`).
 
 ## Opcje (`opt`) i ich skutek
 
@@ -223,7 +243,9 @@ Kosmetyka (camOffset, vmOffset, shake) ma być oddzielona od balansu (spread, ra
 | `difficulty` | mnożniki HP/obrażeń wrogów (`core/difficulty.js`), regeneracja pancerza, XP; zmiana działa na wrogów tworzonych po zmianie |
 | `level` | wybrany poziom (`loadLevel`, zdarzenie `levelSelect`) |
 | `sprintMode` | działa (`input/runtime.js`) |
-| **`adsMode`, `adsSens`, `crouchMode`** | **czekają na ds-gunfeel**: ADS (`DS.input.adsActive()`, `DS.player.fovMul`, `adsFov`/`adsTime` z danych broni) i kucanie (`isDown('crouch')`, `moveMult*`) nie są jeszcze zaimplementowane; opcje zapisują się, ale nic nie zmieniają (`adsSens` obniża czułość tylko, gdy trzymasz akcję `ads`, domyślnie ×1) |
+| `adsMode`, `adsSens` | działają: ADS (`DS.input.adsActive()`, `fovMul`, `adsFov`/`adsTime`/`adsSpread` z danych broni) liczy gunfeel; `adsSens` mnoży czułość w ADS (`DS.input.sensitivity()`) |
+| `hitStop` | 1/0 (Dostępność): hit-stop przy zabiciu (gunfeel). `fx=0` („Bezpieczna”) wyłącza go zawsze, a także światło błysku i trzęsienie kamery |
+| **`crouchMode`** | **nadal martwa**: akcja `crouch` i tryb przełączania działają w `DS.input`, ale ruch (`player.js`) kucania nie implementuje; nikt tego nie czyta |
 | `xh*, uiScale, contrast, motion, dmgInd, keys` | działają (interfejs) |
 
 ## Konwencje
