@@ -71,6 +71,7 @@ export function bossAttack(e,dt,ctx,actions,pick,keep){
   const a=e.ai;a.face=1;a.cd-=dt;
   if(a.sub===0){
     idleMove(e,dt,ctx,keep.dmin,keep.dmax,e.phase>=3?1.3:1);
+    if(e.forceAct&&actions[e.forceAct]){a.cd=0;a.act=e.forceAct;e.forceAct=null;a.sub=1;a.st=0;a.n=0;const F=actions[a.act];if(F.start)F.start(e,ctx);return}
     if(a.cd<=0&&(ctx.sees||a.lt<1.5)){a.act=pick(e);a.sub=1;a.st=0;a.n=0;const A=actions[a.act];if(A.start)A.start(e,ctx)}
   }else{
     const A=actions[a.act];a.st+=dt;

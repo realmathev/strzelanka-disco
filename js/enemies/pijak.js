@@ -5,7 +5,7 @@ import {P} from '../player/player.js';
 import {humanBase} from './kit.js';
 import {stopMove,moveToward,moveDir,hitPlayer,noise,facePlayer} from './ai.js';
 import {throwProj,puddle} from './proj.js';
-import {makeHuman,reg,wv,aiOpts,meleeAttack,rand,pick,SKIN,clamp} from './common.js';
+import {makeHuman,reg,wv,aiOpts,meleeAttack,variantOf,rand,pick,SKIN,clamp} from './common.js';
 
 const HAND=new THREE.Vector3(),TGT=new THREE.Vector3();
 function build(P_,meta,v){
@@ -22,7 +22,7 @@ function build(P_,meta,v){
   P_.arm.cyl(0x5f8a2a,.034,.04,.22,hx,hyy+.08,-.07,null,8);P_.arm.cyl(0x5f8a2a,.012,.03,.1,hx,hyy+.23,-.07,null,8);P_.arm.box(0xf4efe4,.07,.07,.07,hx,hyy+.08,-.07,{t:0});
 }
 reg('pijak','Pijak z butelkami',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKIN.length);
+  const w=o.wave||0,si=variantOf(o,2);
   const e=makeHuman({key:'pijak'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),meta:{arm:true},hp:wv(60,6,w),dmg:wv(10,.7,w),radius:.55,scale:rand(.96,1.03),name:'Pijak',xp:8,
     cfg:{speed:wv(2.5,.05,w),turn:5,sight:34,fov:2.4,range:[6,20],melee:false,flank:.1,cover:.1,fleeHp:0,alertTime:6,weave:3.2,holdGround:true,
       attack(e,dt,ctx){

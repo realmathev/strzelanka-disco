@@ -8,7 +8,7 @@ import {P} from '../player/player.js';
 import {humanBase} from './kit.js';
 import {enter,moveDir,moveToward,stopMove,facePlayer,noise,dyingHuman} from './ai.js';
 import {throwProj,explode} from './proj.js';
-import {makeHuman,reg,wv,aiOpts,rand,pick,SKIN,clamp} from './common.js';
+import {makeHuman,reg,wv,aiOpts,variantOf,rand,pick,SKIN,clamp} from './common.js';
 import {DS} from '../core/ds.js';
 
 const V=new THREE.Vector3(),H=new THREE.Vector3();
@@ -29,7 +29,7 @@ function blast(e,dmgMul){
   explode(e.g.position.x,.9,e.g.position.z,{r:e.blastR,dmg:e.dmg*dmgMul,shake:1.2});
 }
 reg('kamikadze','Kamikadze z petardami',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKIN.length);
+  const w=o.wave||0,si=variantOf(o,2);
   const e=makeHuman({key:'kamikadze'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(40,4,w),dmg:wv(42,2.2,w),radius:.42,scale:rand(.96,1.0),name:'Kamikadze',xp:9,
     cfg:{speed:wv(5.6,.08,w),turn:11,sight:46,fov:2.5,range:[.5,3.4],melee:true,flank:.3,cover:0,fleeHp:0,alertTime:6,accel:12,
       decide(e,ctx){

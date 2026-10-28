@@ -37,7 +37,7 @@ export function initAI(e,cfg,opts={}){
     vx:0,vz:0,sp:0,want:0,moveYaw:0,face:1,faceYaw:0,
     stuckT:0,sx:0,sz:0,sideT:0,sideDir:1,
     gx:0,gz:0,wait:0,hurtT:99,fled:false,coverCD:0,react:0,reactDone:false,home:opts.home||null,sub:0,
-    coverHold:0,look:0};
+    coverHold:0,look:0,cd:0,cd2:0,st:0};
   e.walk=rand(0,6);e.walk0=rand(0,6);e.lean=0;e.flinch=0;e.crouch=0;e.flashT=0;e.glow=0;e.armT=0;e.slowT=0;
   e.hipH=e.hipH||.9;
   const a=e.ai;
@@ -55,7 +55,7 @@ export function enter(e,state,arg){
     case 'alert':a.look=rand(-1,1);break;
     case 'flank':{
       const dx=e.g.position.x-P.pos.x,dz=e.g.position.z-P.pos.z,d=Math.hypot(dx,dz)||1,s=Math.random()<.5?-1:1,ang=s*rand(1.1,1.6);
-      const ca=Math.cos(ang),sa=Math.sin(ang),r=Math.max(c.range[1]*.75,5);
+      const ca=Math.cos(ang),sa=Math.sin(ang),r=clamp(d,Math.max(c.range[1]*1.05,6),22);          // okrąża gracza po łuku na tym samym dystansie
       const fx=P.pos.x+(dx*ca-dz*sa)/d*r,fz=P.pos.z+(dx*sa+dz*ca)/d*r;
       const f=nav.nearestFree(fx,fz,c.cls,5);
       if(f){a.gx=f.x;a.gz=f.z}else{a.state='chase'}
@@ -67,7 +67,7 @@ export function enter(e,state,arg){
     case 'flee':{
       const dx=e.g.position.x-P.pos.x,dz=e.g.position.z-P.pos.z,d=Math.hypot(dx,dz)||1;
       let cv=nav.findCover(e.g.position.x,e.g.position.z,P.pos.x,P.pos.z,22,c.cls);
-      if(cv&&Math.hypot(cv.x-P.pos.x,cv.z-P.pos.z)<Math.min(d+4,14))cv=null;
+      if(cv&&Math.hypot(cv.x-P.pos.x,cv.z-P.pos.z)<Math.max(d-1,10))cv=null;            // osłona nie może być bliżej gracza niż jest teraz
       if(cv){a.gx=cv.x;a.gz=cv.z}
       else{const f=nav.nearestFree(e.g.position.x+dx/d*20,e.g.position.z+dz/d*20,c.cls,8);if(f){a.gx=f.x;a.gz=f.z}else{a.gx=e.g.position.x+dx/d*10;a.gz=e.g.position.z+dz/d*10}}
       a.t=0;if(opt.onoma)addFloater(pick(['NIE BIJ!','MAMUSIU!','WYCOFKA!']),{world:T1.set(e.g.position.x,2.3,e.g.position.z).clone(),size:24,life:.8,color:'#f4e7c5',vy:-30});
@@ -310,8 +310,18 @@ function defaultAttack(e,dt){
 }
 
 /* ---------- animacja ---------- */
+const HULL_LEG_NEAR=15,HULL_ALL_FAR=48,SHADOW_FAR=38;
+/** LOD: kontury nóg tylko z bliska, cały kontur i cień tylko do pewnej odległości (budżet draw calli przy 30 wrogach). */
+function lod(e,dist){
+  const H=e.hulls;if(!H)return;
+  const on=!!opt.outlines,near=dist<HULL_LEG_NEAR,far=dist<HULL_ALL_FAR;
+  if(H.upper.visible!==(on&&far))H.upper.visible=on&&far;
+  for(const l of H.legs)if(l.visible!==(on&&near&&far))l.visible=on&&near&&far;
+  if(H.arm&&H.arm.visible!==(on&&far))H.arm.visible=on&&far;
+  const sh=dist<SHADOW_FAR;if(e.meshes[0].castShadow!==sh)e.meshes[0].castShadow=sh;
+}
 export function animateHuman(e,dt){
-  const a=e.ai,c=e.cfg;
+  const a=e.ai,c=e.cfg;lod(e,ctx.dist);
   const sp=a.sp,k=Math.min(1,dt*10);
   e.walk+=dt*(1.5+sp*2.1);
   const amp=clamp(sp/4.5,0,1)*.8,s=Math.sin(e.walk);

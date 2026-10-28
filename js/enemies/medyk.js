@@ -5,12 +5,16 @@ import {sfx} from '../audio/sfx.js';
 import {addFloater} from '../render/comicfx.js';
 import {P} from '../player/player.js';
 import {humanBase} from './kit.js';
+import {mergeGeometries} from '../render/merge.js';
 import * as nav from './nav.js';
-import {enter,moveToward,moveDir,stopMove,facePlayer,fireAt,noise} from './ai.js';
+import {enter,moveToward,moveDir,stopMove,facePlayer,fireAt,noise,animateHuman} from './ai.js';
 import {beam} from './proj.js';
-import {makeHuman,reg,wv,aiOpts,rand,pick,SKIN,clamp} from './common.js';
+import {makeHuman,reg,wv,aiOpts,variantOf,rand,pick,SKIN,clamp} from './common.js';
 
 const MZ=new THREE.Vector3(),A_=new THREE.Vector3(),B_=new THREE.Vector3();
+// znacznik priorytetowego celu: zielony krzyż nad głową (osobna siatka, niehitowa, świeci własnym kolorem)
+const CROSS=Object.assign(mergeGeometries([new THREE.BoxGeometry(.07,.24,.07),new THREE.BoxGeometry(.24,.07,.07)]),{userData:{shared:true}});
+const CROSS_MAT=Object.assign(new THREE.MeshBasicMaterial({color:0x39ff6b}),{userData:{shared:true}});
 function build(P_,meta,v){
   humanBase(P_,meta,{skin:v.skin,shirt:0xf4efe4,pants:0x2b4a3a,sleeve:0xf4efe4,shoes:0xf4efe4,hand:0x2a7fb5,pose:'aim',k:1});
   const hy=meta.headY;
@@ -20,8 +24,6 @@ function build(P_,meta,v){
   P_.head.box(0xb3262c,.16,.075,.15,0,hy-.055,-.06,{t:.03});                                                    // bandana zasłaniająca twarz
   P_.head.box(0x15110e,.2,.04,.02,0,hy+.025,-.122,{t:0});                                                       // ciemne okulary
   P_.head.box(0xb3262c,.22,.04,.22,0,hy+.095,0,{t:0});P_.head.sph(0x1a1a1f,.108,0,hy+.07,.012,{ky:.65,kz:1.08,t:0});
-  // zielony krzyż „leczę” (znacznik priorytetowego celu)
-  P_.head.box(0x39ff6b,.05,.17,.05,0,hy+.4,0,{t:.1});P_.head.box(0x39ff6b,.17,.05,.05,0,hy+.4,0,{t:.1});
   // strzykawka w dłoni
   P_.body.limb(0xdff6ff,.1,1.34,-.5,.1,1.38,-.7,.014,.014,{t:0});
 }
@@ -37,9 +39,10 @@ function woundedAlly(e){
   return best;
 }
 reg('medyk','Medyk-bandyta',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKIN.length);
+  const w=o.wave||0,si=variantOf(o,2);
   const e=makeHuman({key:'medyk'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(55,5,w),dmg:wv(4,.4,w),radius:.45,scale:rand(.97,1.03),name:'Medyk-bandyta',xp:14,
     cfg:{speed:wv(3.6,.05,w),turn:8,sight:40,fov:2.4,range:[9,17],melee:false,flank:0,cover:.35,fleeHp:.3,fleeTime:6,alertTime:7,holdGround:true,
+      animate(e,dt){animateHuman(e,dt);e.marker.rotation.y+=dt*2.5;e.marker.position.y=e.markerY+Math.sin(e.ai.age*3)*.04},
       decide(e,ctx){
         const a=e.ai;a.cd2-=.18;
         if(a.state==='heal')return true;
@@ -78,7 +81,8 @@ reg('medyk','Medyk-bandyta',(o={})=>{
           }},
       }},
     opts:aiOpts(o)});
+  const mk=new THREE.Mesh(CROSS,CROSS_MAT);e.markerY=e.headY-e.hipH+.42;mk.position.set(0,e.markerY,0);mk.raycast=()=>{};e.torso.add(mk);e.marker=mk;
   e.charges=4;e.priority=true;e.muzzle=new THREE.Vector3(.1,1.38-e.hipH,-.7);
   return e;
 },{drops:[{kind:'med',p:.6,val:35},{kind:'bandage',p:.25}],tableTags:['support','priority'],
-  onKill(e){if(e.beam){e.beam.release();e.beam=null}if(e.target)e.target.glow=0}});
+  onKill(e){if(e.beam){e.beam.release();e.beam=null}if(e.target)e.target.glow=0;if(e.marker)e.marker.visible=false}});

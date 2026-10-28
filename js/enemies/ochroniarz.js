@@ -5,7 +5,7 @@ import {addFloater} from '../render/comicfx.js';
 import {sfx} from '../audio/sfx.js';
 import {P} from '../player/player.js';
 import {humanBase} from './kit.js';
-import {makeHuman,reg,wv,aiOpts,meleeAttack,rand,pick,SKIN} from './common.js';
+import {makeHuman,reg,wv,aiOpts,meleeAttack,variantOf,rand,pick,SKIN} from './common.js';
 
 let blockMsgT=0;
 export function shieldHit(e,ev,{front=.5,block=.85,back=.3}={}){
@@ -35,7 +35,7 @@ function build(P_,meta,v){
 }
 const SKINS=SKIN;
 reg('ochroniarz','Ochroniarz z tarczą',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKINS.length);
+  const w=o.wave||0,si=variantOf(o,2);
   return makeHuman({key:'ochroniarz'+si,build:(P_,m)=>build(P_,m,{skin:SKINS[si]}),hp:wv(110,10,w),dmg:wv(8,.5,w),radius:.6,scale:rand(1.03,1.08),name:'Ochroniarz',xp:15,
     cfg:{speed:wv(2.3,.04,w),turn:2.4,sight:36,fov:2.3,range:[1.5,2.3],melee:true,flank:0,cover:0,fleeHp:0,alertTime:8,accel:6,
       attack(e,dt,ctx){meleeAttack(e,dt,ctx,{reach:2.1,windup:.6,cool:1.1,dmg:e.dmg,knock:10,snd:'e_shove',hitSnd:'hurt'})},

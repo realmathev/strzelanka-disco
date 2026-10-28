@@ -9,10 +9,9 @@ import {P} from '../player/player.js';
 import {collide} from '../player/collision.js';
 import {humanBase} from './kit.js';
 import {enter,moveDir,moveToward,stopMove,hitPlayer,facePlayer,noise} from './ai.js';
-import {makeHuman,reg,wv,aiOpts,meleeAttack,rand,pick,SKIN,clamp} from './common.js';
+import {makeHuman,reg,wv,aiOpts,meleeAttack,variantOf,rand,pick,SKIN,clamp} from './common.js';
 
-const VARIANTS=[
-  {jacket:0x1d3f8a,stripe:0xffffff},{jacket:0xb3262c,stripe:0xffffff},{jacket:0x1c1c1f,stripe:0xf4efe4},{jacket:0x2f7a4b,stripe:0xffffff}];
+const VARIANTS=[{jacket:0x1d3f8a,stripe:0xffffff},{jacket:0xb3262c,stripe:0xffffff},{jacket:0x1c1c1f,stripe:0xf4efe4}];
 function build(P_,meta,v){
   const skin=v.skin;
   humanBase(P_,meta,{skin,shirt:v.jacket,pants:v.jacket,sleeve:v.jacket,shoes:0xf4efe4,pose:'guard',k:.98});
@@ -28,9 +27,9 @@ function build(P_,meta,v){
 }
 
 reg('dres','Dres',(o={})=>{
-  const w=o.wave||0,vi=Math.floor(Math.random()*VARIANTS.length),si=Math.floor(Math.random()*SKIN.length);
-  const v=Object.assign({skin:SKIN[si]},VARIANTS[vi]);
-  const e=makeHuman({key:'dres'+vi+'_'+si,build:(P_,m)=>build(P_,m,v),hp:wv(55,6,w),dmg:wv(9,.6,w),radius:.45,scale:rand(.97,1.05),name:'Dres',xp:9,
+  const w=o.wave||0,vi=variantOf(o,VARIANTS.length);
+  const v=Object.assign({skin:SKIN[vi]},VARIANTS[vi]);
+  const e=makeHuman({key:'dres'+vi,build:(P_,m)=>build(P_,m,v),hp:wv(55,6,w),dmg:wv(9,.6,w),radius:.45,scale:rand(.97,1.05),name:'Dres',xp:9,
     cfg:{speed:wv(4.9,.07,w),turn:11,sight:38,fov:2.4,range:[1.1,1.9],melee:true,flank:.6,cover:0,fleeHp:0,alertTime:6,accel:12,
       decide(e,ctx){
         const a=e.ai;a.cd2-=.18;

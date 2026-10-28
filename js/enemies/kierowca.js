@@ -11,10 +11,10 @@ import {collide} from '../player/collision.js';
 import {solidModel,assembleSolid,SKIN} from './kit.js';
 import {initAI,updateAI,enter,moveDir,moveToward,stopMove,facePlayer,hitPlayer,noise} from './ai.js';
 import {explode} from './proj.js';
-import {wv,aiOpts} from './common.js';
+import {wv,aiOpts,variantOf} from './common.js';
 import {DS} from '../core/ds.js';
 
-const COLORS=[0xd3242a,0xe0c040,0x2d5fa8,0x4f8a5b,0xf4efe4,0xe07a2a];
+const COLORS=[0xd3242a,0xe0c040,0x2d5fa8];
 const PX=new THREE.Vector3();
 function build(P_,v){
   const c=v.color,dark=0x1a1a1d;
@@ -50,11 +50,12 @@ function build(P_,v){
 DS.enemies.register({
   id:'kierowca',name:'Kierowca Malucha',xp:17,drops:[{kind:'adrenaline',p:.3},{kind:'med',p:.15}],tableTags:['vehicle','charge'],
   create(o={}){
-    const w=o.wave||0,ci=Math.floor(Math.random()*COLORS.length),si=Math.floor(Math.random()*SKIN.length);
-    const v={color:COLORS[ci],skin:SKIN[si],shirt:pick([0x6b7a8f,0xb5534f,0x8a8f6b])};
-    const model=solidModel('maluch'+ci+'_'+si,P_=>build(P_,v));
+    const w=o.wave||0,ci=variantOf(o,COLORS.length),si=ci;
+    const v={color:COLORS[ci],skin:SKIN[si],shirt:[0x6b7a8f,0xb5534f,0x8a8f6b][ci]};
+    const model=solidModel('maluch'+ci,P_=>build(P_,v));
     const e=assembleSolid(model);
     e.mats=[e.mat];e.alive=true;e.dieT=0;e.boss=false;e.hp=e.maxHp=wv(160,14,w);e.dmg=wv(26,1.5,w);e.radius=1.15;e.name='Kierowca Malucha';e.xp=17;e.hipH=0;e.headY=1.12;
+    e.mat.color.setScalar(rand(.92,1.05));
     initAI(e,{speed:wv(5.2,.06,w),turn:3.2,sight:60,fov:3.2,near:6,range:[8,40],melee:false,flank:.1,cover:0,fleeHp:0,cls:1,radius:1.15,accel:3,alertTime:7,
       decide(e,ctx){
         const a=e.ai;a.cd2-=.18;

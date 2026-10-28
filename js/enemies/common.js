@@ -8,6 +8,8 @@ import {sfx} from '../audio/sfx.js';
 
 export {SKIN,rand,pick,clamp};
 export const wv=(base,per,w)=>base+per*Math.min(w,40);
+/** Wariant modelu 0..n-1: z opts.variant (testy, arena) albo losowy. Mało wariantów = mało geometrii na GPU. */
+export const variantOf=(o,n)=>o.variant!==undefined?o.variant%n:Math.floor(Math.random()*n);
 
 /**
  * Składa wroga-człowieka. spec: {key (klucz modelu: typ+wariant), build(P,meta), meta, hp, dmg, radius, scale, boss, name, xp, cfg, opts}
@@ -19,8 +21,8 @@ export function makeHuman(spec){
   e.mats=[e.mat];e.alive=true;e.dieT=0;e.boss=!!spec.boss;e.hp=e.maxHp=spec.hp;e.dmg=spec.dmg;e.radius=spec.radius||.5;
   e.name=spec.name;e.xp=spec.xp;e.hipH=model.meta.hipH;e.headY=model.meta.headY;
   e.g.scale.setScalar(spec.scale||1);
+  if(!spec.boss)e.mat.color.setScalar(rand(.9,1.06));                    // drobna zmiana jasności zamiast kolejnych wariantów geometrii
   initAI(e,spec.cfg,spec.opts);
-  Object.assign(e.ai,{cd:0,cd2:0,st:0});
   if(spec.setup)spec.setup(e);
   return e;
 }

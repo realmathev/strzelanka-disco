@@ -10,7 +10,7 @@ import {humanBase} from './kit.js';
 import * as nav from './nav.js';
 import {enter,stopMove,moveToward,hitPlayer,noise,facePlayer} from './ai.js';
 import {beam} from './proj.js';
-import {makeHuman,reg,wv,aiOpts,rand,pick,SKIN,clamp} from './common.js';
+import {makeHuman,reg,wv,aiOpts,variantOf,rand,pick,SKIN,clamp} from './common.js';
 
 const MZ=new THREE.Vector3(),AIM=new THREE.Vector3(),END=new THREE.Vector3(),TP=new THREE.Vector3();
 const AIM_T=1.6,LOCK_T=.45;
@@ -28,7 +28,7 @@ function build(P_,meta,v){
   P_.body.box(0xff2222,.02,.02,.04,.07,1.41,-1.18,{t:0});                                         // laser
 }
 reg('snajper','Snajper z laserem',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKIN.length);
+  const w=o.wave||0,si=variantOf(o,2);
   const e=makeHuman({key:'snajper'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(45,4,w),dmg:wv(28,1.6,w),radius:.45,scale:rand(.98,1.04),name:'Snajper',xp:16,
     cfg:{speed:wv(2.7,.04,w),turn:5,sight:90,fov:1.9,range:[24,60],melee:false,flank:0,cover:.55,fleeHp:.3,fleeTime:5,alertTime:9,hear:70,holdGround:true,lose:5,
       attack(e,dt,ctx){

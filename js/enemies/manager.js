@@ -12,6 +12,7 @@ import {CFG as PCFG} from '../pickups/config.js';
 import {spawnPickup} from '../pickups/pickups.js';
 import * as nav from './nav.js';
 import {beginFrame} from './ai.js';
+import {pruneModels} from './kit.js';
 import {updateProj,clearProj} from './proj.js';
 import './table.js';
 
@@ -75,6 +76,7 @@ export function makeEnemy(boss){
 }
 
 const eye=new THREE.Vector3();
+let pruneT=0;
 /** Aktualizuje wszystkich wrogów; zwraca liczbę żywych. */
 export function updateEnemies(dt){
   const G=S.G;
@@ -91,6 +93,7 @@ export function updateEnemies(dt){
   }
   G.enemies=G.enemies.filter(e=>!e.gone);
   updateProj(dt);
+  pruneT+=dt;if(pruneT>4){pruneT=0;const used=new Set();for(const e of G.enemies)if(e.model)used.add(e.model);pruneModels(used)}   // zwalnia geometrie nieużywanych wariantów
   return alive;
 }
 

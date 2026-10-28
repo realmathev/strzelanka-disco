@@ -33,8 +33,8 @@ function buildDJ(P_,meta,v){
   P_.arm.cyl(0x15110e,.012,.012,.18,hx,.94+.1,-.07,null,6);P_.arm.sph(0x8a8a90,.04,hx,.94+.2,-.07,{t:.05});
 }
 reg('boss_dj','DJ',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKIN.length);
-  const e=makeHuman({key:'dj'+si,build:(P_,m)=>buildDJ(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(640,55,w),dmg:wv(13,1,w),radius:.7,scale:1.3,name:'DJ',xp:170,
+  const w=o.wave||0,si=1;
+  const e=makeHuman({key:'dj',build:(P_,m)=>buildDJ(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(640,55,w),dmg:wv(13,1,w),radius:.7,scale:1.3,name:'DJ',xp:170,
     cfg:{speed:wv(2.9,.04,w),turn:6,sight:70,fov:3.6,range:[3,30],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,DJ_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,DJ_ACT,djPick,{dmin:10,dmax:17})},
@@ -89,8 +89,8 @@ function buildJednooki(P_,meta,v){
   P_.arm.limb(0x2b2b2e,hx,hy2+.02,-.5,hx,hy2+.06,-1.12,.026,.022,{t:.05});P_.arm.cyl(0x2b2b2e,.055,.055,.12,hx,hy2+.02,-.55,{rx:Math.PI/2,t:.05},10);P_.arm.box(0x6b4a2a,.05,.12,.07,hx,hy2-.07,-.44,{rx:.3,t:.05});
 }
 reg('boss_jednooki','Jednooki Bandyta',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKIN.length);
-  const e=makeHuman({key:'jednooki'+si,build:(P_,m)=>buildJednooki(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(560,52,w),dmg:wv(11,.9,w),radius:.75,scale:1.38,name:'Jednooki Bandyta',xp:180,
+  const w=o.wave||0,si=2;
+  const e=makeHuman({key:'jednooki',build:(P_,m)=>buildJednooki(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(560,52,w),dmg:wv(11,.9,w),radius:.75,scale:1.38,name:'Jednooki Bandyta',xp:180,
     cfg:{speed:wv(3.1,.04,w),turn:7,sight:70,fov:3.4,range:[3,26],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,JO_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,JO_ACT,joPick,{dmin:7,dmax:13})},
@@ -158,8 +158,8 @@ function buildSzef(P_,meta,v){
   P_.body.box(0xffffff,.6,.11,.012,-.02,1.3,-.525,{t:0});
 }
 reg('boss_szef_ochrony','Szef Ochrony',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKIN.length);
-  const e=makeHuman({key:'szef'+si,build:(P_,m)=>buildSzef(P_,m,{skin:SKIN[si]}),boss:true,hp:wv(720,62,w),dmg:wv(15,1.1,w),radius:.8,scale:1.33,name:'Szef Ochrony',xp:190,
+  const w=o.wave||0,si=0;
+  const e=makeHuman({key:'szef',build:(P_,m)=>buildSzef(P_,m,{skin:SKIN[si]}),boss:true,hp:wv(720,62,w),dmg:wv(15,1.1,w),radius:.8,scale:1.33,name:'Szef Ochrony',xp:190,
     cfg:{speed:wv(2.7,.04,w),turn:3.2,sight:60,fov:3,range:[2,22],melee:true,flank:0,cover:0,fleeHp:0,holdGround:true,hear:70,lose:8,
       decide(e){return bossThink(e,SZ_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,SZ_ACT,szPick,{dmin:3,dmax:9})},

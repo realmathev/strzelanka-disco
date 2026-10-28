@@ -7,7 +7,7 @@ import {P} from '../player/player.js';
 import {los} from '../player/collision.js';
 import {humanBase} from './kit.js';
 import {moveToward,moveDir,stopMove,hitPlayer,noise} from './ai.js';
-import {makeHuman,reg,wv,aiOpts,rand,pick,SKIN,clamp} from './common.js';
+import {makeHuman,reg,wv,aiOpts,variantOf,rand,pick,SKIN,clamp} from './common.js';
 
 const JACKETS=[0x3a2a20,0x2d2f33,0x4a3a22],BEANIES=[0x6b2024,0x1f3a5a,0x2a2a2a];
 const MZ=new THREE.Vector3(),END=new THREE.Vector3();
@@ -24,8 +24,8 @@ function build(P_,meta,v){
   P_.body.box(0x6b4a2a,.05,.08,.17,.14,1.32,-.34,{t:.05});
 }
 reg('bandyta','Bandyta z obrzynem',(o={})=>{
-  const w=o.wave||0,si=Math.floor(Math.random()*SKIN.length),ji=Math.floor(Math.random()*JACKETS.length),bi=Math.floor(Math.random()*BEANIES.length);
-  const e=makeHuman({key:'obrzyn'+si+'_'+ji+'_'+bi,build:(P_,m)=>build(P_,m,{skin:SKIN[si],jacket:JACKETS[ji],beanie:BEANIES[bi]}),
+  const w=o.wave||0,si=variantOf(o,2),ji=si,bi=si;
+  const e=makeHuman({key:'obrzyn'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si],jacket:JACKETS[ji],beanie:BEANIES[bi]}),
     hp:wv(70,7,w),dmg:wv(24,1.4,w),radius:.5,scale:rand(.98,1.05),name:'Bandyta z obrzynem',xp:13,
     cfg:{speed:wv(3.7,.07,w),turn:8,sight:42,fov:2.2,range:[3,9],melee:false,flank:.7,cover:.12,fleeHp:0,alertTime:7,holdGround:true,
       attack(e,dt,ctx){

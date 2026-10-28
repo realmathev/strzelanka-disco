@@ -55,7 +55,7 @@ export function humanModel(key,build,meta0){
   const meta=Object.assign({hipH:.9,hipX:.105,headY:1.66,shoulder:{x:.24,y:1.46,z:0},arm:false},meta0||{});
   const P={body:new Parts(),head:new Parts(),legL:new Parts(),legR:new Parts(),arm:new Parts()};
   build(P,meta);
-  const m={meta,geo:{},hull:{}};
+  const m={meta,geo:{},hull:{},last:performance.now()};
   m.geo.body=bake([P.body],0,meta.hipH,0);
   m.geo.head=bake([P.head],0,meta.headY,0);
   m.geo.legL=bake([P.legL],-meta.hipX,meta.hipH,0);m.geo.legR=bake([P.legR],meta.hipX,meta.hipH,0);
@@ -70,22 +70,23 @@ export function humanModel(key,build,meta0){
  * Zwraca {g, rig, torso, hipL, hipR, armR, meshes, mat, headY}.
  */
 export function assemble(model,{shadow=true}={}){
+  model.last=performance.now();
   const meta=model.meta,mat=toon(0xffffff,{vertexColors:true});
   const g=new THREE.Group(),rig=new THREE.Group();g.add(rig);
   const torso=new THREE.Group();torso.position.set(0,meta.hipH,0);rig.add(torso);
   const meshes=[];
   const mk=(parent,geo,part,x,y,z,cast)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=cast;m.userData.part=part;parent.add(m);meshes.push(m);return m};
-  mk(torso,model.geo.body,'body',0,0,0,shadow);
+  mk(torso,model.geo.body,'body',0,0,0,shadow);                   // cień rzuca tylko korpus (budżet draw calli)
   mk(torso,model.geo.head,'head',0,meta.headY-meta.hipH,0,false);
-  hullGeo(torso,model.hull.upper);
+  const hulls={upper:hullGeo(torso,model.hull.upper),legs:[]};
   let armR=null;
   if(model.geo.arm){const s=meta.shoulder;armR=new THREE.Group();armR.position.set(s.x,s.y-meta.hipH,s.z);torso.add(armR);
-    mk(armR,model.geo.arm,'body',0,0,0,false);hullGeo(armR,model.hull.arm)}
+    mk(armR,model.geo.arm,'body',0,0,0,false);hulls.arm=hullGeo(armR,model.hull.arm)}
   const hipL=new THREE.Group(),hipR=new THREE.Group();
   hipL.position.set(-meta.hipX,meta.hipH,0);hipR.position.set(meta.hipX,meta.hipH,0);rig.add(hipL,hipR);
-  mk(hipL,model.geo.legL,'body',0,0,0,shadow);mk(hipR,model.geo.legR,'body',0,0,0,shadow);
-  hullGeo(hipL,model.hull.legL);hullGeo(hipR,model.hull.legR);
-  return {g,rig,torso,hipL,hipR,armR,meshes,mat,headY:meta.headY};
+  mk(hipL,model.geo.legL,'body',0,0,0,false);mk(hipR,model.geo.legR,'body',0,0,0,false);
+  hulls.legs.push(hullGeo(hipL,model.hull.legL),hullGeo(hipR,model.hull.legR));
+  return {g,rig,torso,hipL,hipR,armR,meshes,mat,hulls,model,headY:meta.headY};
 }
 
 /** Prosty model niehumanoidalny (np. Maluch): części {body, head} -> dwie siatki + kontur. Zwraca {geo,hull} do `assembleSolid`. */
@@ -94,15 +95,16 @@ export function solidModel(key,build){
   if(SOLIDS[key])return SOLIDS[key];
   const P={body:new Parts(),head:new Parts()};const meta=build(P)||{};
   const headY=meta.headY||1.2;
-  return SOLIDS[key]={meta,geo:{body:bake([P.body],0,0,0),head:bake([P.head],0,headY,0)},hull:{all:bake([P.body,P.head],0,0,0,true)}};
+  return SOLIDS[key]={meta,last:performance.now(),geo:{body:bake([P.body],0,0,0),head:bake([P.head],0,headY,0)},hull:{all:bake([P.body,P.head],0,0,0,true)}};
 }
 export function assembleSolid(model){
+  model.last=performance.now();
   const mat=toon(0xffffff,{vertexColors:true}),g=new THREE.Group(),rig=new THREE.Group();g.add(rig);
   const meshes=[];
   const mk=(geo,part,y,cast)=>{const m=new THREE.Mesh(geo,mat);m.position.y=y;m.castShadow=cast;m.userData.part=part;rig.add(m);meshes.push(m);return m};
   mk(model.geo.body,'body',0,true);mk(model.geo.head,'head',model.meta.headY||1.2,false);
-  hullGeo(rig,model.hull.all);
-  return {g,rig,meshes,mat,headY:model.meta.headY||1.2};
+  const hulls={upper:hullGeo(rig,model.hull.all),legs:[]};
+  return {g,rig,meshes,mat,hulls,model,headY:model.meta.headY||1.2};
 }
 
 /* ---------- szkielet człowieka ---------- */
@@ -157,3 +159,18 @@ export function humanBase(P,meta,o){
 }
 /** Wariant koloru z listy (deterministyczny z indeksu). */
 export const pickN=(list,n)=>list[n%list.length];
+
+/**
+ * Zwalnia geometrie modeli (humanModel/solidModel), z których nikt nie korzysta: `inUse` = Set modeli żywych/leżących wrogów,
+ * `maxIdle` ms bez użycia. Dzięki temu warianty modeli nie rosną w nieskończoność (renderer.info.memory.geometries).
+ */
+export function pruneModels(inUse,maxIdle=10000){
+  const now=performance.now();let freed=0;
+  for(const store of [MODELS,SOLIDS])for(const k in store){
+    const m=store[k];if(inUse.has(m)||now-m.last<maxIdle)continue;
+    for(const g of Object.values(m.geo))if(g)g.dispose();
+    for(const g of Object.values(m.hull))if(g)g.dispose();
+    delete store[k];freed++;
+  }
+  return freed;
+}
