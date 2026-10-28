@@ -64,7 +64,7 @@ DS.enemies.register({
         return false;
       },
       attack(e,dt,ctx){enter(e,'chase')},
-      animate:animateCar,
+      animate:animateCar,onHit(e,ev){if(e.vuln&&!ev.head)e.hp-=ev.dmg*.5},
       states:{
         rev:{enter(e){const a=e.ai;a.st=0;sfx('e_rev',0);noise(e,40);addFloater('BRRRRM!',{world:e.g.localToWorld(new THREE.Vector3(0,2.2,0)),size:40,life:.9,color:'#ffe14a',vy:-20,rot:-.1})},locked:e=>true,
           update(e,dt,ctx){const a=e.ai;a.st+=dt;stopMove(e,dt);facePlayer(e);e.shake=.03;e.pitch=.05*Math.min(1,a.st*3);
@@ -100,7 +100,6 @@ DS.enemies.register({
     return e;
   },
   update:updateAI,
-  onHit(e,ev){if(e.vuln&&!ev.head)e.hp-=ev.dmg*.5},
   /** Wrak: dym, po 1,2 s wybuch wizualny (bez obrażeń), kadłub czernieje. */
   dying(e,dt){
     if(!e.dInit){e.dInit=true;e.glow=0;e.ai.sp=0;e.charT=0;if(e.beam&&e.beam.release)e.beam.release()}

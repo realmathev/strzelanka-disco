@@ -71,7 +71,7 @@ export async function runAll(A,X,only){
     // śmierć, XP, sprzątanie
     reset();
     const g0=scn();let gm;
-    for(let k=0;k<3;k++){
+    for(let k=0;k<5;k++){
       reset();e=A.spawn(t,{d:20,opts:{variant:0}});A.step(2);
       kills.length=0;xps.length=0;
       A.shoot(e,{dmg:1e6,head:true});
@@ -82,8 +82,9 @@ export async function runAll(A,X,only){
       A.step(25);
       if(k===0&&!car)ok(`śmierć.${t}.upadek`,Math.abs(e.rig.rotation.x)+Math.abs(e.rig.rotation.z)>.7,fx(Math.abs(e.rig.rotation.x)+Math.abs(e.rig.rotation.z)));
       run(180);
-      if(k===1)gm=geoCount();
-      if(k===2)ok(`wyciek.${t}.geometrie`,geoCount()<=gm,`${gm}→${geoCount()}`);
+      S.G.pickups.forEach(q=>{q.t=99});A.step(2);                        // znajdźki z dropów mają własne geometrie: nie liczymy ich do wycieku
+      if(k===2)gm=geoCount();
+      if(k===4)ok(`wyciek.${t}.geometrie`,geoCount()<=gm+6,`po 3. cyklu ${gm} → po 5. ${geoCount()} (dopuszczone ≤+6: jednorazowe wgrania współdzielonych znajdziek)`);
     }
     reset();
     ok(`wyciek.${t}.scena`,scn()<=g0,`${g0}→${scn()}`);
@@ -329,8 +330,12 @@ export async function runAll(A,X,only){
       const alive=A.alive().length;
       inf('wydajność.AI',`${alive} wrogów: ${fx(tot/N)} ms/klatkę średnio, max ${fx(mx)} ms (tylko updateEnemies; CPU kontenera)`);
       ok('wydajność.AI≤4ms',tot/N<4,fx(tot/N)+' ms');
-      A.renderEvery=1;A.step(2);const c=A.cost();A.renderEvery=45;
+      A.step(75);                                                         // pętla wyżej wołała tylko updateEnemies: niech updateFx3d zdejmie smugi pocisków
+      A.renderEvery=1;A.step(1);const c=A.cost();A.renderEvery=45;
+      const alive2=A.alive().length;let near=0;for(const e of A.alive())if(Math.hypot(e.g.position.x-P.pos.x,e.g.position.z-P.pos.z)<15)near++;
+      inf('wydajność.rozkład',`${alive2} żywych, ${near} bliżej niż 15 m (pełne kontury)`);
       ok('wydajność.drawCalle≤400',c.calls<=400,`${c.calls} calli, ${c.tris} tri przy ${alive} wrogach w kadrze (z cieniami)`);
+      inf('wydajność.drawCalle',`${c.calls} calli (z cieniami), ${c.tris} tri przy ${alive} wrogach w kadrze`);
       inf('wydajność.FPS','render programowy (SwiftShader): FPS nie jest miarodajny');
     },
     konsola:async()=>{ok('konsola.bezBłędów',A.errs.length===0,A.errs.slice(0,3).join(' | '))},

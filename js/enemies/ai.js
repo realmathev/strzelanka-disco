@@ -310,7 +310,7 @@ function defaultAttack(e,dt){
 }
 
 /* ---------- animacja ---------- */
-const HULL_LEG_NEAR=15,HULL_ALL_FAR=48,SHADOW_FAR=38;
+const HULL_LEG_NEAR=12,HULL_ALL_FAR=48,SHADOW_FAR=28;
 /** LOD: kontury nóg tylko z bliska, cały kontur i cień tylko do pewnej odległości (budżet draw calli przy 30 wrogach). */
 function lod(e,dist){
   const H=e.hulls;if(!H)return;
