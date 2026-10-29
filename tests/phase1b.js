@@ -56,9 +56,9 @@ opt.difficulty='normal';G.hp=G.maxHp=125;G.armor=0;G.enemies.forEach(e=>e.alive=
  opt.sens=1;const s1=mm(100);opt.sens=2;const s2=mm(100);opt.sens=1;
  ok('input.sensitivityScalesYaw',Math.abs(s2/s1-2)<.01,s1.toFixed(4)+' / '+s2.toFixed(4))}
 // ---------- C. hitVol: 0 = cisza, domyślnie dźwięk ----------
-{const au=await import('/js/audio/context.js'),sx=await import('/js/audio/sfx.js');
+{const au=await import('/js/audio/context.js'),sx=await import('/js/audio/sfx.js'),gs=await import('/js/audio/gunsfx.js'); // od fazy 2a dzwiek trafienia gra gunsfx.gunHit (sfx('hit') jest pusty, gdy gunfeel gotowy)
  if(au.A.ctx){const c=au.A.ctx,orig=c.createOscillator.bind(c);let n=0;c.createOscillator=function(){n++;return orig()};
-  const run=v=>{opt.hitVol=v;n=0;sx.sfx('hit');sx.sfx('head');return n};const n0=run(0),n8=run(.8);opt.hitVol=.8;c.createOscillator=orig;
+  const run=v=>{opt.hitVol=v;n=0;sx.sfx('hit');sx.sfx('head');gs.gunHit(false);gs.gunHit(true);return n};const n0=run(0),n8=run(.8);opt.hitVol=.8;c.createOscillator=orig;
   ok('audio.hitVolZeroSilences',n0===0&&n8>0,'oscylatory przy hitVol 0 / .8: '+n0+' / '+n8)}
  else R['audio.hitVolZeroSilences']='SKIP (AudioContext nie wystartował w tym oknie)'}
 // ---------- D. tryb „Bezpieczna” (opt.fx=0): brak błysków podczas walki ----------

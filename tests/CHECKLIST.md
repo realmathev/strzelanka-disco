@@ -14,6 +14,9 @@ Dłuższe skrypty uruchom bez `await` na wyniku i odpytuj `window.__x` (limit ja
 | `viewport.js` | przepełnienie poziome każdego ekranu i zakładki opcji przy bieżącym viewporcie (resize_window + przeładowanie) |
 | `phase1b.js` | po spinaniu fazy 1: trudność w prawdziwym AI (obrażenia wroga w gracza x0,75/1/1,25), pancerz w prawdziwym trafieniu, czułość myszy, `hitVol`=0, tryb „Bezpieczna”, reguły reduced-motion w CSS, 10 cykli gra->menu (plateau geometrii), 10x przełączenie poziomu. Trwa ~60-80 s: uruchom bez `await` i odpytuj `window.__x` |
 | `oldsave.js` | zapis ze starego formatu (`smg`, nieznane id broni, brak nowych opcji): krok 1 ustawia localStorage, po przeładowaniu krok 2 sprawdza migrację `smg`->`uzi`, klawisze slotów, brak błędów |
+| `perf2.js` | faza 2: FPS i draw calle przy 30 wrogach naraz (fala 65, `maxAlive` 30) na Remizie i Blokowisku, preset Wysoka/Niska. Ustaw `window.__cfg={levels,presets}`, wynik w `window.__x` (gotowe, gdy `__x.done`). Ukryty panel: rAF przycina sie do ~1 klatki/s (stalle >250 ms), skrypt raportuje FPS z i bez stalli |
+| `blokowisko.js` | poziom 2: wybor z menu, BFS osiagalnosci, 13 znajdziek, 3 sekrety (E), beczki, boss fali 5 + pasek HP, chodzenie klawiszami, wycieki remiza<->blokowisko, ostrzezenie atlasu. ~40 s |
+| `gunfeel.js` | ADS (PPM, hold/toggle), seria, odrzut, R, klawisze 1-6, kolko, hit-stop (hitStop 1/0, fx=0), tryb Bezpieczna. Zdarzenia wejscia prawdziwe, klatki reczne (dziala w ukrytym panelu) |
 | `harness.js` | wspólny pomocnik `window.QA` (ręczne klatki, celowanie, start gry, koszt klatki) |
 
 ## Wymagają widocznego okna (rAF działa)
@@ -37,3 +40,6 @@ Dłuższe skrypty uruchom bez `await` na wyniku i odpytuj `window.__x` (limit ja
 ## Zakresy
 - Viewport 375 (wymaga `<meta name="viewport">`, jest), 768, 1280x720, 1920x1080: brak przewijania poziomego (`viewport.js`), HUD w całości.
 - Tryb efektów „Bezpieczna”: `G.flashT` zawsze 0, neony i żarówki bez mrugania.
+
+## Arena wrogow (`tools/enemy-test.html`)
+Samotest `ARENA.selfTest()` WYMAGA adresu z `?manual` (`/tools/enemy-test.html?manual`): bez tego petla gry chodzi sama na rAF, `A.frame()` tylko renderuje i ~85 testow (ai.*.widziPrzed, upadek, wyciek.*.scena...) pada falszywie (to NIE artefakt SwiftShadera). Z `?manual`: 252 PASS, 18 info, 0 FAIL (GPU i tak niepotrzebne, ~3 s).

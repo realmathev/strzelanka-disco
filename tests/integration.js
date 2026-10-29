@@ -6,6 +6,7 @@
 await (0,eval)(await (await fetch('/tests/harness.js')).text());
 const Q=window.QA,R={},ok=(n,c,d)=>R[n]=c?'PASS':'FAIL'+(d?' ('+d+')':''),S=Q.S;
 const geo=()=>Q.rend.renderer.info.memory.geometries;
+const w0=DS.weapons.get('glock17').mag+'/'+DS.weapons.get('glock17').rate+'/'+DS.weapons.get('glock17').reload;
 // --- 1. sklep: kupno wszystkich broni przez UI ---
 document.getElementById('warnFull').click();await Q.sleep(150);
 Q.sv.save.coins=900000;Q.sv.persist();
@@ -62,7 +63,8 @@ ok('levelup.resumes',!G.paused&&!DS.progression.ui.isOpen());
 ok('levelup.eventOrder',ev.join()==='levelup,xp,pause,perk,pause'||ev.join().includes('perk'),ev.join());
 Q.keepLevelup=false;
 // wszystkie perki: brak wyjątków, nakładki broni przywracane po wyjściu
-const w0=DS.weapons.get('glock17').mag+'/'+DS.weapons.get('glock17').rate+'/'+DS.weapons.get('glock17').reload;
+// w0 liczone na starcie pliku (przed level-upem z perkiem; inaczej test porownywal baze z bazą+perk)
+//DS.weapons.get('glock17').mag+'/'+DS.weapons.get('glock17').rate+'/'+DS.weapons.get('glock17').reload;
 for(const p of DS.perks.all()){let k=0;while(DS.progression.grant(p.id)&&k<12)k++}Q.frames(60);
 ok('perks.allApplyNoError',Q.errs.length===0,Q.errs.slice(0,2).join('|'));
 Q.flow.quitToMenu();await Q.sleep(50);
