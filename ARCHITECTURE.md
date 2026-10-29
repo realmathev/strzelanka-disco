@@ -16,7 +16,7 @@ js/audio/           context, music (sekwencer), sfx, init; gunsfx.js -> ds-gunfe
 js/player/          player (ruch, kamera, hooki), collision (collide, los), input (listenery -> akcje)
 js/game/            run (S.G), combat, waves, flow (start/pauza/menu), loop
 js/weapons/         legacy.js (3 stare bronie), slots.js, viewmodel, fire; data/ -> ds-weapon-data, models/ -> ds-weapon-modeler
-js/enemies/         manager (spawn, śmierć, trudność), gangster.js          ds-enemy-designer
+js/enemies/         manager (spawn, tabela, trudność), ai + nav, typy, bossowie  ds-enemy-designer (README.md w katalogu)
 js/world/           state, build (addBox, building), batch (scalanie), world (loadLevel/clearLevel, animateWorld)
 js/world/props/     rekwizyty (lib.js = defProp/Parts/instance)            ds-world-modeler
 js/world/levels/    poziomy                                                ds-level-designer
@@ -99,6 +99,26 @@ Mesh trafialny: `mesh.userData.part = 'head' | 'body'`; manager ustawia `mesh.us
 (`opt.difficulty`: easy 0,75/0,75, normal 1/1, hard 1,35/1,25 dla HP/obrażeń). `create()` zwraca wartości bazowe; obrażenia gracza zadawaj
 przez `hurt(e.dmg*...)` z `game/combat.js`.
 
+**Pola instancji czytane przez resztę gry:** `name` (napisy `Wchodzi <name>` w `waves.js`, `<NAME> POKONANY!` w `combat.killEnemy`, pasek bossa), `boss`, `xp` (progresja),
+`coins` (mnożnik monet za zabójstwo, domyślnie 1), `drops`, `onKill(e)`. Typy, AI i stany: `js/enemies/README.md`.
+
+**Tabela spawnu:** `DS.enemies.table(levelId, wave)` -> `{weights, caps, maxAlive, needsAllies, boss:{every, pool, pick(wave)}}`.
+`makeEnemy(false)` losuje typ z wag (limity per typ, medyk tylko przy sojusznikach), `makeEnemy(true)` bierze bossa z `boss.pick`.
+`game/waves.js` na starcie fali zapisuje `G.maxAlive = table.maxAlive` (8 + fala/3, max 30) i spawnuje z kolejki, dopóki żywych < `G.maxAlive`.
+Poziom nadpisuje tabelę polem `enemies`:
+```js
+DS.levels.register({id:'kasyno', /* ... */,
+  enemies:{weights:{dres:40}, caps:{snajper:1}, mul:{kierowca:0}, maxAlive:12, boss:{every:5, pool:['boss_szef_ochrony','gangster:boss']}}});
+```
+**Nawigacja (`enemies/nav.js`):** domyślnie siatka 1 m liczona z `world.colliders` przy pierwszym użyciu (kasowana na `levelLoad`/`levelUnload`); collidery o `h < 1,7` m
+nie zasłaniają widoku wrogom (osłona tylko przed ruchem), pełne osłony mają `h >= 1,7`. Poziom z piętrami/budynkami podaje własną nawigację:
+```js
+nav:{cell:1, x0, z0, cols, rows, blocked:Uint8Array(cols*rows) /*1 = nieprzejezdne*/, los:Uint8Array /*opcj.*/, cover:[{x,z}]}   // siatka
+nav:{points:[{x,z}], links:[[i,j]], cover:[{x,z}]}                                                                              // graf waypointów
+```
+**Zgodność z hookami gunfeela:** wrogowie liczą wszystko z `dt`, więc `DS.time.freeze` (dt=0) po prostu ich zatrzymuje; `spreadMul` dotyczy tylko strzałów gracza (`weapons/fire.js`).
+Wyjątek: `setTimeout` w salwie Jednookiego (`bosses.js`) idzie zegarem ściany (nie zatrzymuje się na pauzie ani hit-stopie).
+
 ### `DS.levels`, `DS.props`
 ```js
 DS.props.register({id:'trzepak', place({x, z, rotY}){ /* buduje, dodaje do sceny, zwraca Object3D */ }});
@@ -172,8 +192,11 @@ z `group`.
 | zdarzenie | payload | kiedy |
 |---|---|---|
 | `shot` | `{weapon, def, hit, muzzle, hits}` | po każdym strzale gracza; `hits` = `[{point, normal (świat, albo null), object, enemy (albo null)}]`, po jednym na śrut, który w coś trafił |
-| `hit` | `{enemy, dmg, head, point}` | trafienie wroga |
-| `kill` | `{enemy, head, value, combo}` | zabójstwo |
+| `beforeHit` | `{enemy, dmg, head}` | w `damageEnemy` PRZED odjęciem HP; **jedyne zdarzenie, w którym wolno zmienić payload**: ustaw `ev.dmg` (tarcza, odporności). Liczba nad głową i `hit` dostają wartość po zmianie; niepoprawna (nie liczba, <0) jest ignorowana |
+| `hit` | `{enemy, dmg, head, point}` | trafienie wroga (`dmg` po `beforeHit`) |
+| `kill` | `{enemy, head, value, combo}` | zabójstwo; `value` = monety razem z mnożnikiem `enemy.coins` |
+| `bossHp` | `{enemy, hp, max, name, phase}` | co ~0,18 s żywego bossa (`enemies/boss.js`); `ui/bossbar.js` rysuje pasek u góry ekranu (znika po `kill` bossa, na `levelEnd` i po 1,5 s ciszy) |
+| `bossPhase` | `{enemy, phase, name}` | boss wszedł w kolejną fazę (plakietka „FAZA n” na pasku, mignięcie) |
 | `damage` | `{amount, hp}` | gracz oberwał; `amount` = obrażenia, które trafiły w **HP** (po pancerzu), `hp` = HP po ciosie |
 | `heal` | `{amount, source}` | leczenie; `source`: `'pickup'` (med, bandaż, adrenalina, jedzenie, automaty), `'medkit'`, `'revive'`, `'perk'` (kradzież życia, leczenie z zabójstw) |
 | `armor` | `{armor, max}` | zmiana pancerza (kamizelka, pochłanianie, regeneracja tarczy); HUD rysuje pasek (ukryty przy `max=0`) |
@@ -204,6 +227,7 @@ DS.player.camOffset        // {pitch, yaw, roll, pos:Vector3}, dodawane do kamer
 DS.player.fovMul = .7;     // ADS: FOV = opt.fov * fovMul (projekcja liczona tylko przy zmianie)
 DS.player.addRecoil(pitch, yaw) // trwały podrzut celownika (zmienia P.pitch/P.yaw)
 DS.player.flash, DS.player.muzzleLocal, DS.player.P  // błysk, wylot, stan gracza
+DS.player.knock({x,z})     // odrzut od ciosu: impuls prędkości [m/s] do P.knock (dodawany do ruchu, tłumiony e^-6t, max 18 m/s); knock(x,z) też działa
 DS.player.speedMul()       // mnożnik ruchu (adrenalina x1,35); czyta go updateMovement
 DS.player.recoilMul()      // mnożnik odrzutu (adrenalina x0,7): HOOK dla ds-gunfeel
 ```

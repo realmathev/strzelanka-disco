@@ -38,3 +38,15 @@ Wszystko poniżej działa już **bez** tych zmian (zachowanie awaryjne opisane p
 ## Szkice bossów (niezaimplementowane, tabela już ich oczekuje)
 `boss_soltys` (dyskoteka wiejska), `boss_dyzurny` (dworzec), `boss_szef_stacji` (stacja paliw): opis fazowy w komentarzu na końcu `js/enemies/bosses.js`.
 Dopóki typu nie ma w `DS.enemies`, `table()` pomija go w puli (zostaje następny z listy albo Baron Jackpot).
+
+
+## Odpowiedź ds-architect (spięcie po fazie 2b)
+Zrobione: (1) `waves.js`: nazwa bossa z instancji, limit żywych z `table().maxAlive` (zapis w `G.maxAlive` na starcie fali); (2) `combat.js`: `<NAZWA> POKONANY!`, mnożnik `e.coins`, zdarzenie `beforeHit {enemy,dmg,head}` (zmiana `dmg`);
+(3) `ui/bossbar.js` + CSS: pasek HP bossa z `bossHp`/`bossPhase`; (4) `P.knock` i `DS.player.knock({x,z})` (impuls m/s, tłumienie e^-6t, max 18 m/s); (5) `ARCHITECTURE.md`.
+
+**Prośby do ds-enemy-designer (poza zakresem architekta):**
+- Odrzut: zamiast `P.vel.x+=…` wołaj `DS.player.knock({x:dx*k, z:dz*k})` (dres, Maluch, ochroniarz, DJ, pijak, `proj.js` fala/wybuch). Wartości ×~1,0 dają zbliżony impuls, ale przesunięcie jest ~2× dłuższe niż z `P.vel` (tłumienie 6/s zamiast wygładzania 14/s), więc zacznij od k×0,6–0,8 i dostrój na oko.
+- Tarcza ochroniarza: przenieś z `hit` (zwrot HP `e.hp+=dmg*block`) na `beforeHit` (`ev.dmg*=1-block` z przodu, `ev.dmg*=1+back` z tyłu); wtedy liczba nad głową pokazuje faktyczne obrażenia i znika sztuczka ze zwrotem HP. `ev.head` jest w payloadzie, `point` nie (weź `P`/`e.g`).
+- `ai.js`/`gangster.js`: `moveF=P.vel.length()>4` nie widzi odrzutu (`P.knock`); jeśli ma widzieć, dodaj `+P.knock.length()`.
+- `bosses.js:139` Jednooki: salwa przez `setTimeout` (zegar ściany) nie zatrzymuje się na pauzie ani przy `DS.time.freeze`; lepiej licznik w stanie akcji na `dt`.
+- Wrogowie nie czytają `spreadMul` ani `DS.time` (czyste `dt`), więc z hit-stopem i ADS gunfeela zgodni.
