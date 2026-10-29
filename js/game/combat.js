@@ -10,8 +10,11 @@ import {absorbDamage} from '../pickups/armor.js';
 import {comboMult} from './run.js';
 import {showOver} from '../ui/screens.js';
 
+/** Trafienie wroga. Przed odjęciem HP leci 'beforeHit' {enemy,dmg,head}: słuchacz może zmienić `dmg` (tarcza ochroniarza); liczby i 'hit' dostają wartość po zmianie. */
 export function damageEnemy(e,dmg,head,point){
   const G=S.G;
+  const bh={enemy:e,dmg,head};DS.bus.emit('beforeHit',bh);
+  if(typeof bh.dmg==='number'&&bh.dmg>=0&&bh.dmg<1e6)dmg=bh.dmg;
   e.hp-=dmg;e.flashT=.12;G.hitT=.14;G.hitHead=head;sfx(head?'head':'hit');
   if(+opt.dmgNum)addFloater(String(Math.round(dmg)),{world:point.clone(),size:head?30:22,life:.7,color:head?'#ff3b30':'#f4e7c5',vy:-50,rot:rand(-.2,.2)});
   DS.bus.emit('hit',{enemy:e,dmg,head,point});
@@ -22,7 +25,7 @@ export function killEnemy(e,head){
   e.alive=false;e.mats.forEach(m=>m.emissive.setRGB(0,0,0));
   G.kills++;save.kills++;if(head)G.heads++;
   G.combo=G.comboT>0?G.combo+1:1;G.comboT=3.5;
-  const base=e.boss?260+G.wave*20:12+G.wave*2;const val=Math.round(base*(head?1.5:1)*comboMult());
+  const base=e.boss?260+G.wave*20:12+G.wave*2;const val=Math.round(base*(head?1.5:1)*comboMult()*(e.coins>0?e.coins:1));   // e.coins = mnożnik monet typu (domyślnie 1)
   const pos=e.g.position.clone();
   const n=e.boss?10:clamp(Math.round(val/10),2,6);for(let i=0;i<n;i++)spawnPickup('coin',pos,Math.ceil(val/n));
   if(Math.random()<(e.boss?1:.035))spawnPickup('key',pos,e.boss?2:1);
@@ -31,7 +34,7 @@ export function killEnemy(e,head){
   addFloater(pick(words),{world:pos.clone().setY(e.boss?3.6:2.4),size:head?46:36,life:.9,color:head?'#d3242a':'#ffe14a',vy:-40,rot:rand(-.25,.25),burst:head});
   const streak={3:'TRZY NA RAZ!',5:'DISCO MASAKRA!',8:'BIESIADA OŁOWIU!',12:'KRÓL REMIZY!',16:'NIEPOWSTRZYMANY!'}[G.combo];
   if(streak)announce(streak,`Mnożnik ×${comboMult().toFixed(1)}`);
-  if(e.boss)announce('BARON POKONANY!','+2 klucze leżą na ziemi');
+  if(e.boss)announce((e.name||'BOSS').toUpperCase()+' POKONANY!','+2 klucze leżą na ziemi');
   if(head&&opt.panels&&G.panelCD<=0){G.panelReq=e.g.localToWorld(new THREE.Vector3(0,e.headY||1.94,0));G.panelCD=5}
   G.shake+=.25;
   DS.bus.emit('kill',{enemy:e,head,value:val,combo:G.combo});
