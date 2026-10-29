@@ -40,7 +40,8 @@ function paintGeo(g,color){
 }
 
 /* ---------- atlas decali ---------- */
-const AW=2048,AH=1024;
+// 4096x2048: Blokowisko (szyldy bazaru, fasady, garaże) przepełniało 2048x1024 (QA fazy 2)
+const AW=4096,AH=2048;
 const atlasCv=cnv(AW,AH,()=>{});const actx=atlasCv.getContext('2d');
 export const atlasTex=new THREE.CanvasTexture(atlasCv);atlasTex.minFilter=THREE.LinearFilter;atlasTex.generateMipmaps=false;
 let ax=0,ay=0,rowH=0;const rects=new Map();

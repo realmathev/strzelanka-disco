@@ -70,6 +70,8 @@ DS.enemies.register({
   /** AI żywego wroga: dystans, krążenie, chód, błysk trafienia, strzał. eye = oczy gracza. */
   update(e,dt,eye){
     const G=S.G;
+    // Baron nie korzysta z boss.js, więc pasek HP w HUD zasila sam (ten sam rytm co bossThink)
+    if(e.boss){e.hpT=(e.hpT||0)-dt;if(e.hpT<=0){e.hpT=.18;DS.bus.emit('bossHp',{enemy:e,hp:e.hp,max:e.maxHp,name:e.name,phase:1})}}
     const dx=P.pos.x-e.g.position.x,dz=P.pos.z-e.g.position.z,dist=Math.hypot(dx,dz)||1;
     e.g.rotation.y=Math.atan2(-dx,-dz);
     let vx=0,vz=0;const pref=e.boss?7:9;

@@ -208,21 +208,24 @@ export function placeBarrels(list){
   const geo=new THREE.CylinderGeometry(.3,.3,.95,10);
   const mat=toon(0xc2331f);
   const im=new THREE.InstancedMesh(geo,mat,list.length);im.castShadow=true;im.receiveShadow=true;im.frustumCulled=false;
-  const items=list.map((b,i)=>{
-    const c={x0:b.x-.34,x1:b.x+.34,z0:b.z-.34,z1:b.z+.34,h:.95};world.colliders.push(c);
-    im.setMatrixAt(i,_m.makeTranslation(b.x,.475,b.z));
-    return {x:b.x,z:b.z,col:c,col0:Object.assign({},c),dead:false};
-  });
-  im.instanceMatrix.needsUpdate=true;scene.add(im);world.meshes.push(im);
   // żółty pas ostrzegawczy: druga instancja o węższej wysokości
   const band=new THREE.InstancedMesh(new THREE.CylinderGeometry(.312,.312,.16,10),new THREE.MeshBasicMaterial({color:0xf2c21c}),list.length);band.frustumCulled=false;band.raycast=()=>{};
-  items.forEach((b,i)=>band.setMatrixAt(i,_m.makeTranslation(b.x,.62,b.z)));band.instanceMatrix.needsUpdate=true;scene.add(band);
-  barrels={im,band,items};return barrels;
+  const items=list.map((b,i)=>{
+    const c={x0:b.x-.34,x1:b.x+.34,z0:b.z-.34,z1:b.z+.34,h:.95};world.colliders.push(c);
+    im.setMatrixAt(i,_m.makeTranslation(b.x,.475,b.z));band.setMatrixAt(i,_m.makeTranslation(b.x,.62,b.z));
+    return {x:b.x,z:b.z,col:c,col0:Object.assign({},c),dead:false,im,band,i};
+  });
+  im.instanceMatrix.needsUpdate=true;scene.add(im);world.meshes.push(im);
+  band.instanceMatrix.needsUpdate=true;scene.add(band);
+  // poziom może wołać placeBarrels kilka razy: grupy się sumują (wcześniej ostatnia nadpisywała poprzednie)
+  if(!barrels)barrels={ims:new Set(),items:[]};
+  barrels.ims.add(im);barrels.items.push(...items);
+  return {im,band,items};
 }
 function blow(b,depth=0){
   if(b.dead||!barrels)return;b.dead=true;
-  const i=barrels.items.indexOf(b);barrels.im.setMatrixAt(i,Z0);barrels.band.setMatrixAt(i,Z0);
-  barrels.im.instanceMatrix.needsUpdate=barrels.band.instanceMatrix.needsUpdate=true;
+  b.im.setMatrixAt(b.i,Z0);b.band.setMatrixAt(b.i,Z0);
+  b.im.instanceMatrix.needsUpdate=b.band.instanceMatrix.needsUpdate=true;
   b.col.x0+=1e5;b.col.x1+=1e5;
   const G=S.G;if(!G)return;
   if(mods.proj)mods.proj.explode(b.x,.6,b.z,{r:5.2,dmg:26,shake:1.1});
@@ -359,15 +362,15 @@ addEventListener('keydown',e=>{
 DS.bus.on('shot',e=>{
   if(!barrels||!e||!e.hits)return;
   for(const h of e.hits){
-    if(h.object!==barrels.im)continue;
+    if(!barrels.ims.has(h.object))continue;
     let best=null,bd=1.4;for(const b of barrels.items){if(b.dead)continue;const d=Math.hypot(b.x-h.point.x,b.z-h.point.z);if(d<bd){bd=d;best=b}}
     if(best)blow(best);
   }
 });
 function resetRun(){
   for(const d of doors){d.t=d.target=0;d.col.x0=d.col0.x0;d.col.x1=d.col0.x1}
-  if(barrels){barrels.items.forEach((b,i)=>{b.dead=false;b.col.x0=b.col0.x0;b.col.x1=b.col0.x1;barrels.im.setMatrixAt(i,_m.makeTranslation(b.x,.475,b.z));barrels.band.setMatrixAt(i,_m.makeTranslation(b.x,.62,b.z))});
-    barrels.im.instanceMatrix.needsUpdate=barrels.band.instanceMatrix.needsUpdate=true}
+  if(barrels)for(const b of barrels.items){b.dead=false;b.col.x0=b.col0.x0;b.col.x1=b.col0.x1;b.im.setMatrixAt(b.i,_m.makeTranslation(b.x,.475,b.z));b.band.setMatrixAt(b.i,_m.makeTranslation(b.x,.62,b.z));
+    b.im.instanceMatrix.needsUpdate=b.band.instanceMatrix.needsUpdate=true}
   if(col){for(const it of col.items)it.got=!!(KINDS[it.type].once&&(save.lvFound||{})[it.id])}
 }
 DS.bus.on('levelStart',resetRun);
