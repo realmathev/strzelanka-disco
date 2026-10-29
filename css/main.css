@@ -392,3 +392,18 @@ input[type=range]{height:28px;min-width:0}
 .perkList{border-top:3px solid var(--ink);padding-top:8px;max-height:30vh;overflow:auto}
 .perkList h3{font-size:calc(22px*var(--ts,1))}
 .perkList ul{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:calc(15px*var(--ts,1))}
+
+/* HUD: pasek HP bossa (zdarzenia bossHp / bossPhase, ui/bossbar.js) */
+.bossbar{position:absolute;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:max(150px,min(520px,100vw - 420px));display:flex;flex-direction:column;gap:2px;pointer-events:none}
+.bosshead{display:flex;align-items:flex-end;justify-content:center;gap:10px}
+.bosshead b{font-family:var(--display);font-weight:400;font-size:calc(26px*var(--ts,1));letter-spacing:.06em;color:var(--yellow);-webkit-text-stroke:1.5px var(--ink);text-shadow:3px 3px 0 var(--ink);line-height:1;text-align:center}
+.bosshead small{font-family:var(--display);font-size:calc(15px*var(--ts,1));letter-spacing:.06em;background:var(--red);color:var(--cream);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);padding:0 6px;transform:rotate(-3deg);line-height:1.25}
+.bosstrack{height:24px;background:var(--ink);border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);position:relative;overflow:hidden}
+.bosstrack i{position:absolute;inset:0;transform-origin:left;background:linear-gradient(var(--red),#a3161c);transition:transform .15s}
+.bosstrack i.ghost{background:var(--yellow);transition:transform .8s .25s}
+.bosstrack span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:calc(16px*var(--ts,1));color:var(--cream);text-shadow:1px 1px 0 var(--ink);letter-spacing:.06em}
+.bossbar.flash{animation:bossflash .7s ease-out}
+@keyframes bossflash{0%{transform:translateX(-50%) scale(1.18) rotate(-2deg)}35%{transform:translateX(-50%) scale(.96) rotate(1deg)}100%{transform:translateX(-50%) scale(1) rotate(0)}}
+@media (max-width:760px){.bossbar{top:calc(96px + env(safe-area-inset-top,0px));width:min(520px,86vw)}}
+:root[data-motion=reduced] .bossbar.flash,:root[data-motion=reduced] .bosstrack i{animation:none;transition:none}
+@media (prefers-reduced-motion:reduce){.bossbar.flash,.bosstrack i{animation:none;transition:none}}
