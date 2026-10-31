@@ -29,3 +29,22 @@ Poziom 2 „Blokowisko” działa bez tych zmian; poniżej to, co poprawiłoby i
 `setEnv` (niebo/mgła/światła + cień słońca podąża za graczem, przywracane na `levelUnload`), `mergeIntoZones` (kafelki 16 m -> strefy 56 m, proxy raycastu
 zostają kafelkowe; neony o tej samej teksturze w jedną siatkę), `room/slidingDoor` (drzwi E, kolider znika po otwarciu), `placeCollectibles`, `placeBarrels`
 (strzał -> wybuch, łańcuch), `healMachines`, `buildNav` (osłony z colliderów).
+
+## Poziom 3 „Kasyno Złoty Bandyta” (`kasyno.js`): stan i prośby
+
+Arena 75 m (150 x 150 = 22 500 m2, 3,2x Remiza), noc, wnętrze pod dachem. Pętla zewnętrzna (parking, aleje, podwórze) + wejścia boczne/tylne bez drzwi.
+Znajdźki: 14 (`ks-*`), sekrety: skarbiec (E), chłodnia (E), windy A i B (E: otwarcie; E w kabinie: jazda do drugiej windy = skrót kuchnia <-> magazyn).
+Boss: Jednooki (fala 5, parkiet = `waves.bossArena`), DJ (fala 10). Ukończenie: pokonanie Jednookiego. Utwór `C`. `tests/kasyno.js`: 60 asercji.
+Zmiana w `common.js`: `buildNav(level,{coverMax,coverMaxH,coverLimit})` (domyślnie bez zmian dla Blokowiska); waypointy liczone tylko przy `graph:true`
+(wcześniej O(n^2) przy każdym wczytaniu bez użycia).
+
+**Brakujące rekwizyty (ds-world-modeler):**
+1. Drzwi wahadłowe/obrotowe wejścia kasyna (dziś: otwór 8 m z żółtymi słupkami) i szlaban parkingowy; stretch limuzyna (parking) i bramka z taśmą/słupki z liną do lóż VIP.
+2. Zasłona/kotara sceny, telebim LED na ścianie hallu, wieszaki szatni, stosy żetonów i sztaby złota jako osobny rekwizyt (dziś: skrzynie `crate` w skarbcu).
+3. Stół do bakarata/kości i koło fortuny (poza ruletką), terminal kasy z ekranem, fontanna w foyer.
+4. Antresola ze schodami i balustradą (loże nad parkietem): wymaga `world.groundY` (patrz punkt 4 wyżej), dziś tylko wysokie lustra/kolumny jako „piętro”.
+5. Windy: `windaDef.place` zwraca `doorL/doorR/doorCol`, ale brak API do animacji; poziom sam przesuwa drzwi (`kasyno.js: placeLift`). Przydałoby się `userData.setOpen(t)`.
+6. `kulaDisco`: place() skleja w świat, więc obrót robi `make()` + `scene.add` w poziomie; wersja z flagą `spin` byłaby czystsza.
+
+**Uwagi o budżecie:** 30 wrogów + cały poziom: 215-325 draw calli i 217-290 tys. trójkątów (parking w kadrze = najgorszy przypadek, brak occlusion cullingu
+w silniku; 161 automatów x 396 tri i auta ~1100 tri to główni konsumenci). Kolejne wnętrza: rozważyć rekwizyty LOD albo `instance()` z neonami (dziś `instance` pomija neony/decale).

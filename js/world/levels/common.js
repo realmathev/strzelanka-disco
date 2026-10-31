@@ -249,32 +249,33 @@ export function healMachines(list){
  * Buduje `level.nav`: graf waypointów (siatka co `step` m, odfiltrowana kolizjami; łącza tylko czyste odcinki) + lista osłon
  * wokół pełnych/średnich colliderów. Wołać po postawieniu wszystkich colliderów w build().
  */
-export function buildNav(level,{step=9,link=14,pad=.75,arena,graph=false}={}){
+export function buildNav(level,{step=9,link=14,pad=.75,arena,graph=false,coverMax=40,coverMaxH=1e9,coverLimit=420}={}){
+  // coverMax/coverMaxH: pomijaj w osłonach collidery dłuższe/wyższe niż podane (np. ściany budynków wnętrz); domyślnie bez zmian.
   const A=arena||world.arena,cols=world.colliders;
   const inside=(x,z,p)=>{for(const c of cols){if(c.h<=0)continue;if(x>c.x0-p&&x<c.x1+p&&z>c.z0-p&&z<c.z1+p)return true}return false};
   const clear=(x0,z0,x1,z1,p)=>{const d=Math.hypot(x1-x0,z1-z0),n=Math.ceil(d/.6);for(let i=1;i<n;i++){const t=i/n;if(inside(x0+(x1-x0)*t,z0+(z1-z0)*t,p))return false}return true};
   const points=[];
-  for(let x=-A+4;x<=A-4;x+=step)for(let z=-A+4;z<=A-4;z+=step){
+  for(let x=-A+4;graph&&x<=A-4;x+=step)for(let z=-A+4;z<=A-4;z+=step){   // waypointy tylko dla trybu grafu (inaczej nieużywane)
     // małe przesunięcie, jeśli punkt leży w kolizji
     let ok=!inside(x,z,pad),px=x,pz=z;
     if(!ok)for(const [dx,dz] of [[2,0],[-2,0],[0,2],[0,-2],[2,2],[-2,-2],[2,-2],[-2,2],[3.5,0],[-3.5,0],[0,3.5],[0,-3.5]]){if(!inside(x+dx,z+dz,pad)){px=x+dx;pz=z+dz;ok=true;break}}
     if(ok&&Math.abs(px)<A-2&&Math.abs(pz)<A-2)points.push({x:px,z:pz});
   }
   const links=[];
-  for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++){
+  for(let i=0;graph&&i<points.length;i++)for(let j=i+1;j<points.length;j++){
     const a=points[i],b=points[j],d=Math.hypot(a.x-b.x,a.z-b.z);
     if(d<=link&&clear(a.x,a.z,b.x,b.z,pad-.15))links.push([i,j]);
   }
   // osłony: punkty tuż za pełnymi/średnimi przeszkodami (h>=1.3), po jednym przy każdym boku i narożniku
   const cover=[];
   for(const c of cols){
-    if(c.h<1.3||c.x0>1e4||c.x1-c.x0>40||c.z1-c.z0>40)continue;
+    if(c.h<1.3||c.h>coverMaxH||c.x0>1e4||c.x1-c.x0>coverMax||c.z1-c.z0>coverMax)continue;
     const cx=(c.x0+c.x1)/2,cz=(c.z0+c.z1)/2,o=1.05;
     for(const [x,z] of [[c.x0-o,cz],[c.x1+o,cz],[cx,c.z0-o],[cx,c.z1+o],[c.x0-o,c.z0-o],[c.x1+o,c.z0-o],[c.x0-o,c.z1+o],[c.x1+o,c.z1+o]])
       if(Math.abs(x)<A-1.5&&Math.abs(z)<A-1.5&&!inside(x,z,.5))cover.push({x:Math.round(x*10)/10,z:Math.round(z*10)/10});
   }
   const cv=[];const seen=new Set();for(const p of cover){const k=Math.round(p.x/1.5)+','+Math.round(p.z/1.5);if(!seen.has(k)){seen.add(k);cv.push(p)}}
-  // Graf waypointów (points/links) tylko na życzenie (graph:true): tryb grafu w enemies/nav.js wraca do linii prostej, gdy cel stoi w komórce\n  // zablokowanej (gracz przy ścianie), więc domyślnie zostaje siatka A* + lista osłon (test: 12/12 wrogów dochodzi z rogów mapy).\n  level.nav=graph?{points,links,cover:cv.slice(0,420)}:{cover:cv.slice(0,420)};
+  // Graf waypointów (points/links) tylko na życzenie (graph:true): tryb grafu w enemies/nav.js wraca do linii prostej, gdy cel stoi w komórce\n  // zablokowanej (gracz przy ścianie), więc domyślnie zostaje siatka A* + lista osłon (test: 12/12 wrogów dochodzi z rogów mapy).\n  level.nav=graph?{points,links,cover:cv.slice(0,coverLimit)}:{cover:cv.slice(0,coverLimit)};
   return level.nav;
 }
 
