@@ -81,6 +81,7 @@ export function goBack(){
   switch(s.id){
     case 'scrPause':if(S.G&&S.G.paused){resume();return true}return false;
     case 'scrOptions':$('#optBack').click();return true;
+    case 'scrLevelDone':$('#lcKeep').click();return true;
     case 'scrMenu':case 'scrWarn':case 'scrOver':return false;
     default:{const b=s.querySelector('[data-go="scrMenu"]');if(b){b.click();return true}return false}
   }

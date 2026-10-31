@@ -1,5 +1,6 @@
 // Proceduralne disco polo: instrumenty, utwory i sekwencer.
 import {A,mtof,env,noiseSrc} from './context.js';
+import {world} from '../world/state.js';
 
 function kick(t){const c=A.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(42,t+.13);env(g,t,.002,1,.32);o.connect(g);g.connect(A.music);o.start(t);o.stop(t+.4)}
 function hat(t,open){const c=A.ctx,s=noiseSrc(t,open?.25:.06),f=c.createBiquadFilter(),g=c.createGain();f.type='highpass';f.frequency.value=7500;env(g,t,.001,open?.22:.12,open?.2:.04);s.connect(f);f.connect(g);g.connect(A.music)}
@@ -43,4 +44,6 @@ function playStep(T,step,t,sd){
 }
 function riser(t){}
 /** Zmienia utwór; menu=true wycisza melodię w pierwszych 4 taktach. */
+/** Utwór w grze: opt.track 'L' = wg poziomu (`level.track`, a gdy brak: 'A'); inne wartości = wybór gracza. */
+export function gameTrack(o){const t=o&&o.track;if(t!=='L')return t||'A';const L=world.level;return(L&&L.track&&TRACKS[L.track]&&L.track)||'A'}
 export function setTrack(k,menu){if(seq.track!==k){seq.track=k;seq.step=0;if(A.ctx)seq.next=A.ctx.currentTime+.05}seq.menu=menu}

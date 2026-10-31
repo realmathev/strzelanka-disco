@@ -138,6 +138,16 @@ wracają do stanu wyjściowego; statyczne części są budowane od nowa). **Wyma
 (`opt.level`, zdarzenie `levelSelect {level}`) wczytuje poziom od razu (nasłuch w `world.js`); `startGame` wczytuje wybrany poziom, jeśli jeszcze nie jest aktywny.
 Boot: `loadLevel(opt.level)` (a gdy go nie ma w rejestrze: `'remiza'`).
 
+**Pola poziomu czytane przez silnik (opcjonalne).**
+- `spawnZones:[{id,x,z,r,w,from,boss}]`: `enemies/manager.js` losuje strefę z wagą `w` spośród tych z `from <= fala` (bez `boss:true`), punkt w dysku `r`;
+  nadal obowiązuje: min. 16 m (potem 12 m) od gracza, wolna komórka nawigacji i poza polem widzenia gracza. Brak stref = pierścień 22–36 m (Remiza).
+- `waves.bossArena:{x,z,hw,hd,gates}`: boss (`opts.boss`) pojawia się przy środku areny (rozrzut ±35% połowy wymiarów); brak = strefa z `boss:true`, brak = zwykły spawn.
+  Przy spawnie bossa manager emituje `bossHp`, więc pasek HP pojawia się od razu (podtrzymanie co 0,4 s).
+- `track:'B'`: utwór w grze, gdy `opt.track==='L'` („Wg poziomu”, domyślne dla nowych graczy; brak `track` = 'A'). Wybór 'A'/'B'/'C' nadal wymusza utwór. Logika: `gameTrack(opt)` w `audio/music.js`.
+- `win:{kind,boss,reward:{coins,keys},text}` + zdarzenie `levelComplete` (patrz tabela zdarzeń).
+- Zapis: `save.lvFound {id:true}` (znajdźki jednorazowe), `save.levelsDone {levelId:true}` (oba w `DEF_SAVE`, migracja starych zapisów w `core/save.js`);
+  menu wyboru poziomu oznacza ukończone „✓ UKOŃCZONY”.
+
 **Geometria statyczna: `addBox(...)` z `world/build.js`** dopisuje collider do `world.colliders`, a geometrię do kubełków `world/batch.js` (`loadLevel`
 po `build()` skleja je w siatki per kafelek 16x16 m i dopiero te trafiają do `world.meshes`). Uwaga: **zwrócony przez `addBox` obiekt to niewidoczna
 zaślepka (pozycja + `userData.box`), nie ma jej w scenie**: nie dopinaj do niej dzieci ani materiałów, nie rób `scene.remove`. Z materiału liczy się tylko
@@ -207,6 +217,7 @@ z `group`.
 | `waveStart` | `{wave, boss, count}` | nowa fala |
 | `levelStart` | `{level}` | start runu |
 | `levelEnd` | `{level, reason:'death'\|'quit', wave, kills, earned}` | sprzątanie runu (raz na run) |
+| `levelComplete` | `{level, wave}` | emituje sam poziom (np. po zabiciu `level.win.boss`, po ustawieniu `save.levelsDone[id]` i nagrody); `ui/levelcomplete.js` po 2,2 s pauzuje run i pokazuje ekran `scrLevelDone` (fala, zabici, znajdźki x/y z `collectStats`, nagroda z `level.win.reward`; przyciski „Dalej: <następny poziom z `DS.levels.all()`>”, „Graj dalej”, „Menu”) |
 | `pause` | `true` / `false` | pauza / wznowienie; ekran automatu level-up też pauzuje (`G.paused=true`), ale nie pokazuje `scrPause` |
 | `levelSelect` | `{level}` | wybór poziomu w menu (ui/menu.js); `world.js` wczytuje go od razu |
 | `levelLoad` / `levelUnload` | `{level}` | po `loadLevel` / na początku `clearLevel` (sprzątanie własnych obiektów poziomu) |

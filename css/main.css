@@ -234,6 +234,7 @@ input[type=range]{height:28px;min-width:0}
 .pick:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
 .pick b{font-family:var(--display);font-weight:400;font-size:calc(26px*var(--ts,1));letter-spacing:.03em}
 .pick .meta{font-weight:800;text-transform:uppercase;letter-spacing:.05em;font-size:calc(13px*var(--ts,1));color:#4d4230}
+.pick .meta .done{font-style:normal;color:#1f7a4d}
 .pick .desc{font-size:calc(16px*var(--ts,1));line-height:1.25}
 .pick .tick{margin-top:auto;font-weight:800;font-size:calc(13px*var(--ts,1));letter-spacing:.08em;min-height:1.2em}
 .pick.on{background:var(--yellow);outline:4px solid var(--ink);outline-offset:-4px}

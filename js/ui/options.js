@@ -5,7 +5,7 @@ import {$,$$} from '../core/util.js';
 import {opt,persistOpt,persist,resetSave} from '../core/save.js';
 import {S} from '../core/state.js';
 import {applyOpts,PRESETS} from '../render/settings.js';
-import {setTrack} from '../audio/music.js';
+import {setTrack,gameTrack} from '../audio/music.js';
 import {sfx} from '../audio/sfx.js';
 import '../input/optdefs.js';
 import {h,clear} from './dom.js';
@@ -95,7 +95,7 @@ export function openOptionsTab(id,focus){
   range(p,{id:'oMusic',key:'music',label:'Muzyka',min:0,max:1,step:.05,fmt:pct});
   range(p,{id:'oSfx',key:'sfx',label:'Efekty',min:0,max:1,step:.05,fmt:pct});
   range(p,{id:'oHitVol',key:'hitVol',label:'Głośność trafień',min:0,max:1,step:.05,fmt:pct,hint:'Dźwięk potwierdzenia trafienia we wroga.'});
-  seg(p,{key:'track',label:'Utwór w grze',num:false,choices:[['A','Biesiada w Kasynie'],['B','Ołowiane Wesele'],['C','Remiza Turbo']],after:()=>{if(S.mode==='game')setTrack(opt.track,false)}});
+  seg(p,{key:'track',label:'Utwór w grze',num:false,choices:[['A','Biesiada w Kasynie'],['B','Ołowiane Wesele'],['C','Remiza Turbo'],['L','Wg poziomu']],after:()=>{if(S.mode==='game')setTrack(gameTrack(opt),false)}});
 }
 /* Sterowanie */
 {const p='ctl';

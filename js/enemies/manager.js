@@ -21,14 +21,35 @@ function viewHalfAngle(){
   const aspect=(innerWidth||1280)/Math.max(1,innerHeight||720),v=(+opt.fov||75)*Math.PI/180;
   return Math.atan(Math.tan(v/2)*aspect)+.25;
 }
-/** Stawia wroga w losowym punkcie pierścienia 22–36 m od środka areny, ≥16 m od gracza, na wolnej komórce i POZA polem widzenia gracza. */
+/** Strefy spawnu poziomu dostępne w fali `wave` (bez stref bossa; `from` = pierwsza fala). Pusta tablica = użyj pierścienia. */
+function zonesFor(wave){
+  const z=world.level&&world.level.spawnZones;if(!Array.isArray(z)||!z.length)return null;
+  let l=z.filter(q=>!q.boss&&(q.from||1)<=wave);if(!l.length)l=z.filter(q=>!q.boss);
+  return l.length?l:null;
+}
+/** Losuje strefę z wagą `w` (domyślnie 1). */
+function pickZone(l){let t=0;for(const q of l)t+=q.w>0?q.w:1;let r=Math.random()*t;for(const q of l){r-=q.w>0?q.w:1;if(r<0)return q}return l[l.length-1]}
+/** Punkt startowy bossa: środek `level.waves.bossArena` (z rozrzutem w obrębie połowy wymiarów) albo strefa z `boss:true`. */
+function bossPoint(){
+  const L=world.level,ba=L&&L.waves&&L.waves.bossArena;
+  if(ba&&isFinite(ba.x)&&isFinite(ba.z))return {x:ba.x+rand(-.35,.35)*(ba.hw||0),z:ba.z+rand(-.35,.35)*(ba.hd||0)};
+  const bz=L&&Array.isArray(L.spawnZones)&&L.spawnZones.find(q=>q.boss);
+  if(bz){const a=rand(0,Math.PI*2),r=Math.sqrt(Math.random())*(bz.r||0)*.5;return {x:bz.x+Math.cos(a)*r,z:bz.z+Math.sin(a)*r}}
+  return null;
+}
+/** Stawia wroga: `opts.at`; boss w arenie bossa poziomu; inaczej w strefie `level.spawnZones` (waga, fala) albo — bez stref — w pierścieniu
+ *  22–36 m od środka areny. Zawsze ≥16 m od gracza, na wolnej komórce i POZA polem widzenia gracza (jeśli się da). */
 function placeEnemy(e,opts){
   const g=e.g,cls=(e.cfg&&e.cfg.cls)||0,A=world.arena;
   if(opts.at){const f=nav.nearestFree(opts.at.x,opts.at.z,cls,4);g.position.set(f?f.x:opts.at.x,0,f?f.z:opts.at.z);return}
+  if(opts.boss){const p=bossPoint();if(p){const f=nav.nearestFree(p.x,p.z,cls,6);g.position.set(f?f.x:p.x,0,f?f.z:p.z);return}}
+  const zones=zonesFor(opts.wave!==undefined?opts.wave:(S.G?S.G.wave:1));
   const lx=-Math.sin(P.yaw),lz=-Math.cos(P.yaw),half=viewHalfAngle();
   let best=null,bestAng=-1;
   for(let tries=0;tries<90;tries++){
-    const a=rand(0,Math.PI*2),r=rand(22,36);const x=clamp(Math.cos(a)*r,-A+3,A-3),z=clamp(Math.sin(a)*r,-A+3,A-3);
+    let x,z;
+    if(zones){const q=pickZone(zones),a=rand(0,Math.PI*2),r=Math.sqrt(Math.random())*(q.r||8);x=clamp(q.x+Math.cos(a)*r,-A+3,A-3);z=clamp(q.z+Math.sin(a)*r,-A+3,A-3)}
+    else{const a=rand(0,Math.PI*2),r=rand(22,36);x=clamp(Math.cos(a)*r,-A+3,A-3);z=clamp(Math.sin(a)*r,-A+3,A-3)}
     const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz);
     if(d<(tries<60?16:12)||!nav.isFree(x,z,cls))continue;
     const ang=Math.acos(clamp((dx*lx+dz*lz)/d,-1,1));
@@ -37,6 +58,7 @@ function placeEnemy(e,opts){
     if(ang>bestAng){bestAng=ang;best={x,z}}
   }
   if(best)g.position.set(best.x,0,best.z);                        // wszystko widoczne: weź punkt najbardziej z boku
+  else if(zones){const q=pickZone(zones);const f=nav.nearestFree(q.x,q.z,cls,8);g.position.set(f?f.x:q.x,0,f?f.z:q.z)}   // nic nie przeszło: środek strefy
 }
 
 /** Tworzy wroga typu `type`. opts: {boss, wave, at:{x,z}, aware:false (patrol zamiast pościgu)}. Mnożniki trudności liczone raz tutaj. */
@@ -51,6 +73,7 @@ export function spawnEnemy(type,opts={}){
   if(e.ai&&!e.ai.home)e.ai.home={x:e.g.position.x,z:e.g.position.z};
   scene.add(e.g);G.enemies.push(e);
   if(e.def.onSpawn)e.def.onSpawn(e);
+  if(e.boss)DS.bus.emit('bossHp',{enemy:e,hp:e.hp,max:e.maxHp||e.hp,name:e.name,phase:e.phase||1});   // pasek HP od razu, bez czekania na pierwszą akcję bossa
   return e;
 }
 
@@ -90,6 +113,7 @@ export function updateEnemies(dt){
       if(e.dieT>5){disposeObject(e.g);e.gone=true}continue}
     alive++;
     e.def.update(e,dt,eye);
+    if(e.boss&&e.alive){e._bhT=(e._bhT||0)-dt;if(e._bhT<=0){e._bhT=.4;DS.bus.emit('bossHp',{enemy:e,hp:e.hp,max:e.maxHp||e.hp,name:e.name,phase:e.phase||1})}}   // podtrzymanie paska, gdy typ bossa nie emituje sam
   }
   G.enemies=G.enemies.filter(e=>!e.gone);
   updateProj(dt);

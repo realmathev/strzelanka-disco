@@ -1,6 +1,6 @@
 // Menu główne: podsumowanie misji, skrót sterowania, wybór poziomu i trudności.
 import {$} from '../core/util.js';
-import {opt,persistOpt} from '../core/save.js';
+import {save,opt,persistOpt} from '../core/save.js';
 import {DS} from '../core/ds.js';
 import {sfx} from '../audio/sfx.js';
 import {world} from '../world/state.js';
@@ -67,7 +67,7 @@ export function renderPlay(){
     ll.append(h('button',{class:'pick'+(on?' on':''),type:'button',role:'radio','aria-checked':String(on),'data-id':L.id,
         onclick:()=>{opt.level=L.id;persistOpt();sfx('tick',1200);DS.bus.emit('levelSelect',{level:L.id});renderPlay();refreshMenu();const b=$('#levelList .pick.on');if(b)b.focus({preventScroll:true})}},
       h('b',null,L.name||L.id),
-      h('span',{class:'meta'},L.arena?`Arena ${L.arena} m`:'Poziom'),
+      h('span',{class:'meta'},L.arena?`Arena ${L.arena} m`:'Poziom',save.levelsDone&&save.levelsDone[L.id]?h('em',{class:'done'},' · ✓ UKOŃCZONY'):null),
       L.desc||L.tagline?h('span',{class:'desc'},L.desc||L.tagline):null,
       h('span',{class:'tick','aria-hidden':'true'},on?'WYBRANY':'')));
   }
