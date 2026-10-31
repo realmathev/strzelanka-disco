@@ -7,3 +7,4 @@ import './nature.js';
 import './shops.js';
 import './estate.js';
 import './osiedle.js';
+import './interior.js';
