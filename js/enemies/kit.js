@@ -55,6 +55,12 @@ export function humanModel(key,build,meta0){
   const meta=Object.assign({hipH:.9,hipX:.105,headY:1.66,shoulder:{x:.24,y:1.46,z:0},arm:false},meta0||{});
   const P={body:new Parts(),head:new Parts(),legL:new Parts(),legR:new Parts(),arm:new Parts()};
   build(P,meta);
+  // Głowa ~15% większa niż anatomiczna (hitbox: realna głowa przy strzale ze sprężyną i rozrzutem była zbyt trudna; headshot to rdzeń gry).
+  const hs=meta.headScale===undefined?1.15:meta.headScale;
+  if(hs!==1)for(const p of P.head.l){
+    p.x*=hs;p.y=meta.headY+(p.y-meta.headY)*hs;p.z*=hs;
+    p.o=Object.assign({},p.o);for(const k of ['sx','sy','sz'])p.o[k]=(p.o[k]||1)*hs;
+  }
   const m={meta,geo:{},hull:{},last:performance.now()};
   m.geo.body=bake([P.body],0,meta.hipH,0);
   m.geo.head=bake([P.head],0,meta.headY,0);

@@ -3,7 +3,7 @@ import {rand,clamp} from '../core/util.js';
 import {opt} from '../core/save.js';
 import {S} from '../core/state.js';
 import {DS} from '../core/ds.js';
-import {scene} from '../render/renderer.js';
+import {scene,camera} from '../render/renderer.js';
 import {disposeObject} from '../render/materials.js';
 import {world} from '../world/state.js';
 import {P} from '../player/player.js';
@@ -135,3 +135,21 @@ DS.bus.on('levelLoad',()=>nav.resetNav());
 DS.bus.on('levelUnload',()=>nav.resetNav());
 // koniec biegu: zwolnij też zbuforowane modele wariantów (geometrie wracają do stanu sprzed biegu; kolejny bieg zbuduje je od nowa)
 DS.bus.on('levelEnd',()=>{clearProj();pruneModels(new Set(),0)});
+
+/* ---------- rozgrzewka znajdziek ---------- */
+// Dropy z wrogów pokazują znajdźki różnych typów w losowej kolejności; geometrie i shadery każdego typu wgrywają się na GPU dopiero przy pierwszym
+// renderze (a w statystykach rosną „skokowo”). Na starcie biegu rysujemy każdy typ raz, na mikroskopijnej skali tuż przed kamerą: bez przycięć przy
+// pierwszym dropie i bez losowego przyrostu geometrii w kolejnych biegach.
+let warm=null,warmTicks=0;
+DS.bus.on('levelStart',()=>{
+  if(warm)return;
+  warm=[];warmTicks=0;const d=new THREE.Vector3();camera.getWorldDirection(d);
+  for(const id of DS.pickups.ids()){
+    const m=DS.pickups.get(id).mesh();m.scale.setScalar(.001);m.position.copy(camera.position).addScaledVector(d,2);scene.add(m);warm.push(m);
+  }
+});
+DS.bus.on('update',()=>{
+  if(!warm||++warmTicks<2)return;                      // 1. 'update' leci przed pierwszym renderem; zdejmujemy po nim
+  for(const m of warm)disposeObject(m);
+  warm=null;
+});

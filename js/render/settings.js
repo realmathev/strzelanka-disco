@@ -12,6 +12,5 @@ export function applyOpts(){
   const sh=!!opt.shadows;if(renderer.shadowMap.enabled!==sh){renderer.shadowMap.enabled=sh;sun.castShadow=sh;scene.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)}})}
   sun.castShadow=sh;
   outlines.forEach(o=>o.visible=!!opt.outlines);
-  $('#halftone').hidden=!opt.halftone;
   applyVolumes();resize();
 }
