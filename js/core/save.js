@@ -13,7 +13,7 @@ export const save=Object.assign(freshSave(),store.get(SAVE_KEY,{}));
 // Lista musi zawierać 'pistol'. Zapis na dysk nastąpi przy najbliższym persist().
 {const A={smg:'uzi'};if(Array.isArray(save.weapons)){save.weapons=[...new Set(save.weapons.map(w=>A[w]||w))];if(!save.weapons.includes('pistol'))save.weapons.unshift('pistol')}}
 export const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-export const DEF_OPT={preset:'high',scale:1,fov:80,draw:120,shadows:1,outlines:1,halftone:1,panels:1,onoma:1,fx:reduced?0:1,music:.6,sfx:.8,track:'A',sens:1,invert:0};
+export const DEF_OPT={preset:'high',scale:1,fov:80,draw:120,shadows:1,outlines:1,panels:1,onoma:1,fx:reduced?0:1,music:.6,sfx:.8,track:'A',sens:1,invert:0};
 export const opt=Object.assign({},DEF_OPT,store.get(OPT_KEY,{}));
 
 /** Zapisuje `save` i emituje 'save' (UI odświeża portfel). */

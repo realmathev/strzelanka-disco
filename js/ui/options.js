@@ -87,7 +87,6 @@ export function openOptionsTab(id,focus){
   range(p,{id:'oDraw',key:'draw',label:'Zasięg widzenia',min:50,max:180,step:5,fmt:v=>v+' m',custom:true});
   seg(p,{key:'shadows',label:'Cienie',choices:ONOFF,custom:true});
   seg(p,{key:'outlines',label:'Kontury komiksowe',choices:ONOFF});
-  seg(p,{key:'halftone',label:'Raster (halftone)',choices:ONOFF});
   seg(p,{key:'panels',label:'Kadry komiksu przy headshocie',choices:ONOFF});
 }
 /* Dźwięk */

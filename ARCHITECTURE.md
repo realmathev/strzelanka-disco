@@ -217,7 +217,7 @@ Kosmetyka (camOffset, vmOffset, shake) ma być oddzielona od balansu (spread, ra
 
 | opcja | skutek |
 |---|---|
-| `preset, scale, fov, draw, shadows, outlines, halftone, panels, onoma, fx, music, sfx, track, invert, sens` | działają |
+| `preset, scale, fov, draw, shadows, outlines, panels, onoma, fx, music, sfx, track, invert, sens` | działają |
 | `hitVol` | skaluje dźwięki `hit`/`head` (`audio/sfx.js`; domyślne .8 = głośność jak dawniej) |
 | `dmgNum` | 0 = brak liczb obrażeń nad wrogami (`combat.damageEnemy`) |
 | `difficulty` | mnożniki HP/obrażeń wrogów (`core/difficulty.js`), regeneracja pancerza, XP; zmiana działa na wrogów tworzonych po zmianie |
