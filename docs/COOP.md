@@ -47,6 +47,25 @@ Model JuicyJuicy: przeglądarka hosta prowadzi grę, pozostali wysyłają do nie
 3. Dołączanie w trakcie (`full`), reconnect, skalowanie trudności, HUD kolegów, polerka.
 4. (opcjonalnie) migracja hosta.
 
+## Stan: etap 1 zrobiony (kod: `js/net/`, protokół i hooki: ARCHITECTURE.md „Sieć / co-op”, test: `node tests/coop.js 4203 --gpu`)
+
+Działa: snippet + feature `multiplayer`; lobby (utwórz / dołącz kodem / link `?room=` z `rooms.invited()`, lista graczy z kolorami, gotowość,
+host wybiera poziom i trudność, „Zaproś”, „Kopiuj kod”, wyjście, komunikaty błędów po polsku); start u wszystkich na tym samym poziomie z trudnością hosta;
+własny ruch + `in` 20 Hz, awatary z interpolacją 100 ms; host: fale, spawn, AI celujące w najbliższego widocznego gracza, skalowanie HP i `maxAlive`;
+repliki u klientów; trafienia klienta liczone u hosta, nagroda dla strzelca, asysta 50% XP; rany od AI do ofiary; powalenie, podnoszenie (E 3 s, 2 m),
+powrót w następnej fali z 50% HP; koniec runu, gdy leżą wszyscy (tabela wszystkich graczy na ekranie końca, „Wróć do lobby”); level-up i pauza bez zatrzymania świata.
+
+Zmiany względem decyzji (powód: limit 60 wiadomości/s na gracza):
+- `hit` jest polem `h` wiadomości `shot` (jedna wiadomość na strzał zamiast dwóch).
+- `ev` i `hurt` jadą w polach `ev` i `hu` snapshotu (≤ 66 ms opóźnienia), a nie jako osobne wiadomości.
+- `in` idzie od każdego gracza do wszystkich (także od hosta), awatary nie czekają na przekaźnik hosta.
+- Podniesienie przez kumpla też daje 50% HP.
+- Bossowie w co-op wyłączeni w etapie 1: fala bossa jest zwykłą falą (repliki bossów, ich efekty i `levelComplete` to etap 2).
+- Wyjście hosta z runu (pauza → „Wyjdź”) kończy run wszystkim; wyjście klienta (`out`) zostawia grę pozostałym.
+
+Znane braki (etap 2/3): pociski łukowe, kałuże i wybuchy wrogów ranią tylko hosta (u klientów brak ich efektów); pickupy, beczki, drzwi i automaty
+są lokalne; brak HUD-u kolegów (pasków HP), dołączania w trakcie (`full`), reconnectu i migracji hosta; karta w tle nie wysyła stanu.
+
 ## Bezpieczeństwo
 
 Wszystko, co przychodzi z sieci, to dane: `JSON` z relaya waliduj (typy, zakresy, istniejące `eid`), nazwy graczy tylko przez `textContent`, żadnego `innerHTML`/`eval` na danych od innych graczy. Limity: odrzucaj wiadomości > 16 KB i nadmiar częstotliwości po stronie hosta (ignoruj, nie crashuj).

@@ -25,11 +25,12 @@ js/progression/     XP, poziomy, perki (BALANCE.md)                        ds-pr
 js/gunfeel/         feel (ADS, odrzut, sway), anim, fx, overlay, tuning     ds-gunfeel (nie edytuj; prośby: docs/requests/ds-gunfeel.md)
 js/input/           domyślne akcje, rebind, warstwa działania akcji        ds-input-menus
 js/ui/              ekrany, HUD, opcje, sklep, kasyno, skrzynki            ds-input-menus
+js/net/             co-op: sesja, protokół, snapshoty, interpolacja, repliki, awatary, lobby (sekcja „Sieć / co-op”)
 ```
 
 Każdy katalog domeny ma `index.js`. Nowy plik dopisujesz importem we **własnym** `index.js`,
 nie w `main.js`. Kolejność ładowania domen: core, render, audio, world, player, weapons, enemies,
-pickups, input, progression, gunfeel, ui, game. Potem boot: `loadLevel(opt.level || 'remiza')`, `applyOpts()`, `loop()`.
+pickups, input, progression, gunfeel, ui, net, game. Potem boot: `loadLevel(opt.level || 'remiza')`, `applyOpts()`, `loop()`.
 
 ### Zasady modułów
 
@@ -204,11 +205,63 @@ Wynik runu = `fala*1000 + zabici*10 + headshoty*5` (`runScore(G)`), zawsze `{ord
 tylko gdy fala >= 1 i wynik wyższy od już wysłanego w tym runie (Druga Szansa). Zapis: `save.bestScore` (rekord punktowy) i `save.hsSynced`. `syncOldBest()` przy starcie wysyła jednorazowo `max(bestScore, best*1000)` (stary zapis zna tylko falę);
 flaga `hsSynced` dopiero po `cloud:true`, niezalogowany próbuje przy kolejnym starcie. To jedyna droga zapełnienia tablicy: gra nie czyta cudzych przeglądarek, więc tablica rośnie, gdy gracze otwierają nową wersję.
 UI: ekran `scrRanking` (top 10, własny wiersz `me`, `board.me` poza top 10, stany ładowanie/brak/niezalogowany/błąd), ramka TOP 3 w menu (`#hsTop3`), „NOWY REKORD! #rank” na `scrOver`. Nazwy graczy wyłącznie przez węzły tekstowe. Test: `node tests/cdp-run.js highscores.js 4202`.
+## Sieć / co-op (`js/net/`, projekt: `docs/COOP.md`)
+
+Snippet `docs/juicy/multiplayer-snippet.js` wklejony bez zmian jako inline `<script>` przed `js/main.js` (`window.juicy.rooms`; poza JuicyJuicy pokoje
+działają między kartami tego samego originu przez BroadcastChannel; pokój żyje, dopóki żyje karta, która go utworzyła). `juicy.json`: feature `multiplayer`.
+
+| plik | rola |
+|---|---|
+| `session.js` | stan `N`, pokój (create/join/leave), lista graczy, kolory, lobby (`lob`, `rdy`), odbiór z walidacją + limitem, API `DS.net` |
+| `proto.js` | walidatory per rodzaj wiadomości, kwantyzacja (0,01 m/rad), pakowanie pozy wroga |
+| `interp.js` | `SampleBuf`: próbki z zegarem nadawcy, interpolacja z opóźnieniem 100 ms (kąty po najkrótszym łuku) |
+| `host.js` | cel AI (najbliższy widoczny gracz), podmiana `P` na czas `e.def.update`, trafienia zdalne, asysty, rany zdalnych, snapshot |
+| `replicas.js` | klient: repliki wrogów (`def.create` bez AI, `e.replica=true`), interpolacja, animacja (`ai.animateReplica`), śmierć |
+| `avatars.js` | awatary kolegów: postać z `enemies/kit.js` w kolorze gracza, `getWorldModel()` broni, nick na canvasie (sprite), powalenie |
+| `coop.js` | run: start, `in` 20 Hz, `shot`, nagrody za zabójstwa/asysty, powalenie i podnoszenie, koniec runu, wyjście |
+| `lobby.js` | ekran `scrCoop` + przycisk „Graj ze znajomymi” (`#mCoop`), zaproszenie z `rooms.invited()` po ekranie ostrzeżenia |
+
+**Hooki w istniejących modułach** (solo: `DS.net` to stub z `core/ds.js`, wszystkie zwracają `false`):
+```js
+DS.net.active() / isHost() / isClient()   // tylko w trakcie runu co-op (pokój + N.inRun)
+// game/loop.js:    klient -> DS.net.updateReplicas(dt) zamiast updateEnemies + updateWaves
+// enemies/manager: host -> DS.net.aim(e,dt) / unaim() wokół e.def.update (P.pos/vel/knock i G.dead = stan celu),
+//                  spawn: wariant modelu losowany jawnie (opts.variant), e.eid, HP × hpScale(), z dala od graczy (farFromPlayers)
+// game/combat.js:  damageEnemy(e,dmg,head,point,by): replika -> DS.net.sendHit; host liczy dmgBy (asysty); by = zdalny strzelec
+//                  killEnemy(e,head,by): by -> bez nagród, 'netKill'; hurt(): DS.net.redirectHurt (cios w zdalny cel), G.invulnT
+//                  die(): co-op -> DS.net.onDowned() (powalenie zamiast ekranu końca)
+// game/waves.js:   co-op bez bossów, maxAlive × aliveScale() (≤30), fala czeka, gdy DS.net.allDown()
+// game/flow.js:    pauza w co-op = G.uiPause (lokalne menu, świat idzie dalej); quitToMenu -> DS.net.quitRun()
+// progression/levelup.js: co-op bez G.paused, po wyborze G.invulnT = 3 s
+// DS.player.knock owinięty w host.js (odrzut zdalnego celu idzie siecią)
+```
+**Protokół** (pole `k`; każdy wpis walidowany w `proto.js`, wiadomość niepoprawna/za duża (>16 KB)/ponad 70 na s od gracza jest ignorowana):
+
+| k | kierunek | treść |
+|---|---|---|
+| `lob` | host → wszyscy | `{lv, df, rd:{id:0/1}, c:{id:kolor}}` |
+| `rdy` | klient → host | `{r:0/1}` |
+| `start` | host → wszyscy | `{lv, df, seed}`; host blokuje pokój (`lock`) do końca runu |
+| `in` | każdy → wszyscy, 20 Hz | `{t, p:[x,y,z], y, pi, w, dn, hp, mhp, kl, hd, zd, a}` (t = zegar nadawcy, ms) |
+| `shot` | każdy → wszyscy | `{w, m:[x,y,z], e:[[x,y,z]≤3], h:[[eid,dmg,head]≤16]}`; `h` (trafienia klienta w repliki) czyta tylko host |
+| `snap` | host → wszyscy, 15 Hz | `{t, w, q, e:[[eid,typ,wariant,x,z,ry,hp%,stan,anim]…], ev:[…], hu:[[id,dmg,kx,kz]…]}` |
+| `rev` | ratujący → leżący | podniesienie (ratujący pilnuje 2 m i 3 s) |
+| `end` | host → wszyscy | `{r:'down'|'quit', w, s:[[id,zabici,headshoty,ZD]…]}` |
+| `out` | klient → wszyscy | wyszedł z runu do lobby |
+
+`ev`: `{t:'wave',w,c}`, `{t:'clear',w}`, `{t:'kill',id,by,hd,a:[asysty]}`. Zdarzenia i rany jadą w snapshocie (zamiast osobnych `ev`/`hurt`),
+żeby host mieścił się w limicie 60 wiadomości/s. Rozmiar `snap` przy 30 wrogach ≈ 1,1 KB (`tests/coop.js`).
+
+**Ograniczenia etapu 1:** bossowie wyłączeni w co-op (fala bossa = zwykła fala); pociski łukowe, kałuże i wybuchy wrogów ranią tylko hosta; pickupy,
+drzwi, automaty i `levelComplete` lokalne; brak dołączania w trakcie, reconnectu i migracji hosta (wyjście hosta kończy run); karta w tle
+(brak `requestAnimationFrame`) przestaje wysyłać `in`, a karta hosta w tle zatrzymuje wrogów wszystkim. Test: `node tests/coop.js 4203 --gpu`
+(runner wielokartowy `tests/cdp-multi.js`).
+
 ## Zdarzenia (`DS.bus.on(name, fn)` zwraca funkcję wypisującą; `emit(name, payload)`)
 
 | zdarzenie | payload | kiedy |
 |---|---|---|
-| `shot` | `{weapon, def, hit, muzzle, hits}` | po każdym strzale gracza; `hits` = `[{point, normal (świat, albo null), object, enemy (albo null)}]`, po jednym na śrut, który w coś trafił |
+| `shot` | `{weapon, def, hit, muzzle, hits, ends}` | po każdym strzale gracza; `hits` = `[{point, normal (świat, albo null), object, enemy (albo null)}]`, po jednym na śrut, który w coś trafił |
 | `beforeHit` | `{enemy, dmg, head}` | w `damageEnemy` PRZED odjęciem HP; **jedyne zdarzenie, w którym wolno zmienić payload**: ustaw `ev.dmg` (tarcza, odporności). Liczba nad głową i `hit` dostają wartość po zmianie; niepoprawna (nie liczba, <0) jest ignorowana |
 | `hit` | `{enemy, dmg, head, point}` | trafienie wroga (`dmg` po `beforeHit`) |
 | `kill` | `{enemy, head, value, combo}` | zabójstwo; `value` = monety razem z mnożnikiem `enemy.coins` |
@@ -221,7 +274,9 @@ UI: ekran `scrRanking` (top 10, własny wiersz `me`, `board.me` poza top 10, sta
 | `levelup` | `{level}` | przekroczono próg (nowy numer poziomu); ekran automatu otwiera się ~0,7 s później |
 | `perk` | `{id, rarity, stacks, level}` | po wylosowaniu perka w automacie (już zastosowany) |
 | `pickup` | `{type, value}` | podniesienie znajdźki |
-| `waveStart` | `{wave, boss, count}` | nowa fala |
+| `waveStart` | `{wave, boss, count}` | nowa fala (co-op: u klienta po zdarzeniu fali od hosta) |
+| `waveClear` | `{wave}` | czysta fala (po premii `waveClearReward`) |
+| `netHit` / `netKill` | `{enemy, dmg, head, point, by}` / `{enemy, head, by}` | tylko host w co-op: trafienie/zabójstwo zdalnego gracza `by` (bez nagród i efektów lokalnych; zamiast `hit`/`kill`) |
 | `levelStart` | `{level}` | start runu |
 | `levelEnd` | `{level, reason:'death'\|'quit', wave, kills, earned}` | sprzątanie runu (raz na run) |
 | `levelComplete` | `{level, wave}` | emituje sam poziom (np. po zabiciu `level.win.boss`, po ustawieniu `save.levelsDone[id]` i nagrody); `ui/levelcomplete.js` po 2,2 s pauzuje run i pokazuje ekran `scrLevelDone` (fala, zabici, znajdźki x/y z `collectStats`, nagroda z `level.win.reward`; przyciski „Dalej: <następny poziom z `DS.levels.all()`>”, „Graj dalej”, „Menu”) |
