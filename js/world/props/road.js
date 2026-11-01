@@ -475,7 +475,7 @@ defProp('jezdnia',{name:'Odcinek jezdni z liniami (10 m)',cat:C,dims:[9.3,.06,10
   for(let i=0;i<r.int(1,3);i++)P.cyl(r.range(.15,.35),r.range(.15,.35),.016,r.range(-3,3),.04,r.range(-4,4),0x2a2b2e,{seg:7,edges:false,small:true});
   for(const sx of [-1,1])S(P,.4,.03,10,xs+sx*(Wd/2+.2),0,0,0x8a8062);
 });
-defProp('wiadukt',{name:'Wiadukt drogowy (segment)',cat:C,dims:[39.0,7.6,10.0],cover:true,
+defProp('wiaduktDrogowy',{name:'Wiadukt drogowy (segment)',cat:C,dims:[39.0,7.6,10.0],cover:true,
   note:'Pomost 24 x 10 m na wys. 5,0-6,2 m (prześwit 4,8-5,0 m), dwa rzędy 3 podpór, belki, parapety betonowe 0,9 m + poręcz, nasypy po obu końcach (+8 m). Wzdłuż X. Kolidery: podpory i parapety.'},(P,o,r)=>{
   const L0=24,Wd=10,y=5.0,th=1.2,emb=r.pick([0x6f7f4a,0x7a8a52]);
   P.box(L0,.4,Wd,0,y+.8,0,CONC);for(const z of [-3.5,-1.2,1.2,3.5])S(P,L0,.8,.5,0,y,z,CONCD);

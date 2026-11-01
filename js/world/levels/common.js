@@ -249,7 +249,7 @@ export function healMachines(list){
  * Buduje `level.nav`: graf waypointów (siatka co `step` m, odfiltrowana kolizjami; łącza tylko czyste odcinki) + lista osłon
  * wokół pełnych/średnich colliderów. Wołać po postawieniu wszystkich colliderów w build().
  */
-export function buildNav(level,{step=9,link=14,pad=.75,arena,graph=false,coverMax=40,coverMaxH=1e9,coverLimit=420,assign=false}={}){
+export function buildNav(level,{step=9,link=14,pad=.75,arena,graph=false,coverMax=40,coverMaxH=1e9,coverLimit=420,assign=true}={}){
   // coverMax/coverMaxH: pomijaj w osłonach collidery dłuższe/wyższe niż podane (np. ściany budynków wnętrz); domyślnie bez zmian.
   const A=arena||world.arena,cols=world.colliders;
   const inside=(x,z,p)=>{for(const c of cols){if(c.h<=0)continue;if(x>c.x0-p&&x<c.x1+p&&z>c.z0-p&&z<c.z1+p)return true}return false};
@@ -275,12 +275,12 @@ export function buildNav(level,{step=9,link=14,pad=.75,arena,graph=false,coverMa
       if(Math.abs(x)<A-1.5&&Math.abs(z)<A-1.5&&!inside(x,z,.5))cover.push({x:Math.round(x*10)/10,z:Math.round(z*10)/10});
   }
   const cv=[];const seen=new Set();for(const p of cover){const k=Math.round(p.x/1.5)+','+Math.round(p.z/1.5);if(!seen.has(k)){seen.add(k);cv.push(p)}}
-  // Graf waypointów (points/links) tylko na życzenie (graph:true): tryb grafu w enemies/nav.js wraca do linii prostej, gdy cel stoi w komórce\n  // zablokowanej (gracz przy ścianie), więc domyślnie zostaje siatka A* + lista osłon (test: 12/12 wrogów dochodzi z rogów mapy).\n  level.nav=graph?{points,links,cover:cv.slice(0,coverLimit)}:{cover:cv.slice(0,coverLimit)};
-  // UWAGA: linia komentarza powyżej połknęła przypisanie `level.nav=...` (literalne "\n"), więc Remiza/Blokowisko/Kasyno nie mają `level.nav.cover`.
-  // Zachowanie zostawione (testy), nowe poziomy wołają buildNav(level,{assign:true}) i dostają osłony dla AI.
+  // Graf waypointów (points/links) tylko na życzenie (graph:true): tryb grafu w enemies/nav.js wraca do linii prostej, gdy cel stoi w komórce
+  // zablokowanej (gracz przy ścianie), więc domyślnie zostaje siatka A* + lista osłon (test: 12/12 wrogów dochodzi z rogów mapy).
+  // Wcześniej przypisanie siedziało w komentarzu (literalne "\n"), więc Blokowisko i Kasyno nie miały level.nav.cover dla AI.
   const nav=graph?{points,links,cover:cv.slice(0,coverLimit)}:{cover:cv.slice(0,coverLimit)};
   if(assign)level.nav=nav;
-  return level.nav||nav;
+  return nav;
 }
 
 /* ------------------------------------------------------------------ scalanie kafelków w strefy (budżet draw calli) */
