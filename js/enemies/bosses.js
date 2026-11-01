@@ -13,7 +13,10 @@ import {addBossBar,animateBoss,bossOnHit,bossBeforeHit,bossThink,bossAttack,summ
 import {shieldHit} from './ochroniarz.js';
 import {makeHuman,reg,wv,aiOpts,SKIN} from './common.js';
 
+import {eachPlayer,isDone,hitOnce,isLocal} from './players.js';
+
 const MZ=new THREE.Vector3(),H=new THREE.Vector3();
+const distP=e=>Math.hypot(P.pos.x-e.g.position.x,P.pos.z-e.g.position.z);
 
 /* ======================= DJ ======================= */
 function buildDJ(P_,meta,v){
@@ -65,8 +68,9 @@ const DJ_ACT={
       const live=a.st>1.2;if(live)a.th+=a.dir*.95*dt;
       e.beams.forEach((b,i)=>{const th=a.th+i*Math.PI*2/3,ex=e.g.position.x+Math.sin(th)*34,ez=e.g.position.z+Math.cos(th)*34;
         b.set(e.g.position.x,.9,e.g.position.z,ex,.9,ez,live?.14:.03,live?0xff4fd8:0xffffff,live?.85:.5);
-        if(live&&!S.G.dead&&P.pos.y<1.4){const px=P.pos.x-e.g.position.x,pz=P.pos.z-e.g.position.z,ux=Math.sin(th),uz=Math.cos(th),t=px*ux+pz*uz,d=Math.abs(px*uz-pz*ux);
-          if(t>0&&t<34&&d<.6&&(a.hitCd=(a.hitCd||0)-dt)<=0){a.hitCd=.45;hitPlayer(e,e.dmg*.55);sfx('hurt')}}});
+        if(live)eachPlayer(k=>{if(S.G.dead||!(P.pos.y<1.4))return;const px=P.pos.x-e.g.position.x,pz=P.pos.z-e.g.position.z,ux=Math.sin(th),uz=Math.cos(th),t=px*ux+pz*uz,d=Math.abs(px*uz-pz*ux);
+          const ck=k==='me'?'hitCd':'hitCd_'+k;   // co-op: osobny odstęp trafień dla każdego gracza
+          if(t>0&&t<34&&d<.6&&(a[ck]=(a[ck]||0)-dt)<=0){a[ck]=.45;hitPlayer(e,e.dmg*.55);sfx('hurt')}})});
       a.hitCd=(a.hitCd||0)-0;return a.st>=4.4},
     end(e){if(e.beams)e.beams.forEach(b=>b.release());e.beams=null},cool:e=>rand(2.5,3.5)},
 };
@@ -122,7 +126,7 @@ const JO_ACT={
     run(e,dt,ctx){const a=e.ai;e.armT=-.4;
       if(a.st<.5){stopMove(e,dt);e.glow=.2+.1*Math.sin(a.st*40);e.lean=-.3;a.face=2;a.faceYaw=Math.atan2(-a.dx,-a.dz);return false}   // zapowiedź: ugina się
       e.glow=0;e.lean=.7;moveDir(e,dt,a.dx,a.dz,11);
-      if(!a.hitDone&&ctx.dist<1.9&&!S.G.dead){a.hitDone=true;if(hitPlayer(e,e.dmg*1.8)){DS.player.knock({x:(a.dx*10)*.7,z:(a.dz*10)*.7});sfx('e_shove')}}
+      eachPlayer((k,tgt)=>{if(isDone(a,'hitDone',k)||S.G.dead||!((tgt?ctx.dist:distP(e))<1.9))return;hitOnce(a,'hitDone',k);if(hitPlayer(e,e.dmg*1.8)){DS.player.knock({x:(a.dx*10)*.7,z:(a.dz*10)*.7});sfx('e_shove')}});
       return a.st>=1.2||a.hitDone&&a.st>.7},cool:e=>rand(1.2,2)},
   jackpot:{start(e){const a=e.ai;const K=['SIÓDEMKA','DZWONEK','WIŚNIE','GWIAZDA'];a.reels=[pick(K),pick(K),pick(K)];if(Math.random()<.2)a.reels=[a.reels[0],a.reels[0],a.reels[0]];
       a.q=a.reels.slice();if(a.reels[0]===a.reels[1]&&a.reels[1]===a.reels[2])a.q=[a.reels[0],a.reels[0],a.reels[0],a.reels[0]];a.qi=0;
@@ -183,7 +187,7 @@ const SZ_ACT={
     run(e,dt,ctx){const a=e.ai;
       if(a.st<.7){stopMove(e,dt);e.lean=-.4;e.glow=.18+.1*Math.sin(a.st*40);a.face=2;a.faceYaw=Math.atan2(-a.dx,-a.dz);return false}
       e.glow=0;e.lean=.6;moveDir(e,dt,a.dx,a.dz,e.phase>=3?10:8);
-      if(!a.hitDone&&ctx.dist<2.1&&!S.G.dead){a.hitDone=true;if(hitPlayer(e,e.dmg*1.5)){DS.player.knock({x:(a.dx*14)*.7,z:(a.dz*14)*.7});sfx('e_shove');S.G.shake+=.8}}
+      eachPlayer((k,tgt)=>{if(isDone(a,'hitDone',k)||S.G.dead||!((tgt?ctx.dist:distP(e))<2.1))return;hitOnce(a,'hitDone',k);if(hitPlayer(e,e.dmg*1.5)){DS.player.knock({x:(a.dx*14)*.7,z:(a.dz*14)*.7});sfx('e_shove');if(isLocal(k))S.G.shake+=.8}});
       return a.st>=1.9||a.hitDone&&a.st>1.1},cool:e=>rand(1.8,2.8)},
   guards:{start(e){e.ai.did=false},run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=0;e.lean=-.1;e.glow=.12;
       if(a.st>.8&&!a.did){a.did=true;summon(e,'ochroniarz',1);sfx('e_sting');addFloater('POMOCY!',{world:e.g.localToWorld(new THREE.Vector3(0,3.2,0)),size:36,life:.8,color:'#c8f000',vy:-20})}

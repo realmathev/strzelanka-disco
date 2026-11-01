@@ -1,5 +1,6 @@
 // Efekty dźwiękowe syntezowane na żywo. Nazwy broni = id broni (sfx(G.weapon)).
 import {opt} from '../core/save.js';
+import {S} from '../core/state.js';
 import {A,mtof,env,noiseSrc} from './context.js';
 
 /** Dodatkowe efekty rejestrowane przez inne moduły (np. audio/gunsfx.js): name -> fn(ctx, out, t, arg, helpers). */
@@ -7,6 +8,7 @@ export const sfxBank=new Map();
 
 const hitGain=()=>{const v=+opt.hitVol;return isFinite(v)?Math.max(0,v)/.8:1};
 export function sfx(name,arg){
+  if(S.fxTap)S.fxTap('sf',name,arg);   // co-op (host): dźwięki wrogów idą też do klientów
   if(!A.ctx)return; const c=A.ctx,t=c.currentTime;
   const out=A.sfx;
   const tone=(type,f1,f2,dur,vol,delay=0)=>{const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f1,t+delay);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+delay+dur);env(g,t+delay,.003,vol,dur);o.connect(g);g.connect(out);o.start(t+delay);o.stop(t+delay+dur+.05)};

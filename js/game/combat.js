@@ -32,13 +32,19 @@ export function damageEnemy(e,dmg,head,point,by){
 export function killEnemy(e,head,by){
   const G=S.G;
   e.alive=false;e.mats.forEach(m=>m.emissive.setRGB(0,0,0));
-  if(by!=null){if(e.def&&e.def.onKill)e.def.onKill(e);DS.bus.emit('netKill',{enemy:e,head,by});return}
+  if(by!=null){   // host: zabił zdalny gracz -> monety/klucz na ziemi (wspólne znajdźki), dropy i onKill typu przez 'netKill' (enemies/manager, pickups/drops)
+    const base=e.boss?260+G.wave*20:12+G.wave*2,val=Math.round(base*(head?1.5:1)*(e.coins>0?e.coins:1)),pos=e.g.position.clone();
+    const n=e.boss?10:clamp(Math.round(val/10),2,6);for(let i=0;i<n;i++)spawnPickup('coin',pos,Math.ceil(val/n));
+    if(Math.random()<(e.boss?1:.035))spawnPickup('key',pos,e.boss?2:1);
+    DS.bus.emit('netKill',{enemy:e,head,by});return}
   G.kills++;save.kills++;if(head)G.heads++;
   G.combo=G.comboT>0?G.combo+1:1;G.comboT=3.5;
   const base=e.boss?260+G.wave*20:12+G.wave*2;const val=Math.round(base*(head?1.5:1)*comboMult()*(e.coins>0?e.coins:1));   // e.coins = mnożnik monet typu (domyślnie 1)
   const pos=e.g.position.clone();
-  const n=e.boss?10:clamp(Math.round(val/10),2,6);for(let i=0;i<n;i++)spawnPickup('coin',pos,Math.ceil(val/n));
-  if(Math.random()<(e.boss?1:.035))spawnPickup('key',pos,e.boss?2:1);
+  if(!e.replica){   // co-op, klient: monety i klucz rzuca host (wspólne znajdźki)
+    const n=e.boss?10:clamp(Math.round(val/10),2,6);for(let i=0;i<n;i++)spawnPickup('coin',pos,Math.ceil(val/n));
+    if(Math.random()<(e.boss?1:.035))spawnPickup('key',pos,e.boss?2:1);
+  }
   sfx('kill');
   const words=head?['HEADSHOT!','W GŁOWĘ!','BLAM!']:['KLAP!','PAF!','ŁUP!'];
   addFloater(pick(words),{world:pos.clone().setY(e.boss?3.6:2.4),size:head?46:36,life:.9,color:head?'#d3242a':'#ffe14a',vy:-40,rot:rand(-.25,.25),burst:head});
@@ -51,8 +57,10 @@ export function killEnemy(e,head,by){
 }
 /** Rana gracza. Pancerz (pickups/armor.js) pochłania część obrażeń; zdarzenie 'damage' niesie obrażenia, które faktycznie trafiły w HP.
  *  Co-op: u hosta cios w zdalnego gracza (cel AI) idzie do niego siecią (DS.net.redirectHurt); G.invulnT > 0 = nietykalność po level-upie. */
-export function hurt(d){const G=S.G;if(DS.net.redirectHurt&&DS.net.redirectHurt(d))return;if(G.dead||G.invulnT>0)return;d=absorbDamage(d);G.hp-=d;G.hurtT=.4;G.shake+=.3;sfx('hurt');if(G.hp<=0){G.hp=0;die()}
-  DS.bus.emit('damage',{amount:d,hp:G.hp})}
+export function hurt(d){const G=S.G;if(DS.net.redirectHurt&&DS.net.redirectHurt(d))return;if(G.dead||G.invulnT>0)return;
+  const tap=S.fxTap;S.fxTap=null;   // co-op (host): własne rany i powalenie hosta nie idą do klientów jako efekty wrogów
+  try{d=absorbDamage(d);G.hp-=d;G.hurtT=.4;G.shake+=.3;sfx('hurt');if(G.hp<=0){G.hp=0;die()}
+  DS.bus.emit('damage',{amount:d,hp:G.hp})}finally{S.fxTap=tap}}
 export function die(){const G=S.G;G.dead=true;G.deadT=0;S.mouseDown=false;
   if(DS.net.active()&&DS.net.onDowned){DS.net.onDowned();return}   // co-op: powalenie (koniec runu, gdy leżą wszyscy)
   announce('POLEGŁEŚ','Fala '+G.wave);try{document.exitPointerLock()}catch(e){}

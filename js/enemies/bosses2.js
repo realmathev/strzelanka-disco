@@ -12,6 +12,7 @@ import {throwProj,shockwave,beam,explode,puddle,igniteFuel,stunPlayer} from './p
 import {addBossBar,animateBoss,bossOnHit,bossBeforeHit,bossThink,bossAttack,summon} from './boss.js';
 import * as nav from './nav.js';
 import {makeHuman,reg,wv,aiOpts,SKIN} from './common.js';
+import {eachPlayer,isDone,hitOnce,isLocal} from './players.js';
 
 const MZ=new THREE.Vector3(),H=new THREE.Vector3();
 const aliveOf=t=>{let n=0;if(S.G)for(const e of S.G.enemies)if(e.alive&&e.type===t)n++;return n};
@@ -34,7 +35,7 @@ function chargeRun(e,dt,ctx,o){
   e.glow=0;e.lean=.6;e.armT=-.4;
   const p=e.g.position,px=p.x,pz=p.z;
   moveDir(e,dt,a.dx,a.dz,o.speed);
-  if(!a.hitDone&&ctx.dist<o.hitR&&!S.G.dead&&P.pos.y<1.3){a.hitDone=true;if(hitPlayer(e,e.dmg*o.dmg)){knockDir(a.dx,a.dz,o.knock);sfx(o.snd||'e_crash');S.G.shake+=1}}
+  eachPlayer((k,tgt)=>{if(isDone(a,'hitDone',k)||!((tgt?ctx.dist:distP(e))<o.hitR)||S.G.dead||!(P.pos.y<1.3))return;hitOnce(a,'hitDone',k);if(hitPlayer(e,e.dmg*o.dmg)){knockDir(a.dx,a.dz,o.knock);sfx(o.snd||'e_crash');if(isLocal(k))S.G.shake+=1}});
   if(a.st>o.wind+.45&&Math.hypot(p.x-px,p.z-pz)<o.speed*dt*.3){a.vulnT=o.stun||2.2;sfx('e_crash');S.G.shake+=.8;noise(e,30);return false}
   return a.st>=o.wind+o.dur||(a.hitDone&&a.st>o.wind+.5);
 }
@@ -55,10 +56,11 @@ function laneTick(e,dt){
     const s=(L.t-L.tele)*L.speed,a0=Math.max(0,s-L.seg),a1=Math.min(L.len,s);
     if(a0>=L.len){L.done=true;L.tb.release();L.sb.release();continue}
     L.sb.set(L.ox+L.ux*a0,L.h/2+.05,L.oz+L.uz*a0,L.ox+L.ux*a1,L.h/2+.05,L.oz+L.uz*a1,L.w,L.color,.95,L.h);
-    if(!L.hit&&!S.G.dead){
+    eachPlayer(k=>{            // co-op: pas trafia każdego gracza na torze (raz)
+      if(isDone(L,'hit',k)||S.G.dead)return;
       const px=P.pos.x-L.ox,pz=P.pos.z-L.oz,al=px*L.ux+pz*L.uz,lat=px*L.uz-pz*L.ux;
-      if(Math.abs(lat)<L.w/2+.35&&al>a0-.3&&al<a1+.3&&P.pos.y<L.h-.15){L.hit=true;if(hitPlayer(e,e.dmg*L.dmg)){const sg=lat>=0?1:-1;knockDir(L.uz*sg,-L.ux*sg,13);S.G.shake+=1}}
-    }
+      if(Math.abs(lat)<L.w/2+.35&&al>a0-.3&&al<a1+.3&&P.pos.y<L.h-.15){hitOnce(L,'hit',k);if(hitPlayer(e,e.dmg*L.dmg)){const sg=lat>=0?1:-1;knockDir(L.uz*sg,-L.ux*sg,13);if(isLocal(k))S.G.shake+=1}}
+    });
   }
   return live;
 }
@@ -176,8 +178,9 @@ const DY_ACT={
   gwizdek:{start(e){e.ai.did=false;sfx('e_horn')},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.lean=-.15;e.armT=-2.6;e.glow=a.st<.85?.1+.15*Math.sin(a.st*35):0;
       if(a.st>=.85&&!a.did){a.did=true;sfx('e_whistle');noise(e,40);
-        if(ctx.dist<28&&nav.gridLos(e.g.position.x,e.g.position.z,P.pos.x,P.pos.z)){stunPlayer(1.8);hitPlayer(e,e.dmg*.35);S.G.shake+=1.5;addFloater('DZWONI W USZACH!',{world:new THREE.Vector3(P.pos.x,1.7,P.pos.z),size:30,life:1,color:'#ffe14a',vy:-20})}
-        else above(e,'FIIIU!','#cfd3d8',30);
+        let heard=false;
+        eachPlayer((k,tgt)=>{if((tgt?ctx.dist:distP(e))<28&&nav.gridLos(e.g.position.x,e.g.position.z,P.pos.x,P.pos.z)){heard=true;stunPlayer(1.8);hitPlayer(e,e.dmg*.35);if(isLocal(k))S.G.shake+=1.5;addFloater('DZWONI W USZACH!',{world:new THREE.Vector3(P.pos.x,1.7,P.pos.z),size:30,life:1,color:'#ffe14a',vy:-20})}});
+        if(!heard)above(e,'FIIIU!','#cfd3d8',30);
         e.armT=.5}
       if(a.st>=1.5){if(e.phase>=2&&!e.forceAct){e.forceAct=Math.random()<.5?'drezyna':'sklad';e.longTele=1}return true}return false},cool:e=>rand(2,3)},
   lizak:{start(e){e.ai.did=false},

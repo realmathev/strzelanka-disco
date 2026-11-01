@@ -31,7 +31,9 @@ export function rollDrop(pos,boss=false){
   return kind;
 }
 
-DS.bus.on('kill',({enemy})=>{
-  if(!enemy||!enemy.g)return;
+// 'netKill' (co-op, host): zabójstwo zdalnego gracza też dropi (znajdźki ma host); replika u klienta nie dropi (zrobi to host).
+function onKill({enemy}){
+  if(!enemy||!enemy.g||enemy.replica)return;
   rollDrop(enemy.g.position.clone(),!!enemy.boss);
-});
+}
+DS.bus.on('kill',onKill);DS.bus.on('netKill',onKill);

@@ -1,5 +1,5 @@
 // Fale wrogów: kolejka spawnu, premia za czystą falę, boss co 5 fal.
-// Co-op (host): bez bossów w etapie 1 (fala bossa = zwykła fala), maxAlive skalowane liczbą graczy, fala czeka, aż nie leżą wszyscy.
+// Co-op (host): maxAlive skalowane liczbą graczy (HP bossa: manager/DS.net.hpScale), fala czeka, aż nie leżą wszyscy.
 import {$,rand,pick} from '../core/util.js';
 import {save,persist} from '../core/save.js';
 import {S} from '../core/state.js';
@@ -12,14 +12,14 @@ import {makeEnemy} from '../enemies/manager.js';
 const NARR=['Godzina 23:14. Parking pod remizą. Ktoś przyniósł za dużo amunicji.','Gang Jednorękiego Bandyty chce odzyskać swoje automaty.','DJ nie przestaje grać. Ty też nie przestawaj.','Kanarkowe marynarki wracają. Jest ich więcej.','Ktoś w kasynie właśnie trafił trzy siódemki. Gang jest wściekły.','Sołtys zamknął drzwi od środka. Zostałeś sam z orkiestrą.','Disco do rana. Jeśli dożyjesz.'];
 export function nextWave(){
   const G=S.G,coop=DS.net.isHost();
-  G.wave++;G.boss=G.wave%5===0&&!coop;G.queue=3+G.wave*2;G.spawnT=.5;
+  G.wave++;G.boss=G.wave%5===0;G.queue=3+G.wave*2;G.spawnT=.5;
   // Limit żywych naraz z tabeli spawnu poziomu (8 + fala/3, max 30; poziom może nadpisać enemies.maxAlive).
   const tb=DS.enemies.table?DS.enemies.table(world.level&&world.level.id,G.wave):null;G.maxAlive=tb&&tb.maxAlive>0?tb.maxAlive:8;
   if(coop)G.maxAlive=Math.min(30,Math.round(G.maxAlive*DS.net.aliveScale()));
   let bossName='Baron Jackpot';
   if(G.boss){const b=makeEnemy(true);if(b&&b.name)bossName=b.name;G.queue=Math.max(2,G.queue-4)}
   waveIntro(G,bossName);
-  DS.bus.emit('waveStart',{wave:G.wave,boss:G.boss,count:G.queue+(G.boss?1:0)});
+  DS.bus.emit('waveStart',{wave:G.wave,boss:G.boss,count:G.queue+(G.boss?1:0),bossName:G.boss?bossName:undefined});
 }
 /** Napis i narracja na starcie fali (co-op: klient woła to po zdarzeniu fali od hosta). */
 export function waveIntro(G,bossName='Baron Jackpot'){

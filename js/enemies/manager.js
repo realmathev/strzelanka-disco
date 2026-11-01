@@ -108,6 +108,10 @@ let pruneT=0;
 /** Aktualizuje wszystkich wrogów; zwraca liczbę żywych. */
 export function updateEnemies(dt){
   const G=S.G,H=DS.net.isHost()?DS.net:null;   // co-op: AI celuje w wybranego gracza (DS.net.aim podmienia na chwilę stan P)
+  if(H)S.fxTap=H.tap;                          // co-op: napisy/dźwięki/smugi wrogów idą też do klientów
+  try{return updateEnemies0(dt,G,H)}finally{S.fxTap=null}
+}
+function updateEnemies0(dt,G,H){
   eye.set(P.pos.x,P.pos.y+1.6,P.pos.z);
   beginFrame();
   let alive=0;
@@ -130,13 +134,15 @@ export function updateEnemies(dt){
 /* ---------- zabójstwo: dropy typu i hook onKill ---------- */
 const DROP_VAL=()=>({med:30,bandage:PCFG.bandage.total,adrenaline:PCFG.adrenaline.heal,vest:PCFG.vest.add,
   zapiekanka:PCFG.food.zapiekanka.heal,kebab:PCFG.food.kebab.heal,zubr:PCFG.food.zubr.heal});
-DS.bus.on('kill',({enemy:e})=>{
-  const d=e&&e.def;if(!d)return;
-  if(d.onKill&&!e.replica)d.onKill(e);   // replika (co-op, klient): bez efektów typu (kałuże itd. liczy host; etap 2)
+// 'netKill' (co-op, host): zabójstwo zdalnego gracza; replika (klient): onKill i dropy robi host (efekty przychodzą od niego).
+function onKillDrops({enemy:e}){
+  const d=e&&e.def;if(!d||e.replica)return;
+  if(d.onKill)d.onKill(e);
   const drops=e.drops||d.drops;if(!drops||!S.G)return;
   const val=DROP_VAL();
   for(const dr of drops)if(Math.random()<dr.p&&DS.pickups.has(dr.kind))spawnPickup(dr.kind,e.g.position.clone(),dr.val||val[dr.kind]||10);
-});
+}
+DS.bus.on('kill',onKillDrops);DS.bus.on('netKill',onKillDrops);
 DS.bus.on('levelLoad',()=>nav.resetNav());
 DS.bus.on('levelUnload',()=>nav.resetNav());
 // koniec biegu: zwolnij też zbuforowane modele wariantów (geometrie wracają do stanu sprzed biegu; kolejny bieg zbuduje je od nowa)

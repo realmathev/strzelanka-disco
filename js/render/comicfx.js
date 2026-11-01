@@ -8,9 +8,9 @@ const fx=$('#fx'),fctx=fx.getContext('2d');
 const tmpV=new THREE.Vector3();
 
 /** Pływający napis. o: {x,y | world:Vector3, size, life, color, vy, rot, burst}. */
-export function addFloater(text,o){const G=S.G;if(!G)return;G.floaters.push(Object.assign({text,t:0,life:.8,size:24,color:'#fff',vy:-30,rot:0,dy:0},o))}
+export function addFloater(text,o){const G=S.G;if(!G)return;if(S.fxTap&&o&&o.world)S.fxTap('fl',text,o);G.floaters.push(Object.assign({text,t:0,life:.8,size:24,color:'#fff',vy:-30,rot:0,dy:0},o))}
 /** Duży napis na środku (+ podpis) i błysk ekranu, jeśli efekty włączone. */
-export function announce(text,sub){const G=S.G;if(!G)return;G.announce={text,sub,t:0,life:1.8};if(opt.fx>0)G.flashT=.12}
+export function announce(text,sub){const G=S.G;if(!G)return;if(S.fxTap)S.fxTap('an',text,sub);G.announce={text,sub,t:0,life:1.8};if(opt.fx>0)G.flashT=.12}
 export function comicText(ctx,text,x,y,size,fill,rot,burst){
   ctx.save();ctx.translate(x,y);ctx.rotate(rot||0);
   ctx.font=`${size}px Bangers, Impact, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
