@@ -457,3 +457,27 @@ input[type=range]{height:28px;min-width:0}
 .coopTip{position:absolute;left:50%;top:62%;transform:translateX(-50%);background:var(--yellow);border:3px solid var(--ink);padding:6px 14px;font-weight:800;text-transform:uppercase;pointer-events:none}
 .coopStats{grid-column:1/-1;width:100%;border-collapse:collapse;margin-top:8px}
 .coopStats th,.coopStats td{border:2px solid var(--ink);padding:3px 8px;text-align:left}
+
+/* ---- HUD co-op (js/net/hud.js) ---- */
+.coopTeam{position:absolute;left:12px;top:118px;display:flex;flex-direction:column;gap:5px;width:min(230px,46vw);pointer-events:none;z-index:3}
+.coopRow{display:grid;grid-template-columns:12px 1fr auto;grid-template-rows:auto 7px;column-gap:6px;align-items:center;background:rgba(244,231,197,.92);border:2px solid var(--ink);padding:3px 6px;font-weight:700;font-size:calc(13px*var(--ts,1))}
+.coopRow .sw{width:12px;height:12px;border:2px solid var(--ink);grid-row:1}
+.coopRow .coopName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.coopRow .coopState{font-style:normal;font-size:11px;color:var(--red);font-family:var(--display);letter-spacing:.04em}
+.coopRow .coopHp{grid-column:1/-1;height:6px;background:#3a2a22;border:1px solid var(--ink);overflow:hidden}
+.coopRow .coopHpFill{display:block;height:100%;background:#36c25a;transform-origin:left}
+.coopRow.down{background:rgba(255,190,170,.95)}
+.coopRow.down .coopHpFill{background:var(--red)}
+.coopFeed{position:absolute;right:12px;top:150px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:min(300px,52vw);pointer-events:none;z-index:3}
+.coopFeedItem{background:rgba(21,17,14,.82);color:var(--cream);border-left:5px solid var(--yellow);padding:3px 9px;font-weight:700;font-size:calc(14px*var(--ts,1));overflow-wrap:anywhere}
+.coopBanner{position:absolute;left:50%;top:92px;transform:translateX(-50%);max-width:calc(100vw - 24px);background:var(--red);color:var(--cream);border:3px solid var(--ink);padding:6px 14px;font-family:var(--display);letter-spacing:.04em;font-size:calc(18px*var(--ts,1));text-align:center;pointer-events:none;z-index:4}
+.coopMarks{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+.coopMark{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:2px;margin:-14px 0 0 -40px;width:80px}
+.coopMark .coopArrow{display:block;width:0;height:0;border-left:11px solid var(--c,#ffcf2e);border-top:7px solid transparent;border-bottom:7px solid transparent;filter:drop-shadow(1px 1px 0 #15110e)}
+.coopMark:not(.edge) .coopArrow{border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid var(--c,#ffcf2e);border-bottom:0}
+.coopMarkTxt{background:rgba(21,17,14,.85);color:var(--c,#ffcf2e);padding:1px 6px;font-weight:800;font-size:12px;white-space:nowrap}
+.coopMark.down .coopMarkTxt{color:#ff8a7a}
+.coopMark.call .coopMarkTxt{background:var(--yellow);color:var(--ink);animation:coopPulse .5s ease-in-out infinite alternate}
+@keyframes coopPulse{to{transform:scale(1.15)}}
+@media (prefers-reduced-motion:reduce){.coopMark.call .coopMarkTxt{animation:none}}
+@media (max-width:800px){.coopTeam{top:172px}}

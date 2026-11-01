@@ -16,6 +16,7 @@ export const GROUPS=[
   {id:'combat',label:'Walka'},
   {id:'weapons',label:'Wybór broni'},
   {id:'misc',label:'Pozostałe'},
+  {id:'coop',label:'Gra ze znajomymi (zawołania)'},
 ];
 /** Kody, których nie wolno przypisać (Esc = anulowanie/pauza, klawisze systemowe przeglądarki). */
 export const RESERVED=['Escape','F1','F5','F11','F12','MetaLeft','MetaRight','ContextMenu'];
@@ -44,6 +45,10 @@ A.push(
   {id:'medkit',label:'Apteczka (leczenie)',group:'misc',codes:['KeyH']},
   {id:'perkMenu',label:'Menu perków',group:'misc',codes:['Tab']},
   {id:'pause',label:'Pauza',group:'misc',codes:['Escape','KeyP']},
+  // co-op: gotowe zawołania (bez wolnego tekstu, reguła JuicyJuicy); js/net/hud.js
+  {id:'callHere',label:'Zawołanie: „Tutaj!”',group:'coop',codes:['KeyZ']},
+  {id:'callHelp',label:'Zawołanie: „Pomocy!”',group:'coop',codes:['KeyX']},
+  {id:'callBoss',label:'Zawołanie: „Uwaga, boss!”',group:'coop',codes:['KeyB']},
 );
 A.forEach(a=>I.register(a));
 

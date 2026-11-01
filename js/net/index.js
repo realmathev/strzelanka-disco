@@ -11,6 +11,7 @@
 import './session.js';
 import './host.js';
 import './world.js';
+import './hud.js';
 import './replicas.js';
 import './coop.js';
 import './lobby.js';
