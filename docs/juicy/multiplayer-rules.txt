@@ -1,0 +1,11 @@
+const code = await juicy.rooms.invited(); // from an invite link, or null
+const room = code ? await juicy.rooms.join(code) : await juicy.rooms.create({ max: 4 });
+room.invite(); // JuicyJuicy's share sheet with the link
+room.on("message", (data, from) => handle(data, from));
+room.send({ k: "input", left: true });
+Copy
+Rooms are for signed-in members; JuicyJuicy offers visitors Sign in. Up to 10 players a room.
+Messages are any JSON up to 16 KB, at most 60 a second per player.
+Show player names with textContent, and no free-text chat for now.
+Outside JuicyJuicy the rooms run between tabs of the same address, so you can try it with two tabs.
+List it in features as "multiplayer". The skill's recipe has the whole API.
