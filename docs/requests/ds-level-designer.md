@@ -91,3 +91,23 @@ Instancje trafialne raycastem trzeba samemu dopisać do `world.meshes` (`inst()`
 **Brakujące rekwizyty (ds-world-modeler):** 1. sala wiejska z wnętrzem (dziś `salaWiejska` to zamknięta bryła; poziom buduje własną salę, prop stoi tylko jako remiza OSP przy szosie); 2. stodoła/obora z otwartym wnętrzem i drabiną na stryszek;
 3. prosty tani las (`swierkLowPoly` do instancingu) i krzewy jako ściana; 4. stoły biesiadne z ławami, grill, scena/podest dla kapeli, girlandy (dziś `bulbs` w poziomie); 5. kukurydza jako rośliny (dziś bloki rzędów), snop/kopa jako osłona;
 6. Maluch/Polonez z drzwiami otwartymi (kryjówka), kombajn z wejściem do kabiny; 7. wąskotorówka lub rampa/schody na dach sali (silnik ma płaską podłogę, więc "piętra" są tylko wizualne).
+
+
+## Poziom 6 „Stacja paliw i autostrada” (`stacja.js`, id `stacja`, ostatni w `index.js`): stan i prośby
+
+Arena 78 m (3,45x Remiza), świt/późny wieczór: niebo to kopuła z gradientem na kolorach wierzchołków (pomarańcz, róż, fiolet) ze słońcem i zorzą (podąża za kamerą, jak księżyc w dyskotece), mgła w kolorze horyzontu.
+Centrum: stacja PALIWEX (sklep z wnętrzem, wiata, 4 dystrybutory w instancingu, auta przy pompach, kompresor, donice, opony, beczki) = plac bossa (`bossArena` x 0, z 12). Wschód: autostrada (dwie jezdnie `jezdnia:ekspresowa`,
+bariery `barieraEnergo`, ekrany akustyczne, latarnie, bramownice, wiadukt `wiaduktDrogowy` na z=-40, wraki i TIR-y jako osłony; przerwy serwisowe w barierach). MOP: wiaty, toi-toi, Bar u Zdzicha, billboardy.
+Parking TIR = labirynt 7 naczep (rzędy równoległe plus rząd poprzeczny od południa, wejścia od północy i z zachodu). Zachód: warsztat z podwórkiem, myjnia, złomowisko. Północ: pole/nieużytek z drogą polną, bele, stogi, przyczepy;
+skład paliw (fence plus brama `slidingDoor auto`, zbiorniki, beczki). Znajdźki 13 (`st-*`), sekrety (E): zaplecze sklepu, kanał w warsztacie, bunkier na polu. 14 beczek wybuchowych (5 grup), 7 automatów leczących.
+Wygrana: zabicie dowolnego bossa z puli (dziś `boss_szef_stacji` na fali 5), `levelsDone.stacja`; ekran `scrLevelDone` jest bez „Dalej” (`nextLevel('stacja')===null`, przycisk ukryty), zostają „Graj dalej” i „Menu”.
+`tests/stacja.js`: ok. 100 asercji; 30 wrogów: 200-285 draw calli, 150-245 tys. tri (najgorszy widok: start na dojeździe, bo widać całą stację, parking i autostradę).
+
+**Techniczne:** `scatter()` w poziomie rozsiewa osłony (drzewa, bele, stogi, przyczepy) z odstępem i testem kolizji po postawieniu zabudowy; bariery, ekrany i latarnie jako `inst(..., {noCast:true})` oszczędzają przebieg cieni
+(ok. 48 tys. tri). `instance()` ustawia `frustumCulled=false`, więc długie linie barier (100+ sztuk) liczą się do budżetu trójkątów także poza kadrem; przydałby się culling grupowy w `props.instance`.
+**Uwaga o `dyskoteka.js`:** plik ma podwójnie zakodowane polskie znaki (UTF-8 odczytane jako Windows-1250 i zapisane ponownie, ok. 50 linii z „Ä™”, „Ĺ‚”), więc nazwy znajdziek i napisy tego poziomu wyświetlają się z krzaczkami. Do naprawy osobno (poza zakresem poziomu 6).
+
+**Brakujące rekwizyty (ds-world-modeler):** 1. zbiornik paliwa (poziomy walec, zbiornik podziemny z włazem) i autocysterna drogowa (dziś `tank()` w poziomie jako walec); 2. kanał/dół rewizyjny w warsztacie i rolowana brama otwierana (dziś `room()` jako „kanał”);
+3. sklep stacji z zapleczem i drzwiami (dziś zaplecze budowane `room()` za budynkiem); 4. bariera betonowa New Jersey, znaki drogowe (A/S, objazd), tablica zmiennej treści (VMS), słupki prowadzące; 5. kamper, laweta, motocykl, Maluch z otwartymi drzwiami jako kryjówka;
+6. automat do kawy i grill z hot-dogami do wnętrza sklepu, regały w wersji „zdemolowanej”; 7. wiadukt z zejściem/rampą chodliwą (dziś nasypy to ściany: silnik ma płaską podłogę, więc górna jezdnia jest tylko widokiem);
+8. prawdziwe źródło światła pod wiatą (dziś tylko emisja `MeshBasic`); 9. kładka dla pieszych nad autostradą, wiata autobusowa na zatoczce.

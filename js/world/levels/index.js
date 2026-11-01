@@ -4,3 +4,4 @@ import './blokowisko.js';
 import './kasyno.js';
 import './dworzec.js';
 import './dyskoteka.js';
+import './stacja.js';
