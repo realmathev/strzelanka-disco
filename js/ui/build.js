@@ -21,6 +21,7 @@ const topbar=(title,withKeys)=>h('div',{class:'topbar'},h('h2',null,title),
       h('h1',{id:'menuTitle'},'Disco',h('em',null,'Strzelnica')),
       h('div',{class:'caption'},'Godzina 23:14. Remiza w Dolnym Zadupiu. Gang Jednorękiego Bandyty przejął kasyno, a DJ nie przestaje grać. Masz pistolet i rytm.'),
       h('div',{class:'keysHelp',id:'keysHelp'}),
+      h('div',{class:'hsTop3',id:'hsTop3',hidden:true,'aria-label':'Najlepsi gracze'}),
       h('div',{id:'touchNote',hidden:true},'Strzelanie wymaga myszy i klawiatury. Kasyno, skrzynki i sklep działają też na telefonie.')),
     h('nav',{class:'panel menu-btns','aria-label':'Menu główne'},
       wallet(h('span',null,'Rekord: fala ',h('b',{class:'w-best'},'0'))),
@@ -33,7 +34,8 @@ const topbar=(title,withKeys)=>h('div',{class:'topbar'},h('h2',null,title),
         btn('Skrzynki',{'data-go':'scrCrates'}),
         btn('Ekwipunek i skórki',{'data-go':'scrInv'}),
         btn('Kolekcja znajdziek',{'data-go':'scrCollection'}),
-        btn('Osiągnięcia',{'data-go':'scrAch'})),
+        btn('Osiągnięcia',{'data-go':'scrAch'}),
+        btn('Ranking',{'data-go':'scrRanking',class:'btn wide'})),
       h('div',{class:'menu-grid'},
         btn('Opcje',{id:'mOpts'},'paper'),
         btn('Wyjście',{id:'mExit'},'paper')))));
@@ -69,6 +71,14 @@ const topbar=(title,withKeys)=>h('div',{class:'topbar'},h('h2',null,title),
         h('p',{class:'byeTxt',id:'byeTxt'},'Gra działa w karcie przeglądarki, więc zamknij kartę, aby wyjść. Postęp zapisuje się automatycznie.'),
         h('button',{class:'btn red',type:'button','data-go':'scrMenu','data-autofocus':''},'Wróć do menu')))
   );
+})();
+
+/* ---- ranking (JuicyJuicy) ---- */
+(function buildRanking(){
+  const t=topbar('Ranking',false);t.querySelector('h2').id='hsT';
+  $('#app').append(h('section',{class:'screen',id:'scrRanking',hidden:true,'aria-labelledby':'hsT'},h('div',{class:'wrap'},t,
+    h('div',{class:'panel listPanel hsPanel'},h('p',{class:'note'},'Wynik = fala × 1000 + zabici × 10 + headshoty × 5. Liczy się najlepszy wynik gracza.'),
+      h('div',{id:'hsBox','aria-live':'polite'})))));
 })();
 
 /* ---- pauza ---- */

@@ -21,13 +21,14 @@ import {refreshMenu,renderPlay,renderPausePerks,validLevel} from './menu.js';
 import {renderAch,renderCollection} from './extras.js';
 import {cancelBindUi} from './controls.js';
 import {initNav,activeScreen,focusInitial} from './nav.js';
+import {renderRanking,renderTop3,fillOver,fmt} from './highscores.js';
 
 let optReturn='scrMenu';
 export function show(id){
   cancelBindUi(true);stopPreview();
   let target=null;
   $$('.screen').forEach(s=>{const on=s.id===id;s.hidden=!on;if(on)target=s});
-  if(id==='scrMenu')refreshMenu();
+  if(id==='scrMenu'){refreshMenu();renderTop3()}if(id==='scrRanking')renderRanking();
   if(id==='scrPause')renderPausePerks();
   if(id==='scrShop')renderShop();if(id==='scrInv')renderInv();if(id==='scrCasino')initSlots();if(id==='scrOptions')syncOptUI();
   if(id==='scrPlay')renderPlay();if(id==='scrAch')renderAch();if(id==='scrCollection')renderCollection();
@@ -91,6 +92,7 @@ initNav({back:goBack,start:()=>pause()});
 export function showOver(){
   if(S.mode!=='game')return;const G=S.G;
   $('#overCap').textContent=pick(['Orkiestra gra dalej, ale już bez ciebie.','Gang zabrał ci portfel, ale ZD zostały na koncie.','Siostra Halina wzdycha i sięga po bandaż.']);
-  $('#overStats').innerHTML=`<span>Fala</span><span>${G.wave}</span><span>Zabici</span><span>${G.kills}</span><span>Headshoty</span><span>${G.heads}</span><span>Zarobione ZD</span><span>${G.earned}</span><span>Znalezione klucze</span><span>${G.keysFound}</span><span>Rekord</span><span>fala ${save.best}</span>`;
+  const pts=G.score||0;
+  $('#overStats').innerHTML=`<span>Punkty</span><span>${fmt(pts)}</span><span>Rekord punktowy</span><span>${fmt(save.bestScore)}</span><span>Fala</span><span>${G.wave}</span><span>Rekord fali</span><span>${save.best}</span><span>Zabici</span><span>${G.kills}</span><span>Headshoty</span><span>${G.heads}</span><span>Zarobione ZD</span><span>${G.earned}</span><span>Znalezione klucze</span><span>${G.keysFound}</span>`;fillOver(G);
   $('#oRevive').hidden=!(save.secondChance>0&&!G.revived);show('scrOver');
 }

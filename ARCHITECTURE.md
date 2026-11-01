@@ -197,6 +197,13 @@ moveForward, moveBack, moveLeft, moveRight, sprint, jump, crouch, fire, ads, rel
 Moduły czytają akcje przez `DS.input` (nie rejestrują własnych, żeby nie dublować i żeby były w Sterowaniu); nowa akcja: dopisz do tablicy `A` w `actions.js`
 z `group`.
 
+## Ranking JuicyJuicy (`ui/highscores.js`)
+
+Snippet `docs/juicy/highscores-snippet.js` jest wklejony bez zmian jako inline `<script>` w `index.html` PRZED `js/main.js` (`window.juicy.scores`; poza JuicyJuicy działa na localStorage, `cloud:false`).
+Wynik runu = `fala*1000 + zabici*10 + headshoty*5` (`runScore(G)`), zawsze `{order:'high', format:'points'}`. `submitRun(G)` wysyła run przy śmierci (`combat.die`) i przy wyjściu z trwającego runu (`levelEnd`),
+tylko gdy fala >= 1 i wynik wyższy od już wysłanego w tym runie (Druga Szansa). Zapis: `save.bestScore` (rekord punktowy) i `save.hsSynced`. `syncOldBest()` przy starcie wysyła jednorazowo `max(bestScore, best*1000)` (stary zapis zna tylko falę);
+flaga `hsSynced` dopiero po `cloud:true`, niezalogowany próbuje przy kolejnym starcie. To jedyna droga zapełnienia tablicy: gra nie czyta cudzych przeglądarek, więc tablica rośnie, gdy gracze otwierają nową wersję.
+UI: ekran `scrRanking` (top 10, własny wiersz `me`, `board.me` poza top 10, stany ładowanie/brak/niezalogowany/błąd), ramka TOP 3 w menu (`#hsTop3`), „NOWY REKORD! #rank” na `scrOver`. Nazwy graczy wyłącznie przez węzły tekstowe. Test: `node tests/cdp-run.js highscores.js 4202`.
 ## Zdarzenia (`DS.bus.on(name, fn)` zwraca funkcję wypisującą; `emit(name, payload)`)
 
 | zdarzenie | payload | kiedy |

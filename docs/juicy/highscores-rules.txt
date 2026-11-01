@@ -1,0 +1,10 @@
+// When a run ends: a whole number, or milliseconds with { order: "low", format: "time" }.
+const result = await juicy.scores.submit(score, { order: "high", format: "points" });
+if (result.improved) showNewBest(result.best, result.rank);
+const board = await juicy.scores.top(10); // { entries: [{ rank, name, score, me }], me }
+Copy
+Send every finished run; only a player's best counts. Scores are whole numbers, times are milliseconds.
+Pass the same order and format every time: the first score sets them, and you can reset the board on the game's page.
+top() gives up to 100 places with players' names; show them with textContent.
+Signed-out players keep their best in the browser.
+List it in features as "highscores".

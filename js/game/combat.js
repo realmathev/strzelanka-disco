@@ -9,6 +9,7 @@ import {spawnPickup} from '../pickups/pickups.js';
 import {absorbDamage} from '../pickups/armor.js';
 import {comboMult} from './run.js';
 import {showOver} from '../ui/screens.js';
+import {submitRun} from '../ui/highscores.js';
 
 /** Trafienie wroga. Przed odjęciem HP leci 'beforeHit' {enemy,dmg,head}: słuchacz może zmienić `dmg` (tarcza ochroniarza); liczby i 'hit' dostają wartość po zmianie. */
 export function damageEnemy(e,dmg,head,point){
@@ -44,4 +45,5 @@ export function hurt(d){const G=S.G;if(G.dead)return;d=absorbDamage(d);G.hp-=d;G
   DS.bus.emit('damage',{amount:d,hp:G.hp})}
 export function die(){const G=S.G;G.dead=true;G.deadT=0;S.mouseDown=false;announce('POLEGŁEŚ','Fala '+G.wave);try{document.exitPointerLock()}catch(e){}
   if(G.wave>save.best)save.best=G.wave;persist();
+  submitRun(G);   // ranking JuicyJuicy: wynik wysyłany od razu przy śmierci (nie czeka na ekran końca)
   setTimeout(showOver,1400)}

@@ -11,4 +11,5 @@ export * from './slots.js';
 export * from './skinart.js';
 export * from './menu.js';
 export * from './extras.js';
+export * from './highscores.js';
 export {applyUiOpts} from './uiopts.js';

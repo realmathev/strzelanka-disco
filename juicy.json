@@ -24,5 +24,7 @@
   "aspectRatio": "16:9",
   "thumbnail": "thumbnail.png",
   "remixable": false,
-  "features": []
+  "features": [
+    "highscores"
+  ]
 }
