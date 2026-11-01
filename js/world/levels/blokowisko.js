@@ -295,11 +295,12 @@ DS.bus.on('levelStart',()=>{
 });
 DS.bus.on('levelEnd',stopAmbient);
 DS.bus.on('levelUnload',stopAmbient);
-DS.bus.on('kill',({enemy:e})=>{
+const winOnKill=({enemy:e})=>{
   const G=S.G;if(!G||!here()||!e||e.type!==L.win.boss||G.levelWon)return;
   G.levelWon=true;
   save.coins+=L.win.reward.coins;save.keys+=L.win.reward.keys;G.earned+=L.win.reward.coins;G.keysFound+=L.win.reward.keys;
   save.levelsDone=save.levelsDone||{};save.levelsDone[ID]=true;persist();
   setTimeout(()=>{if(S.G===G)announce(L.win.text,'+'+L.win.reward.coins+' ZD i klucz. Gra toczy się dalej.')},1500);
   DS.bus.emit('levelComplete',{level:ID,wave:G.wave});
-});
+};
+DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)

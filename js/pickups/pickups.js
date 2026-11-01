@@ -33,27 +33,38 @@ DS.pickups.register({id:'med',magnet:3,
   collect(p){const G=S.G;const before=G.hp;G.hp=Math.min(G.maxHp,G.hp+p.val);sfx('heal');addFloater('+'+p.val+' HP',{x:200,y:innerHeight-120,size:26,life:.8,color:'#7dff9a',vy:-40});
     DS.bus.emit('heal',{amount:G.hp-before,source:'pickup'})}});
 
-export function spawnPickup(type,pos,val){
-  const G=S.G;
-  // Limit na scenie: najstarsza znajdźka znika, a jej wartość (ZD, klucze) trafia od razu do gracza.
+// Co-op (js/net/pickups.js): znajdźki z wrogów ma host (p.nid); klient ma kopie (p.mirror) i prosi o podniesienie (`pick`),
+// host potwierdza zdarzeniem, efekt dostaje zbierający. DS.net.onPickup(p, 'spawn'|'take'|'gone') to hook hosta.
+export function spawnPickup(type,pos,val,o){
+  const G=S.G,coop=DS.net.active();
+  // Limit na scenie: najstarsza znajdźka znika, a jej wartość (ZD, klucze) trafia od razu do gracza (w co-op: przepada).
   while(G.pickups.length>=MAX_PICKUPS){const o=G.pickups.shift();
-    if(o.type==='coin'){save.coins+=o.val;G.earned+=o.val}else if(o.type==='key'){save.keys+=o.val;G.keysFound+=o.val}
+    if(!coop){if(o.type==='coin'){save.coins+=o.val;G.earned+=o.val}else if(o.type==='key'){save.keys+=o.val;G.keysFound+=o.val}}
+    else if(DS.net.onPickup)DS.net.onPickup(o,'gone');
     disposeObject(o.m)}
   const m=DS.pickups.get(type).mesh();
   hull(m,.12);m.position.set(pos.x+rand(-.6,.6),.8,pos.z+rand(-.6,.6));scene.add(m);
-  G.pickups.push({m,type,val,vy:rand(3,6),vx:rand(-2,2),vz:rand(-2,2),t:0});
+  const p={m,type,val,vy:rand(3,6),vx:rand(-2,2),vz:rand(-2,2),t:0};
+  if(o&&o.nid){p.nid=o.nid;p.mirror=true}
+  G.pickups.push(p);
+  if(coop&&!p.mirror&&DS.net.onPickup)DS.net.onPickup(p,'spawn');
+  return p;
 }
 export function updatePickups(dt){
   const G=S.G;
   for(const p of G.pickups){p.t+=dt;const m=p.m,def=DS.pickups.get(p.type);
-    if(p.t>=LIFE){p.done=true;disposeObject(m);continue}
+    if(p.t>=LIFE){p.done=true;disposeObject(m);if(p.nid&&!p.mirror&&DS.net.onPickup)DS.net.onPickup(p,'gone');continue}
     if(p.vy!==null){p.vy-=18*dt;m.position.x+=p.vx*dt;m.position.z+=p.vz*dt;m.position.y+=p.vy*dt;if(m.position.y<.35){m.position.y=.35;p.vy=null}}
     m.rotation.y+=dt*4;if(def.spin)def.spin(m,dt);
     const left=LIFE-p.t;m.scale.setScalar(left<BLINK_T?.65+.35*Math.abs(Math.sin(p.t*14)):1);
     const dx=P.pos.x-m.position.x,dz=P.pos.z-m.position.z,d=Math.hypot(dx,dz);
     const mag=def.magnet;
     if(d<mag&&p.t>.35){m.position.x+=dx/d*dt*14;m.position.z+=dz/d*dt*14}
-    if(d<1.1&&p.t>.35){p.done=true;disposeObject(m);
+    if(d<1.1&&p.t>.35){
+      if(p.mirror){if(!p.req&&!G.dead&&DS.net.requestPickup){p.req=true;DS.net.requestPickup(p)}continue}   // klient: prośba do hosta, efekt po potwierdzeniu
+      if(G.dead&&DS.net.active())continue;                                                                // co-op: leżący nie zbiera
+      p.done=true;disposeObject(m);
+      if(p.nid&&DS.net.onPickup)DS.net.onPickup(p,'take');
       def.collect(p);DS.bus.emit('pickup',{type:p.type,value:p.val})}}
   G.pickups=G.pickups.filter(p=>!p.done);
 }

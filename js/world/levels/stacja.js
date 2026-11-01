@@ -342,11 +342,12 @@ DS.bus.on('update',dt=>{
   if(!amb||!S.G||S.G.paused)return;
   passT-=dt;if(passT<=0){passT=5+Math.random()*8;const P=DS.player.P,d=Math.abs(P.pos.x-63);const v=.09*Math.pow(Math.max(0,1-d/80),1.4);if(v>.004)carPass(v)}
 });
-DS.bus.on('kill',({enemy:e})=>{
+const winOnKill=({enemy:e})=>{
   const G=S.G;if(!G||!here()||!e||!e.boss||G.levelWon)return;       // boss z puli tabeli (Szef Stacji, Jednooki) kończy poziom
   G.levelWon=true;
   save.coins+=L.win.reward.coins;save.keys+=L.win.reward.keys;G.earned+=L.win.reward.coins;G.keysFound+=L.win.reward.keys;
   save.levelsDone=save.levelsDone||{};save.levelsDone[ID]=true;persist();
   setTimeout(()=>{if(S.G===G)announce(L.win.text,'+'+L.win.reward.coins+' ZD i '+L.win.reward.keys+' klucze. To był ostatni poziom, gra toczy się dalej.')},1500);
   DS.bus.emit('levelComplete',{level:ID,wave:G.wave});
-});
+};
+DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)

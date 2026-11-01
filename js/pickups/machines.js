@@ -40,6 +40,10 @@ export function placeHealMachine({kind='vending',x,z,rotY=0}){
   const m={kind,g,x,z,collider,used:false,cd:0,promptT:0};
   machines.push(m);return m;
 }
+/** Lista automatów bieżącego poziomu (co-op: synchronizacja stanu w js/net/world.js). */
+export function machineList(){return machines}
+/** Co-op (host): automat nr i użyty przez zdalnego gracza (bez leczenia hosta). */
+export function markMachineUsed(i){const m=machines[i];if(!m)return;if(m.kind==='vending')m.cd=CFG.machines[m.kind].cooldown;else m.used=true}
 /** Usuwa wszystkie automaty ze sceny i kolizji. */
 export function clearHealMachines(){
   for(const m of machines){disposeObject(m.g);const i=world.colliders.indexOf(m.collider);if(i>=0)world.colliders.splice(i,1)}
@@ -59,6 +63,7 @@ function useMachine(m){
   healFloater(got);
   if(cfg.armor){G.armor=G.armorMax;emitArmor()}
   if(m.kind==='vending')m.cd=cfg.cooldown;else m.used=true;
+  if(DS.net.useObj)DS.net.useObj('m',machines.indexOf(m),1);   // co-op: stan automatu (cooldown / zużyta stacja) wspólny, u hosta
   sfx('machine');
   addFloater(m.kind==='vending'?'APTECZKA!':'STACJA!',{world:at(m),size:30,life:1,color:'#7dff9a',vy:-30,burst:true});
 }

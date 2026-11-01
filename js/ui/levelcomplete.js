@@ -29,7 +29,7 @@ const scr=h('section',{class:'screen dim',id:'scrLevelDone',hidden:true},
 export function nextLevel(id){const l=DS.levels.all(),i=l.findIndex(x=>x.id===id);return i>=0&&i+1<l.length?l[i+1]:null}
 
 function open(e){
-  const G=S.G;if(!G||G.dead||S.mode!=='game')return;
+  const G=S.G;if(!G||(G.dead&&!DS.net.active())||S.mode!=='game')return;   // co-op: ekran także u leżącego
   const L=DS.levels.get(e.level)||{},w=L.win||{},r=w.reward||{},st=collectStats(L);
   cur={id:e.level,next:nextLevel(e.level)};
   title.textContent=w.text||'Poziom ukończony!';
@@ -37,21 +37,28 @@ function open(e){
   const rw=[r.coins?'+'+r.coins+' ZD':'',r.keys?'+'+r.keys+(r.keys===1?' klucz':' klucze'):''].filter(Boolean).join(', ')||'brak';
   clear(stats);
   for(const [k,v] of [['Fala',e.wave],['Zabici',G.kills],['Znajdźki',st.found+' / '+st.total],['Nagroda',rw]])stats.append(h('span',null,k),h('span',null,String(v)));
-  bNext.hidden=!cur.next;bNext.textContent=cur.next?'Dalej: '+(cur.next.name||cur.next.id):'Dalej';
-  G.paused=true;S.mouseDown=false;try{document.exitPointerLock&&document.exitPointerLock()}catch(_){}
+  bNext.hidden=!cur.next;bNext.textContent=cur.next?'Dalej: '+(cur.next.name||cur.next.id):'Dalej';bNext.disabled=false;
+  // Co-op: świat się nie zatrzymuje (G.uiPause), „Dalej” klika tylko host, klient czeka.
+  const coop=DS.net.active(),client=coop&&DS.net.isClient();
+  if(client&&cur.next){bNext.disabled=true;bNext.textContent='Czekamy na hosta…'}
+  if(coop)G.uiPause=true;else G.paused=true;
+  S.mouseDown=false;try{document.exitPointerLock&&document.exitPointerLock()}catch(_){}
   show('scrLevelDone');DS.bus.emit('pause',true);sfx('win');
 }
 DS.bus.on('levelComplete',e=>{
   const G=S.G;if(!e||!G)return;
   // Zabicie bossa często daje level-up, który pauzuje grę: czekamy, aż gracz wybierze perk (albo zamknie pauzę), zamiast przepuścić ekran.
-  const tryOpen=()=>{if(S.G!==G||G.dead||S.mode!=='game')return;if(G.paused){setTimeout(tryOpen,300);return}open(e)};
+  const tryOpen=()=>{if(S.G!==G||(G.dead&&!DS.net.active())||S.mode!=='game')return;if(G.paused){setTimeout(tryOpen,300);return}open(e)};
   setTimeout(tryOpen,SHOW_DELAY);
 });
 
 bKeep.addEventListener('click',()=>{sfx('tick',1000);resume()});
-bMenu.addEventListener('click',()=>{sfx('tick',1000);toMenuMode();show('scrMenu')});
+bMenu.addEventListener('click',()=>{sfx('tick',1000);
+  if(DS.net.active()){if(DS.net.isHost())DS.net.toLobbyAll();else DS.net.quitRun();return}   // co-op: host wraca z drużyną do lobby, klient sam
+  toMenuMode();show('scrMenu')});
 bNext.addEventListener('click',()=>{
   sfx('tick',1000);const n=cur&&cur.next;if(!n)return;
+  if(DS.net.active()){if(DS.net.isHost())DS.net.nextLevel(n.id);return}   // co-op: kolejny poziom u wszystkich (klient czeka na hosta)
   toMenuMode();                                   // sprząta run (levelEnd) przed zmianą poziomu
   try{loadLevel(n.id);opt.level=n.id;persistOpt()}catch(err){console.warn('Dalej: nie udało się wczytać poziomu',n.id,err);show('scrMenu');return}
   startGame();

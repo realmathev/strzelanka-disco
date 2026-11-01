@@ -222,20 +222,28 @@ export function placeBarrels(list){
   barrels.ims.add(im);barrels.items.push(...items);
   return {im,band,items};
 }
-function blow(b,depth=0){
-  if(b.dead||!barrels)return;b.dead=true;
-  b.im.setMatrixAt(b.i,Z0);b.band.setMatrixAt(b.i,Z0);
-  b.im.instanceMatrix.needsUpdate=b.band.instanceMatrix.needsUpdate=true;
-  b.col.x0+=1e5;b.col.x1+=1e5;
+/** Wybuch beczki. `by` (co-op, host): id gracza, który ją trafił (zabójstwa liczą się jemu). */
+function blow(b,depth=0,by){
+  if(b.dead||!barrels)return;
+  hideBarrel(b);
   const G=S.G;if(!G)return;
   if(mods.proj)mods.proj.explode(b.x,.6,b.z,{r:5.2,dmg:26,shake:1.1});
   const R=5.2;
   for(const e of G.enemies){
-    if(!e.alive)continue;const d=Math.hypot(e.g.position.x-b.x,e.g.position.z-b.z);
-    if(d<R&&mods.combat)mods.combat.damageEnemy(e,Math.round(110*(1-d/R*.55)),false,new THREE.Vector3(e.g.position.x,1.2,e.g.position.z));
+    if(!e.alive||e.replica)continue;const d=Math.hypot(e.g.position.x-b.x,e.g.position.z-b.z);
+    if(d<R&&mods.combat)mods.combat.damageEnemy(e,Math.round(110*(1-d/R*.55)),false,new THREE.Vector3(e.g.position.x,1.2,e.g.position.z),by);
   }
-  for(const o of barrels.items)if(!o.dead&&Math.hypot(o.x-b.x,o.z-b.z)<3.2)setTimeout(()=>blow(o,depth+1),140+depth*60);
+  for(const o of barrels.items)if(!o.dead&&Math.hypot(o.x-b.x,o.z-b.z)<3.2)setTimeout(()=>blow(o,depth+1,by),140+depth*60);
 }
+function hideBarrel(b){
+  b.dead=true;
+  b.im.setMatrixAt(b.i,Z0);b.band.setMatrixAt(b.i,Z0);
+  b.im.instanceMatrix.needsUpdate=b.band.instanceMatrix.needsUpdate=true;
+  b.col.x0+=1e5;b.col.x1+=1e5;
+}
+/** Co-op: host wysadza beczkę nr i (prośba klienta); klient tylko ją chowa (wybuch przychodzi jako efekt od hosta). */
+export function blowBarrel(i,by){const b=barrels&&barrels.items[i];if(b&&!b.dead)blow(b,0,by)}
+export function hideBarrelAt(i){const b=barrels&&barrels.items[i];if(b&&!b.dead)hideBarrel(b)}
 
 /* ------------------------------------------------------------------ automaty leczące */
 /** Stawia automaty (pickups/machines.js ładowane dynamicznie; jeśli moduł jeszcze nie gotowy, dostawia po jego wczytaniu). */
@@ -349,7 +357,7 @@ DS.bus.on('update',dt=>{
   refreshCol(dt);tryCollect();
   const P=DS.player.P;
   for(const d of doors){
-    if(d.auto)d.target=Math.hypot(P.pos.x-d.px,P.pos.z-d.pz)<d.range+.4?1:0;
+    if(d.auto)d.target=(DS.net.anyNear?DS.net.anyNear(d.px,d.pz,d.range+.4):Math.hypot(P.pos.x-d.px,P.pos.z-d.pz)<d.range+.4)?1:0;   // co-op: otwiera się przy każdym graczu
     d.t+=(d.target-d.t)*Math.min(1,dt*5);
     const o=d.t*d.w*d.dir*.96;
     d.mesh.position.set(d.px+(d.axis==='x'?o:0),d.mesh.position.y,d.pz+(d.axis==='z'?o:0));
@@ -361,15 +369,15 @@ DS.bus.on('update',dt=>{
 addEventListener('keydown',e=>{
   if(e.repeat||!DS.input.matches('use',e.code))return;
   const G=S.G;if(S.mode!=='game'||!G||G.paused||G.dead)return;
-  const d=nearestDoor();if(d&&!d.auto){d.target=d.target?0:1;sfx('tick',d.target?700:500)}
+  const d=nearestDoor();if(d&&!d.auto){d.target=d.target?0:1;sfx('tick',d.target?700:500);if(DS.net.useObj)DS.net.useObj('d',doors.indexOf(d),d.target)}
 });
-// strzał w beczkę
+// strzał w beczkę (co-op, klient: prośba do hosta; wybucha u wszystkich)
 DS.bus.on('shot',e=>{
   if(!barrels||!e||!e.hits)return;
   for(const h of e.hits){
     if(!barrels.ims.has(h.object))continue;
     let best=null,bd=1.4;for(const b of barrels.items){if(b.dead)continue;const d=Math.hypot(b.x-h.point.x,b.z-h.point.z);if(d<bd){bd=d;best=b}}
-    if(best)blow(best);
+    if(best){if(DS.net.isClient()){if(DS.net.useObj)DS.net.useObj('b',barrels.items.indexOf(best),1)}else blow(best)}
   }
 });
 function resetRun(){

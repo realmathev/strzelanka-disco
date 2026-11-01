@@ -51,10 +51,11 @@ DS.levels.register({
 
 // Ukończenie: pokonanie Barona Jackpota (boss gangster) zapisuje poziom i otwiera ekran „Poziom ukończony” (jak na pozostałych mapach).
 DS.bus.on('levelStart',()=>{const G=S.G;if(G)G.levelWon=false});
-DS.bus.on('kill',({enemy:e})=>{
+const winOnKill=({enemy:e})=>{
   const G=S.G,L=DS.levels.get('remiza');if(!G||!e||!e.boss||G.levelWon||!world.level||world.level.id!=='remiza')return;
   G.levelWon=true;
   save.coins+=L.win.reward.coins;G.earned+=L.win.reward.coins;
   save.levelsDone=save.levelsDone||{};save.levelsDone.remiza=true;persist();
   DS.bus.emit('levelComplete',{level:'remiza',wave:G.wave});
-});
+};
+DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)

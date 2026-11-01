@@ -424,6 +424,8 @@ function placeLift(x,z,rotY){
 const loc=(lf,P,o={})=>{const dx=P.pos.x-lf.x,dz=P.pos.z-lf.z;o.lx=dx*lf.c-dz*lf.s;o.lz=dx*lf.s+dz*lf.c;return o};
 const inCab=l=>Math.abs(l.lx)<.8&&l.lz>-.72&&l.lz<.6;
 const atDoor=l=>Math.abs(l.lx)<1.5&&l.lz>ZD+.1&&l.lz<ZD+2.8;
+/** Co-op: stan drzwi windy do hosta / pozostałych graczy (js/net/world.js). */
+function liftSync(lf){if(DS.net.useObj)DS.net.useObj('l',lifts.indexOf(lf),lf.target)}
 function resetLifts(){for(const lf of lifts){lf.t=lf.target=0;if(lf.col){lf.col.x0=lf.col0.x0;lf.col.x1=lf.col0.x1}lf.L.position.x=lf.R.position.x=0}ride=null}
 let hintT=0;
 const T0=new THREE.Vector3(),_lo={};
@@ -482,7 +484,7 @@ DS.bus.on('update',dt=>{
     P.vel.set(0,0,0);P.pos.x=ride.px;P.pos.z=ride.pz;ride.t-=dt;
     if(ride.t<=0){
       const o=ride.to;P.pos.x=o.x-.05*o.s;P.pos.z=o.z-.05*o.c;P.yaw=o.rotY+PI;P.pitch=0;P.vel.set(0,0,0);
-      o.target=1;ride=null;sfx('key');addFloater('WINDA',{world:T0.set(P.pos.x,2.2,P.pos.z).clone(),size:22,life:1.2,color:'#ffe14a',vy:-18});
+      o.target=1;liftSync(o);ride=null;sfx('key');addFloater('WINDA',{world:T0.set(P.pos.x,2.2,P.pos.z).clone(),size:22,life:1.2,color:'#ffe14a',vy:-18});
     }
     return;
   }
@@ -499,18 +501,19 @@ addEventListener('keydown',e=>{
   for(const lf of lifts){
     const l=loc(lf,P,_lo);
     if(inCab(l)){
-      if(lf.t>.8&&lifts.length>1){const o=lifts.find(q=>q!==lf);lf.target=0;o.target=0;ride={to:o,t:1.3,px:P.pos.x,pz:P.pos.z};sfx('tick',420)}
-      else{lf.target=lf.target?0:1;sfx('tick',lf.target?700:500)}
+      if(lf.t>.8&&lifts.length>1){const o=lifts.find(q=>q!==lf);lf.target=0;o.target=0;liftSync(lf);liftSync(o);ride={to:o,t:1.3,px:P.pos.x,pz:P.pos.z};sfx('tick',420)}
+      else{lf.target=lf.target?0:1;liftSync(lf);sfx('tick',lf.target?700:500)}
       return;
     }
-    if(atDoor(l)){lf.target=lf.target?0:1;sfx('tick',lf.target?700:500);return}
+    if(atDoor(l)){lf.target=lf.target?0:1;liftSync(lf);sfx('tick',lf.target?700:500);return}
   }
 });
-DS.bus.on('kill',({enemy:e})=>{
+const winOnKill=({enemy:e})=>{
   const G=S.G;if(!G||!here()||!e||e.type!==L.win.boss||G.levelWon)return;
   G.levelWon=true;
   save.coins+=L.win.reward.coins;save.keys+=L.win.reward.keys;G.earned+=L.win.reward.coins;G.keysFound+=L.win.reward.keys;
   save.levelsDone=save.levelsDone||{};save.levelsDone[ID]=true;persist();
   setTimeout(()=>{if(S.G===G)announce(L.win.text,'+'+L.win.reward.coins+' ZD i klucz. Gra toczy się dalej.')},1500);
   DS.bus.emit('levelComplete',{level:ID,wave:G.wave});
-});
+};
+DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)
