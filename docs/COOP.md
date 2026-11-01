@@ -66,6 +66,22 @@ Zmiany względem decyzji (powód: limit 60 wiadomości/s na gracza):
 Znane braki (etap 2/3): pociski łukowe, kałuże i wybuchy wrogów ranią tylko hosta (u klientów brak ich efektów); pickupy, beczki, drzwi i automaty
 są lokalne; brak HUD-u kolegów (pasków HP), dołączania w trakcie (`full`), reconnectu i migracji hosta; karta w tle nie wysyła stanu.
 
+## Stan: etap 2 zrobiony (test: `node tests/coop.js 4203 --gpu`, 63 sprawdzenia)
+
+- Bossowie (Baron, DJ, Jednooki, Szef Ochrony, Sołtys, Dyżurny, Szef Stacji) wracają do co-op: prowadzi ich host (HP ×(1+0,75·(n−1))), klient ma replikę
+  z paskiem nad głową, paskiem HUD (`bossHp`/`bossPhase` z fazy w snapshocie), zapowiedziami ataków (napisy/dźwięki z hosta, pole `fx`) i przywołaniami (zwykłe repliki).
+- Pociski, kałuże, ogień z paliwa, wybuchy, fale uderzeniowe, ogłuszenie gwizdkiem, lasery, pasy Dyżurnego i szarże (bossów, Malucha) ranią KAŻDEGO gracza:
+  liczy host (`enemies/players.js: eachPlayer`), rany/odrzut/ogłuszenie idą w `hu`. Klient odtwarza efekty z `ev` (bez własnych obrażeń), wiązki z `bm`.
+- Znajdźki z wrogów ma host (także za zabójstwa klientów): spawn i zniknięcie u wszystkich, zebranie przez klienta = `pick`, host potwierdza, efekt u zbierającego.
+  Znajdźki poziomu zostają lokalne (każdy do własnego zapisu; w świecie są tylko u niego, więc się nie dublują).
+- Beczki: strzał klienta -> `use b` -> wybuch u hosta (zabójstwa zalicza strzelcowi), efekt i obrażenia u wszystkich. Drzwi, sekrety, windy (drzwi kabin), automaty:
+  stan u hosta (`ws`), akcja klienta -> `use`. Drzwi automatyczne otwierają się przy każdym graczu.
+- `levelComplete` u wszystkich (`lc` -> nagroda i `levelsDone` u każdego obecnego), ekran bez pauzy, „Dalej” tylko host (klient: „Czekamy na hosta…”),
+  kolejny poziom ładuje się u wszystkich z tą samą drużyną; „Menu” u hosta = lobby drużyny.
+- Ranking: każdy wysyła własny wynik (wspólna fala + własne zabójstwa/headshoty), patrz ARCHITECTURE.md „Ranking”.
+
+Zmiana względem decyzji: monety z zabójstwa leżą na ziemi dla wszystkich (wcześniej: strzelec). XP i asysty bez zmian. Jazda windą jest lokalnym teleportem.
+
 ## Bezpieczeństwo
 
 Wszystko, co przychodzi z sieci, to dane: `JSON` z relaya waliduj (typy, zakresy, istniejące `eid`), nazwy graczy tylko przez `textContent`, żadnego `innerHTML`/`eval` na danych od innych graczy. Limity: odrzucaj wiadomości > 16 KB i nadmiar częstotliwości po stronie hosta (ignoruj, nie crashuj).
