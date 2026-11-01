@@ -31,7 +31,7 @@ export const V={
   rdy:d=>d.r===0||d.r===1,
   start:d=>isLvl(d.lv)&&DIFF.includes(d.df)&&isInt(d.seed,0,2147483647),
   in:d=>isNum(d.t,0,1e12)&&isVec(d.p)&&isNum(d.y,-1e4,1e4)&&isNum(d.pi,-2,2)&&(d.w===undefined||isStr(d.w,32))&&(d.dn===0||d.dn===1)&&
-    isInt(d.hp,0,10000)&&isInt(d.mhp,1,10000)&&isInt(d.kl,0,1e6)&&isInt(d.hd,0,1e6)&&isInt(d.zd,0,1e9)&&(d.a===undefined||d.a===0||d.a===1),
+    isInt(d.hp,0,10000)&&isInt(d.mhp,1,10000)&&isInt(d.kl,0,1e6)&&isInt(d.hd,0,1e6)&&isInt(d.zd,0,1e9)&&(d.a===undefined||d.a===0||d.a===1)&&(d.st===undefined||d.st===0||d.st===1),
   shot:d=>(d.m===undefined||isVec(d.m))&&(d.e===undefined||(isArr(d.e,MAX_ENDS)&&d.e.every(isVec)))&&(d.w===undefined||isStr(d.w,32))&&
     (d.h===undefined||(isArr(d.h,MAX_HITS)&&d.h.every(h=>isArr(h,3)&&h.length===3&&isInt(h[0],1,1e9)&&isNum(h[1],0,5000)&&(h[2]===0||h[2]===1)))),
   snap:d=>isNum(d.t,0,1e12)&&isInt(d.w,0,10000)&&isInt(d.q,0,10000)&&isArr(d.e,MAX_ENEMIES)&&(d.ev===undefined||isArr(d.ev,MAX_EV))&&(d.hu===undefined||isArr(d.hu,10))&&
@@ -43,6 +43,12 @@ export const V={
   use:d=>['d','l','m','b'].includes(d.o)&&isInt(d.i,0,255)&&(d.v===undefined||d.v===0||d.v===1),   // drzwi/winda/automat/beczka
   level:d=>isLvl(d.lv)&&isInt(d.seed,0,2147483647),                 // host -> wszyscy: „Dalej” (kolejny poziom, ta sama drużyna)
   lobby:d=>true,                                                     // host -> wszyscy: „Menu” = powrót do lobby
+  // pełny stan (dołączenie w trakcie / powrót po zerwaniu): wpisy wrogów, znajdźki [id,typ,x,z,wartość], świat, wiązki
+  full:d=>isLvl(d.lv)&&DIFF.includes(d.df)&&isInt(d.seed,0,2147483647)&&isInt(d.w,0,10000)&&isInt(d.q,0,10000)&&isNum(d.t,0,1e12)&&isArr(d.e,MAX_ENEMIES)&&
+    isArr(d.pk,40)&&d.pk.every(p=>isArr(p,5)&&p.length===5&&isInt(p[0],1,1e9)&&typeof p[1]==='string'&&/^[a-z]{1,24}$/.test(p[1])&&isNum(p[2],-W,W)&&isNum(p[3],-W,W)&&isNum(p[4],0,1e5))&&
+    (d.ws===undefined||validWs(d.ws))&&(d.bm===undefined||(isArr(d.bm,16)&&d.bm.every(validBeam))),
+  hi:d=>true,                                                        // klient po powrocie połączenia: poproś o `full`
+  call:d=>isInt(d.c,0,2),                                            // gotowe zawołanie (bez wolnego tekstu)
 };
 
 /** Jeden wpis wroga w snapshocie: [eid, typ(indeks w DS.enemies.ids()), wariant, x, z, ry, hp%, stan, anim(, boss: faza*10+nietykalny)]. */

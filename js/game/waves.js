@@ -15,7 +15,7 @@ export function nextWave(){
   G.wave++;G.boss=G.wave%5===0;G.queue=3+G.wave*2;G.spawnT=.5;
   // Limit żywych naraz z tabeli spawnu poziomu (8 + fala/3, max 30; poziom może nadpisać enemies.maxAlive).
   const tb=DS.enemies.table?DS.enemies.table(world.level&&world.level.id,G.wave):null;G.maxAlive=tb&&tb.maxAlive>0?tb.maxAlive:8;
-  if(coop)G.maxAlive=Math.min(30,Math.round(G.maxAlive*DS.net.aliveScale()));
+  if(coop){DS.net.rescale();G.maxAlive=Math.min(30,Math.round(G.maxAlive*DS.net.aliveScale()))}   // liczba graczy (dołączający) liczy się od tej fali
   let bossName='Baron Jackpot';
   if(G.boss){const b=makeEnemy(true);if(b&&b.name)bossName=b.name;G.queue=Math.max(2,G.queue-4)}
   waveIntro(G,bossName);

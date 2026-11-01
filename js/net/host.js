@@ -10,6 +10,7 @@ import {damageEnemy} from '../game/combat.js';
 import {N,rec,send,isHost} from './session.js';
 import {q2,packAnim,STATES,MAX_EV,MAX_COS,sizeOf} from './proto.js';
 import {worldState} from './world.js';
+import {world} from '../world/state.js';
 
 /* ---------- wybór celu i podmiana P ---------- */
 const SV={x:0,y:0,z:0,vx:0,vy:0,vz:0,kx:0,kz:0,dead:false};
@@ -128,6 +129,24 @@ const wrap=a=>{a%=Math.PI*2;if(a>Math.PI)a-=Math.PI*2;if(a<-Math.PI)a+=Math.PI*2
 let wsT=0;
 /** Buduje snapshot. Wpis wroga: [eid,typ,wariant,x,z,ry,hp%,stan,anim(,boss: faza*10+nietykalny)]. */
 export function buildSnap(withWorld){
+  const G=S.G,e=enemyRows();
+  const d={k:'snap',t:Math.round(performance.now()),w:G.wave,q:Math.max(0,G.queue|0),e};
+  if(evQ.length)d.ev=evQ.splice(0,MAX_EV);
+  if(cosQ.length){d.fx=cosQ.splice(0,MAX_COS);cosQ.length=0}           // kosmetyka: nadmiar przepada
+  if(hurtQ.size){d.hu=[];for(const [id,q] of hurtQ)d.hu.push([id,q2(Math.min(q[0],1000)),q2(Math.max(-40,Math.min(40,q[1]))),q2(Math.max(-40,Math.min(40,q[2]))),q2(Math.min(q[3],5))]);hurtQ.clear()}
+  const bm=beamSnap();if(bm.length)d.bm=bm;
+  if(withWorld){const ws=worldState();if(ws)d.ws=ws}
+  return d;
+}
+/** Pełny stan dla dołączającego w trakcie runu albo po powrocie połączenia (`full`): poziom, fala, wrogowie (z bossami), znajdźki, świat, wiązki. */
+export function buildFull(){
+  const G=S.G;
+  const pk=[];for(const p of G.pickups)if(p.nid&&!p.done&&!p.mirror&&pk.length<40)pk.push([p.nid,p.type,q2(p.m.position.x),q2(p.m.position.z),p.val]);
+  const d={k:'full',lv:world.level.id,df:N.lob.df,seed:N.seed|0,w:G.wave|0,q:Math.max(0,G.queue|0),t:Math.round(performance.now()),e:enemyRows(),pk};
+  const ws=worldState();if(ws)d.ws=ws;const bm=beamSnap();if(bm.length)d.bm=bm;
+  return d;
+}
+function enemyRows(){
   const G=S.G,e=[];
   for(const en of G.enemies){
     if(!en.alive||!en.eid||en.replica)continue;
@@ -138,13 +157,7 @@ export function buildSnap(withWorld){
     e.push(row);
     if(e.length>=60)break;
   }
-  const d={k:'snap',t:Math.round(performance.now()),w:G.wave,q:Math.max(0,G.queue|0),e};
-  if(evQ.length)d.ev=evQ.splice(0,MAX_EV);
-  if(cosQ.length){d.fx=cosQ.splice(0,MAX_COS);cosQ.length=0}           // kosmetyka: nadmiar przepada
-  if(hurtQ.size){d.hu=[];for(const [id,q] of hurtQ)d.hu.push([id,q2(Math.min(q[0],1000)),q2(Math.max(-40,Math.min(40,q[1]))),q2(Math.max(-40,Math.min(40,q[2]))),q2(Math.min(q[3],5))]);hurtQ.clear()}
-  const bm=beamSnap();if(bm.length)d.bm=bm;
-  if(withWorld){const ws=worldState();if(ws)d.ws=ws}
-  return d;
+  return e;
 }
 let snapT=0;
 /** Co klatkę u hosta: wysyłka snapshotu ~15 Hz (stan świata co ~0,5 s). */

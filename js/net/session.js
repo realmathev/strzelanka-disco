@@ -62,7 +62,7 @@ function receive(d,from){
 const ERR={
   ROOM_NOT_FOUND:'Nie ma pokoju o tym kodzie. Sprawdź kod i spróbuj jeszcze raz.',
   ROOM_FULL:'Pokój jest pełny (maksymalnie 4 graczy).',
-  ROOM_LOCKED:'Pokój jest zamknięty, bo trwa gra. Spróbuj, gdy ekipa wróci do lobby.',
+  ROOM_LOCKED:'Pokój jest zamknięty, bo trwa fala. Spróbuj za chwilę: pokój otwiera się między falami.',
   KICKED:'Host usunął cię z pokoju.',
   TICKET:'Zaloguj się na JuicyJuicy, żeby grać ze znajomymi.',
   SIGNED_OUT:'Zaloguj się na JuicyJuicy, żeby grać ze znajomymi.',
@@ -108,7 +108,7 @@ export function leaveRoom(){
 }
 
 /** Hooki ustawiane przez coop.js (unikamy cyklu importów). */
-export const hooks={beforeLeave:null,onLeave:null,onHostChange:null,onPlayerGone:null,onClosed:null};
+export const hooks={beforeLeave:null,onLeave:null,onHostChange:null,onPlayerGone:null,onClosed:null,onJoin:null,onReconnect:null};
 
 function assignColors(){
   const c=N.lob.c,used=new Set();const ids=N.room.players.map(p=>p.id);
@@ -131,11 +131,11 @@ function attach(room){
   if(room.isHost()){N.lob={lv:opt.level||'remiza',df:opt.difficulty||'normal',rd:{},c:{}};broadcastLobby()}
   else N.lob={lv:'remiza',df:'normal',rd:{},c:{}};
   room.on('message',(d,from)=>{if(N.room===room)receive(d,from)});
-  room.on('join',p=>{if(N.room!==room||!p||!isId(p.id)||p.id===N.me)return;N.players.set(p.id,makeRec(p.id,p.name));broadcastLobby();changed()});
+  room.on('join',p=>{if(N.room!==room||!p||!isId(p.id)||p.id===N.me)return;const r=makeRec(p.id,p.name);N.players.set(p.id,r);broadcastLobby();hooks.onJoin&&hooks.onJoin(r);changed()});
   room.on('leave',p=>{if(N.room!==room||!p)return;const r=rec(p.id);if(r){hooks.onPlayerGone&&hooks.onPlayerGone(r);N.players.delete(p.id)}delete N.lob.rd[p.id];broadcastLobby();changed()});
   room.on('host',id=>{if(N.room!==room)return;hooks.onHostChange&&hooks.onHostChange(id);if(room.isHost())broadcastLobby();changed()});
   room.on('lock',()=>changed());
-  room.on('error',e=>{if(N.room===room)setMsg(errText(e&&e.code),true)});
+  room.on('error',e=>{if(N.room===room&&!(e&&e.code==='NOT_HOST'))setMsg(errText(e&&e.code),true)});   // NOT_HOST: niegroźny wyścig przy zmianie hosta (lock/kick)
   room.on('close',reason=>{if(N.room===room)detach(reason)});
   changed();
 }
@@ -144,9 +144,18 @@ function detach(reason){
   N.room=null;
   hooks.onClosed&&hooks.onClosed(reason,wasRun);
   for(const r of N.players.values())hooks.onPlayerGone&&hooks.onPlayerGone(r);
-  N.players.clear();N.inRun=false;N.me=null;N.lob={lv:'remiza',df:'normal',rd:{},c:{}};
-  if(reason&&reason!=='LEFT')setMsg(errText(reason),true);else changed();
+  N.players.clear();N.inRun=false;N.me=null;N.reconnecting=false;N.lob={lv:'remiza',df:'normal',rd:{},c:{}};
+  if(wasRun&&reason==='DISCONNECTED')setMsg('Nie udało się wrócić do gry: połączenie zerwane (host wyszedł albo brak sieci).',true);
+  else if(reason&&reason!=='LEFT')setMsg(errText(reason),true);else changed();
 }
+/* ---------- zerwane połączenie ---------- */
+// Snippet sam próbuje wrócić 3 razy (room.link = null w trakcie). Pokazujemy „Rozłączono — próbuję wrócić…”, a po powrocie
+// klient prosi hosta o pełny stan (`hi` -> `full`). Nieudany powrót kończy się zdarzeniem 'close' (DISCONNECTED).
+setInterval(()=>{
+  const room=N.room;if(!room||room.closed)return;
+  if(!room.link&&!N.reconnecting){N.reconnecting=true;hooks.onReconnect&&hooks.onReconnect(false);changed()}
+  else if(room.link&&N.reconnecting){N.reconnecting=false;N.me=room.me;hooks.onReconnect&&hooks.onReconnect(true);changed()}
+},250);
 
 /* ---------- lobby: gotowość i stan od hosta ---------- */
 handle('lob',(d,from)=>{
@@ -172,9 +181,11 @@ Object.assign(DS.net,{
   me:()=>N.me,
   playerCount:runCount,
   /** Mnożnik HP wrogów (docs/COOP.md): ×(1+0,6·(n−1)), boss ×(1+0,75·(n−1)). */
-  hpScale:boss=>{const n=runCount();return 1+(boss?.75:.6)*(n-1)},
+  /** Liczba graczy do skalowania trudności: ustalana na starcie runu i każdej fali (dołączający zmienia ją od następnej fali). */
+  rescale:()=>{N.scaleN=runCount();return N.scaleN},
+  hpScale:boss=>{const n=N.scaleN||runCount();return 1+(boss?.75:.6)*(n-1)},
   /** Mnożnik limitu żywych wrogów: ×(1+0,35·(n−1)) (waves.js tnie do 30). */
-  aliveScale:()=>1+.35*(runCount()-1),
+  aliveScale:()=>1+.35*((N.scaleN||runCount())-1),
   /** Czy punkt (x,z) jest co najmniej `min` m od każdego zdalnego gracza w runie (spawn wrogów). */
   farFromPlayers:(x,z,min)=>{for(const r of N.players.values())if(r.inRun&&Math.hypot(r.pos.x-x,r.pos.z-z)<min)return false;return true},
   createRoom,joinRoom,leaveRoom,setReady,errText,

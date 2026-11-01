@@ -23,7 +23,12 @@ import {N,rec,send,handle,hooks,isHost,nameOf,changed,setMsg,errText,allReady} f
 import {q2,IN_HZ,SNAP_HZ,MAX_HITS,isVec} from './proto.js';
 import {buildAvatar,destroyAvatar,updateAvatar,flashAvatar} from './avatars.js';
 import {updateReplicas,clearReplicas,setReplicaHooks,replicaCount} from './replicas.js';
-import {applyRemoteHits,assistsOf,queueEv,hostTick,resetHost,flushNow} from './host.js';
+import {applyRemoteHits,assistsOf,queueEv,hostTick,resetHost,flushNow,buildFull} from './host.js';
+import {hudUpdate,hudClear,feed,setBanner,CALLS} from './hud.js';
+import {updateGame} from '../game/loop.js';
+import {isStunned} from '../enemies/proj.js';
+import {applyFull} from './replicas.js';
+import {COLOR_CSS,colorOf} from './session.js';
 import {resetWorldSync} from './world.js';
 import {stunPlayer} from '../enemies/proj.js';
 
@@ -48,12 +53,13 @@ function beginRun(lv,df,seed){
   if(!N.room)return;
   if(S.mode==='game')toMenuMode();
   N.inRun=true;N.seed=seed;N.down=false;N.revT=0;resetHost();clearReplicas();resetWorldSync();
-  for(const r of N.players.values()){r.inRun=true;r.down=false;r.kl=r.hd=r.zd=0;r.lastIn=performance.now();r.seen=false}
+  for(const r of N.players.values()){r.inRun=true;r.outed=false;r.down=false;r.kl=r.hd=r.zd=0;r.lastIn=performance.now();r.seen=false}
   if(prevDiff===null)prevDiff=opt.difficulty;opt.difficulty=df;    // trudność hosta tylko na czas runu (bez zapisu opcji)
   if(!world.level||world.level.id!==lv)loadLevel(lv);
   startGame();
   S.G.coop=true;S.G.seed=seed;
   if(!isHost())S.G.levelWon=true;   // klient: warunek wygranej liczy host (ev `lc` -> winLevel), lokalne słuchacze poziomu milczą
+  DS.net.rescale();N.lastSnapAt=performance.now();
   sendIn();changed();
 }
 
@@ -63,13 +69,14 @@ const wrapYaw=a=>{a%=Math.PI*2;if(a>Math.PI)a-=Math.PI*2;if(a<-Math.PI)a+=Math.P
 function sendIn(){
   const G=S.G;if(!G)return;
   send({k:'in',t:Math.round(performance.now()),p:[q2(P.pos.x),q2(P.pos.y),q2(P.pos.z)],y:q2(wrapYaw(P.yaw)),pi:q2(P.pitch),w:G.weapon,dn:G.dead?1:0,
-    hp:Math.max(0,Math.min(10000,Math.ceil(G.hp))),mhp:Math.max(1,Math.min(10000,Math.round(G.maxHp))),kl:G.kills|0,hd:G.heads|0,zd:Math.max(0,Math.round(G.earned||0)),a:DS.input.adsActive&&DS.input.adsActive()?1:0});
+    hp:Math.max(0,Math.min(10000,Math.ceil(G.hp))),mhp:Math.max(1,Math.min(10000,Math.round(G.maxHp))),kl:G.kills|0,hd:G.heads|0,zd:Math.max(0,Math.round(G.earned||0)),a:DS.input.adsActive&&DS.input.adsActive()?1:0,st:isStunned()?1:0});
 }
 handle('in',(d,from,r)=>{
-  if(!r||!N.inRun||!r.inRun)return;
+  if(!r||!N.inRun)return;
+  if(!r.inRun){if(r.outed)return;r.inRun=true;r.seen=false;feed(nameOf(from)+' dołącza do gry')}   // dołączył w trakcie runu (dostał `full` od hosta)
   const now=performance.now(),x=d.p[0],y=d.p[1],z=d.p[2];
   if(r.seen&&now>r.lastIn){const dt=Math.max(.03,(now-r.lastIn)/1000);r.vel.set((x-r.pos.x)/dt,0,(z-r.pos.z)/dt);if(r.vel.length()>25)r.vel.setLength(25)}
-  r.pos.set(x,y,z);r.yaw=d.y;r.pitch=d.pi;r.down=d.dn===1;r.hp=d.hp;r.mhp=d.mhp;r.kl=d.kl;r.hd=d.hd;r.zd=d.zd;r.ads=d.a|0;
+  r.pos.set(x,y,z);r.yaw=d.y;r.pitch=d.pi;r.down=d.dn===1;r.hp=d.hp;r.mhp=d.mhp;r.kl=d.kl;r.hd=d.hd;r.zd=d.zd;r.ads=d.a|0;r.stun=d.st===1;
   r.w=d.w&&DS.weapons.has(d.w)?d.w:r.w;r.lastIn=now;r.seen=true;
   r.buf.push(d.t,[x,y,z,d.y,d.pi]);
   if(!r.avatar&&S.mode==='game'&&S.G)buildAvatar(r);
@@ -202,12 +209,77 @@ DS.bus.on('update',dt=>{
   flushHits();
   for(const r of N.players.values())if(r.inRun){if(!r.avatar)buildAvatar(r);updateAvatar(r,dt)}
   reviveTick(dt);
+  hudUpdate(dt);
   if(isHost()){
     hostTick(dt,SNAP_HZ);
+    lockTick();
     if(DS.net.allDown()){downT+=dt;if(downT>1.5){downT=0;hostEnd('down')}}else downT=0;
+    setBanner(null);
+  }else{
+    // brak snapshotów > 1,5 s: host w tle (karta zminimalizowana) albo przerwa w sieci; rozłączenie ma własny komunikat
+    const quiet=performance.now()-(N.lastSnapAt||0)>1500;
+    setBanner(N.reconnecting?'Rozłączono — próbuję wrócić…':quiet?'Host zminimalizował grę — wrogowie stoją, czekamy na hosta':null);
   }
 });
 DS.net.updateReplicas=updateReplicas;
+
+/* ---------- dołączanie w trakcie runu ---------- */
+// Pokój jest otwarty między falami (fala czysta, odliczanie do następnej) i zamknięty w trakcie fali: dołączający nie wpada w środek
+// walki, a skalowanie trudności (DS.net.rescale) i tak liczy się od następnej fali. Relay sam odrzuca piątego gracza (ROOM_FULL).
+let lockT=0;
+function lockTick(){
+  const G=S.G,room=N.room;if(!room)return;
+  lockT-=1/60;if(lockT>0)return;
+  let alive=0;for(const e of G.enemies)if(e.alive)alive++;
+  const want=G.queue>0||alive>0||G.wave===0;
+  if(room.locked!==want){lockT=1;try{room.lock(want)}catch(e){}}
+}
+/** Host: nowy gracz w pokoju w trakcie runu dostaje pełny stan (`full`) i staje na punkcie startu z pełnym HP. */
+hooks.onJoin=r=>{
+  feed(nameOf(r.id)+' dołącza do pokoju');
+  if(!isHost()||!N.inRun||!S.G)return;
+  r.inRun=true;r.outed=false;r.lastIn=performance.now();
+  send(buildFull(),r.id);
+};
+handle('hi',(d,from,r)=>{   // klient po powrocie połączenia
+  if(!isHost()||!N.inRun||!r||!S.G)return;
+  const now=performance.now();if(now-(r.fullAt||0)<2000)return;r.fullAt=now;
+  r.inRun=true;r.outed=false;r.lastIn=now;send(buildFull(),from);
+});
+handle('full',(d,from)=>{
+  if(!N.room||from!==N.room.host||isHost()||!DS.levels.has(d.lv))return;
+  const resync=N.inRun&&S.mode==='game'&&S.G&&!S.G.coopEnded&&world.level&&world.level.id===d.lv;
+  N.lob.df=d.df;
+  if(!resync){beginRun(d.lv,d.df,d.seed);feed('Dołączasz do gry: fala '+d.w)}
+  else feed('Połączenie wróciło');
+  applyFull(d);
+});
+hooks.onReconnect=ok=>{
+  if(!ok){feed('Rozłączono — próbuję wrócić…');return}
+  feed('Połączenie wróciło');
+  if(N.inRun&&N.room&&!isHost())send({k:'hi'},N.room.host);
+};
+
+/* ---------- zawołania ---------- */
+handle('call',(d,from,r)=>{
+  if(!r||!N.inRun||!r.inRun)return;
+  r.callT=3;r.callTxt=CALLS[d.c];feed(nameOf(from)+': '+CALLS[d.c],COLOR_CSS[colorOf(from)]);sfx('tick',1100);
+});
+
+/* ---------- host w tle: symulacja na setInterval ---------- */
+// Karta w tle nie dostaje requestAnimationFrame, więc host przestałby liczyć wrogów wszystkim. Gdy document.hidden, krok gry idzie z setInterval
+// (20 Hz, bez renderu). Przeglądarka może dławić timery kart w tle (Chrome: zwykle do 1/s bez dźwięku), wtedy klienci widzą ostrzeżenie.
+let bgTimer=null,bgLast=0;
+function bgStep(){
+  if(!document.hidden||!DS.net.isHost()){clearInterval(bgTimer);bgTimer=null;return}
+  const now=performance.now(),dt=Math.min(.1,(now-bgLast)/1000);bgLast=now;
+  const G=S.G;if(S.mode!=='game'||!G||G.paused||!(dt>0))return;
+  const t0=performance.now();updateGame(dt);const ms=performance.now()-t0;
+  N.stats.bgSteps=(N.stats.bgSteps||0)+1;N.stats.bgMs=+(((N.stats.bgMs||ms)*.9+ms*.1).toFixed(3));
+}
+function onVis(){if(document.hidden&&DS.net.isHost()&&!bgTimer){bgLast=performance.now();bgTimer=setInterval(bgStep,50)}}
+document.addEventListener('visibilitychange',onVis);
+DS.net.checkHidden=onVis;   // testy: po podmianie document.hidden
 
 /* ---------- koniec runu ---------- */
 function myRow(){const G=S.G;return [N.me,G.kills|0,G.heads|0,Math.round(G.earned||0)]}
@@ -223,7 +295,7 @@ function hostEnd(reason){
 handle('end',(d,from)=>{if(!N.room||from!==N.room.host||!N.inRun)return;
   const s=d.s.filter(x=>Array.isArray(x)&&x.length===4&&typeof x[0]==='string'&&x.slice(1).every(n=>Number.isInteger(n)&&n>=0&&n<1e9));
   showEnd(d.r,s,d.w)});
-handle('out',(d,from,r)=>{if(!r)return;r.inRun=false;destroyAvatar(r);if(N.inRun)announce(nameOf(from).toUpperCase()+' WYSZEDŁ','Gra toczy się dalej')});
+handle('out',(d,from,r)=>{if(!r)return;r.inRun=false;r.outed=true;destroyAvatar(r);if(N.inRun){announce(nameOf(from).toUpperCase()+' WYSZEDŁ','Gra toczy się dalej');feed(nameOf(from)+' wychodzi do lobby')}});
 
 let lobbyBtn=null;
 function showEnd(reason,s,w){
@@ -258,13 +330,20 @@ DS.net.quitRun=()=>{
 /* ---------- sprzątanie ---------- */
 DS.bus.on('levelEnd',()=>{
   for(const r of N.players.values())destroyAvatar(r);
-  clearReplicas();pend=[];downT=0;tip('');
+  clearReplicas();pend=[];downT=0;tip('');hudClear();
   if(prevDiff!==null){opt.difficulty=prevDiff;prevDiff=null}
   if(lobbyBtn){lobbyBtn.hidden=true;$('#oAgain').hidden=false}
 });
-hooks.onPlayerGone=r=>{destroyAvatar(r);if(N.inRun&&r.inRun)announce(nameOf(r.id).toUpperCase()+' WYSZEDŁ','Gra toczy się dalej')};
+hooks.onPlayerGone=r=>{destroyAvatar(r);if(N.inRun&&r.inRun){announce(nameOf(r.id).toUpperCase()+' WYSZEDŁ','Gra toczy się dalej');feed(nameOf(r.id)+' opuszcza pokój')}};
 hooks.beforeLeave=()=>{if(N.inRun){if(isHost())hostEnd('quit');else send({k:'out'})}};
-hooks.onHostChange=()=>{if(N.inRun&&S.G)showEnd('host',rows(),S.G.wave|0)};
+/** JuicyJuicy przekazał rolę hosta (stary host wyszedł): bez migracji stanu run kończy się u wszystkich, drużyna wraca do lobby z nowym hostem. */
+hooks.onHostChange=id=>{
+  if(!N.inRun)return;
+  N.inRun=false;if(S.G)S.G.coopEnded=true;
+  if(N.room&&N.room.isHost())try{N.room.lock(false)}catch(e){}
+  backToLobby();
+  setMsg('Host wyszedł z gry — run zakończony. Nowy host: '+(id===N.me?'Ty':nameOf(id))+'.',true);
+};
 hooks.onClosed=(reason,wasRun)=>{
   if(wasRun&&S.G&&S.mode==='game')backToLobby();
 };

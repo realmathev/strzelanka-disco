@@ -60,22 +60,36 @@ handle('snap',(d,from)=>{
   applyBeams(d.bm||[]);
   if(d.ws)applyWs(d.ws);
   G.queue=d.q;if(d.w>G.wave)G.wave=d.w;
-  N.stats.snaps++;
+  N.stats.snaps++;N.lastSnapAt=performance.now();
+  applyRows(d.t,d.e);
+});
+function applyRows(t,rows){
   const seen=new Set();
-  for(const a of d.e){
+  for(const a of rows){
     if(!validEnemy(a))continue;
     const [eid,ti,va,x,z,ry,hp,st]=a;seen.add(eid);
     let e=reps.get(eid);
     if(!e){e=create(eid,ti,va,x,z,ry,a.length===10);if(!e)continue}
     if(!e.alive)continue;
-    e.rbuf.push(d.t,[x,z,ry]);
+    e.rbuf.push(t,[x,z,ry]);
     e.hp=e.maxHp*hp/100;e.ai.state=STATES[st];
     unpackAnim(a[8],AN);e.crouch=AN.crouch;e.lean=AN.lean;e.armT=AN.arm;
     if(a.length===10)bossInfo(e,a[9]);
   }
   // żywa replika, której nie ma w snapshocie: host ją usunął bez zabójstwa (np. wybuch kamikadze) -> znika
   for(const e of [...reps.values()])if(e.alive&&!seen.has(e.eid)){e.alive=false;removeRep(e)}
-});
+}
+/** Pełny stan od hosta (`full`): repliki i znajdźki budowane od nowa, świat i wiązki jak w snapshocie. */
+export function applyFull(d){
+  const G=S.G;if(!G)return;
+  for(const e of [...reps.values()])removeRep(e);bad.clear();
+  for(let i=G.pickups.length-1;i>=0;i--){const p=G.pickups[i];if(p.mirror){G.pickups.splice(i,1);disposeObject(p.m)}}
+  G.wave=d.w;G.queue=d.q;
+  applyRows(d.t,d.e);
+  for(const p of d.pk)pickupEv({t:'ps',id:p[0],k:p[1],a:[p[2],p[3]],v:p[4]});
+  applyBeams(d.bm||[]);if(d.ws)applyWs(d.ws);
+  N.lastSnapAt=performance.now();
+}
 
 function applyEv(v){
   const G=S.G;
