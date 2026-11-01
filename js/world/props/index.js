@@ -11,3 +11,4 @@ import './interior.js';
 import './rail.js';
 import './rail-stock.js';
 import './village.js';
+import './road.js';
