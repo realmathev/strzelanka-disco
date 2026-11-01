@@ -1,0 +1,240 @@
+// Przebieg runu co-op: start (host -> wszyscy), stan gracza `in` ~20 Hz, strzały (`shot`: efekt + trafienia dla hosta),
+// zabójstwa i asysty, powalenie / podnoszenie (E 3 s w promieniu 2 m), powrót w następnej fali z 50% HP, koniec runu, wyjście.
+import {$} from '../core/util.js';
+import {save,opt,persist} from '../core/save.js';
+import {S} from '../core/state.js';
+import {DS} from '../core/ds.js';
+import {announce} from '../render/comicfx.js';
+import {addTracer} from '../render/fx3d.js';
+import {sfx} from '../audio/sfx.js';
+import {world} from '../world/state.js';
+import {P} from '../player/player.js';
+import {wakeByShot} from '../enemies/ai.js';
+import {xpForKill} from '../progression/config.js';
+import {loadLevel} from '../world/world.js';
+import {startGame,toMenuMode} from '../game/flow.js';
+import {killEnemy,hurt} from '../game/combat.js';
+import {waveIntro,waveClearReward} from '../game/waves.js';
+import {submitRun,fillOver} from '../ui/highscores.js';
+import {show} from '../ui/screens.js';
+import {h,clear} from '../ui/dom.js';
+import {showLobby} from './lobby.js';
+import {N,rec,send,handle,hooks,isHost,nameOf,changed,setMsg,errText,allReady} from './session.js';
+import {q2,IN_HZ,SNAP_HZ,MAX_HITS,isVec} from './proto.js';
+import {buildAvatar,destroyAvatar,updateAvatar,flashAvatar} from './avatars.js';
+import {updateReplicas,clearReplicas,setReplicaHooks,replicaCount} from './replicas.js';
+import {applyRemoteHits,assistsOf,queueEv,hostTick,resetHost} from './host.js';
+
+const REVIVE_TIME=3,REVIVE_R=2,BACK_HP=.5;
+const V1=new THREE.Vector3(),V2=new THREE.Vector3();
+
+/* ---------- start ---------- */
+/** Host: start runu dla wszystkich (wymaga gotowości pozostałych). */
+export function hostStart(){
+  if(!isHost()||N.inRun)return false;
+  if(!allReady()){setMsg('Czekam, aż wszyscy będą gotowi.',true);return false}
+  const lv=DS.levels.has(N.lob.lv)?N.lob.lv:'remiza',df=N.lob.df,seed=Math.floor(Math.random()*2147483647);
+  try{N.room.lock(true)}catch(e){}          // w trakcie gry nikt nie dołącza (dołączanie między falami: etap 3)
+  send({k:'start',lv,df,seed});
+  beginRun(lv,df,seed);
+  return true;
+}
+handle('start',(d,from)=>{if(!N.room||from!==N.room.host||isHost())return;if(!DS.levels.has(d.lv)){setMsg('Host wybrał poziom, którego ta wersja gry nie zna.',true);return}beginRun(d.lv,d.df,d.seed)});
+
+let prevDiff=null;
+function beginRun(lv,df,seed){
+  if(!N.room)return;
+  if(S.mode==='game')toMenuMode();
+  N.inRun=true;N.seed=seed;N.down=false;N.revT=0;resetHost();clearReplicas();
+  for(const r of N.players.values()){r.inRun=true;r.down=false;r.kl=r.hd=r.zd=0;r.lastIn=performance.now();r.seen=false}
+  if(prevDiff===null)prevDiff=opt.difficulty;opt.difficulty=df;    // trudność hosta tylko na czas runu (bez zapisu opcji)
+  if(!world.level||world.level.id!==lv)loadLevel(lv);
+  startGame();
+  S.G.coop=true;S.G.seed=seed;
+  sendIn();changed();
+}
+
+/* ---------- stan gracza `in` ---------- */
+let inT=0;
+const wrapYaw=a=>{a%=Math.PI*2;if(a>Math.PI)a-=Math.PI*2;if(a<-Math.PI)a+=Math.PI*2;return a};
+function sendIn(){
+  const G=S.G;if(!G)return;
+  send({k:'in',t:Math.round(performance.now()),p:[q2(P.pos.x),q2(P.pos.y),q2(P.pos.z)],y:q2(wrapYaw(P.yaw)),pi:q2(P.pitch),w:G.weapon,dn:G.dead?1:0,
+    hp:Math.max(0,Math.min(10000,Math.ceil(G.hp))),mhp:Math.max(1,Math.min(10000,Math.round(G.maxHp))),kl:G.kills|0,hd:G.heads|0,zd:Math.max(0,Math.round(G.earned||0)),a:DS.input.adsActive&&DS.input.adsActive()?1:0});
+}
+handle('in',(d,from,r)=>{
+  if(!r||!N.inRun||!r.inRun)return;
+  const now=performance.now(),x=d.p[0],y=d.p[1],z=d.p[2];
+  if(r.seen&&now>r.lastIn){const dt=Math.max(.03,(now-r.lastIn)/1000);r.vel.set((x-r.pos.x)/dt,0,(z-r.pos.z)/dt);if(r.vel.length()>25)r.vel.setLength(25)}
+  r.pos.set(x,y,z);r.yaw=d.y;r.pitch=d.pi;r.down=d.dn===1;r.hp=d.hp;r.mhp=d.mhp;r.kl=d.kl;r.hd=d.hd;r.zd=d.zd;r.ads=d.a|0;
+  r.w=d.w&&DS.weapons.has(d.w)?d.w:r.w;r.lastIn=now;r.seen=true;
+  r.buf.push(d.t,[x,y,z,d.y,d.pi]);
+  if(!r.avatar&&S.mode==='game'&&S.G)buildAvatar(r);
+});
+
+/* ---------- strzały ---------- */
+let pend=[];
+/** combat.damageEnemy na replice (klient): trafienie czeka na wysyłkę z najbliższym `shot`. */
+DS.net.sendHit=(e,dmg,head)=>{if(!DS.net.isClient()||!e.eid||pend.length>=MAX_HITS)return;pend.push([e.eid,q2(Math.max(0,Math.min(5000,dmg))),head?1:0])};
+const qv=v=>[q2(v.x),q2(v.y),q2(v.z)];
+DS.bus.on('shot',ev=>{
+  if(!DS.net.active()||!ev)return;
+  const d={k:'shot',w:ev.weapon,m:qv(ev.muzzle)};
+  if(ev.ends&&ev.ends.length)d.e=ev.ends.slice(0,3).map(qv);
+  if(pend.length){d.h=pend;pend=[]}
+  send(d);
+});
+function flushHits(){if(pend.length&&DS.net.isClient()){send({k:'shot',h:pend});pend=[]}}
+handle('shot',(d,from,r)=>{
+  if(!r||!N.inRun||!r.inRun||!S.G||S.mode!=='game')return;
+  if(d.h&&isHost())applyRemoteHits(d.h,from);
+  if(d.m){
+    if(isHost())wakeByShot(r.pos.x,r.pos.z);
+    V1.set(d.m[0],d.m[1],d.m[2]);
+    if(d.e)for(const e of d.e)if(isVec(e)){V2.set(e[0],e[1],e[2]);addTracer(V1,V2,0xffe14a,.05)}
+    const dist=Math.hypot(r.pos.x-P.pos.x,r.pos.z-P.pos.z);sfx('enemyShot',Math.max(.15,1.2-dist/40));
+    flashAvatar(r);
+  }
+});
+
+/* ---------- zabójstwa (host rozsyła), nagrody (każdy u siebie) ---------- */
+DS.bus.on('kill',ev=>{const e=ev&&ev.enemy;if(!DS.net.isHost()||!e||e.replica||!e.eid)return;queueEv({t:'kill',id:e.eid,by:N.me,hd:ev.head?1:0,a:assistsOf(e,N.me)})});
+DS.bus.on('netKill',ev=>{
+  const e=ev&&ev.enemy;if(!DS.net.isHost()||!e||!e.eid)return;
+  const a=assistsOf(e,ev.by);queueEv({t:'kill',id:e.eid,by:ev.by,hd:ev.head?1:0,a});
+  if(a.includes(N.me))assistXp(e);
+});
+DS.bus.on('waveStart',ev=>{
+  if(!DS.net.active())return;
+  if(DS.net.isHost())queueEv({t:'wave',w:ev.wave|0,c:ev.count|0});
+  const G=S.G;if(G&&G.dead&&!G.coopEnded)reviveLocal(BACK_HP,'Nowa fala: wracasz do gry z połową zdrowia');
+});
+DS.bus.on('waveClear',ev=>{if(DS.net.isHost())queueEv({t:'clear',w:ev.wave|0})});
+/** Asysta (≥25% obrażeń): 50% XP zabójstwa. */
+function assistXp(e){
+  const G=S.G;if(!G||!G.mods||!DS.progression)return;
+  const base=xpForKill({enemy:e,head:false,combo:0,wave:G.wave,difficulty:opt.difficulty});
+  DS.progression.addXp(Math.max(1,Math.round(base*.5*(G.mods.xpMul||1))));
+}
+setReplicaHooks({
+  onKill(e,v){
+    if(v.by===N.me)killEnemy(e,v.hd===1);   // moje zabójstwo: monety, XP, combo, dropy jak w solo
+    else{e.alive=false;e.mats.forEach(m=>m.emissive.setRGB(0,0,0));if(v.a.includes(N.me))assistXp(e)}
+  },
+  onWave(v){const G=S.G;if(!G)return;waveIntro(G);DS.bus.emit('waveStart',{wave:v.w,boss:false,count:v.c})},
+  onClear(){if(S.G)waveClearReward(S.G)},
+  onHurt(d,kx,kz){const G=S.G;if(!G||!N.inRun)return;if(d>0)hurt(d);if(kx||kz)DS.player.knock({x:kx,z:kz})},
+});
+
+/* ---------- powalenie i podnoszenie ---------- */
+/** combat.die w co-op: zamiast końca gry gracz leży (G.dead), czeka na kumpla albo następną falę. */
+DS.net.onDowned=()=>{
+  N.down=true;announce('POWALONY!','Kumpel podniesie cię klawiszem '+DS.input.keyFor('use')+', albo wrócisz w następnej fali');
+  sendIn();
+};
+function reviveLocal(frac,txt){
+  const G=S.G;if(!G||!G.dead)return;
+  G.dead=false;G.deadT=0;G.hp=Math.max(1,Math.round(G.maxHp*frac));P.pos.y=0;P.vy=0;N.down=false;
+  announce('WSTAJESZ!',txt||'');sfx('heal');DS.bus.emit('heal',{amount:G.hp,source:'revive'});sendIn();
+}
+handle('rev',(d,from,r)=>{if(!r||!N.inRun||!r.inRun)return;const G=S.G;if(G&&G.dead&&!G.coopEnded)reviveLocal(BACK_HP,nameOf(from)+' postawił cię na nogi')});
+
+let tipEl=null;
+function tip(t){
+  if(!tipEl){tipEl=document.createElement('div');tipEl.id='coopTip';tipEl.className='coopTip';tipEl.setAttribute('role','status');$('#hud').append(tipEl)}
+  if(tipEl.textContent!==t)tipEl.textContent=t;tipEl.hidden=!t;
+}
+/** Podnoszenie: przytrzymaj „use” przy leżącym koledze (≤2 m) przez 3 s. */
+function reviveTick(dt){
+  const G=S.G;
+  if(G.dead){tip(N.down?'Leżysz. Poczekaj na pomoc albo na następną falę.':'');N.revT=0;return}
+  let best=null,bd=REVIVE_R;
+  for(const r of N.players.values()){r.revCd=Math.max(0,r.revCd-dt);if(!r.inRun||!r.down||r.revCd>0)continue;const d=Math.hypot(r.pos.x-P.pos.x,r.pos.z-P.pos.z);if(d<=bd){bd=d;best=r}}
+  if(!best){N.revT=0;tip('');return}
+  if(DS.input.isDown('use')&&!G.uiPause)N.revT+=dt;else N.revT=0;
+  const pct=Math.min(100,Math.round(N.revT/REVIVE_TIME*100));
+  tip('Przytrzymaj '+DS.input.keyFor('use')+': podnieś '+nameOf(best.id)+(N.revT>0?' ('+pct+'%)':''));
+  if(N.revT>=REVIVE_TIME){N.revT=0;best.revCd=2;send({k:'rev'},best.id);announce('PODNIOSŁEŚ KUMPLA!',nameOf(best.id)+' wraca do gry');sfx('heal')}
+}
+
+/* ---------- pętla ---------- */
+let downT=0;
+DS.bus.on('update',dt=>{
+  if(!DS.net.active())return;
+  const G=S.G;if(!G||G.coopEnded)return;
+  if(G.invulnT>0)G.invulnT-=dt;
+  inT-=dt;if(inT<=0){inT=1/IN_HZ;sendIn()}
+  flushHits();
+  for(const r of N.players.values())if(r.inRun){if(!r.avatar)buildAvatar(r);updateAvatar(r,dt)}
+  reviveTick(dt);
+  if(isHost()){
+    hostTick(dt,SNAP_HZ);
+    if(DS.net.allDown()){downT+=dt;if(downT>1.5){downT=0;hostEnd('down')}}else downT=0;
+  }
+});
+DS.net.updateReplicas=updateReplicas;
+
+/* ---------- koniec runu ---------- */
+function myRow(){const G=S.G;return [N.me,G.kills|0,G.heads|0,Math.round(G.earned||0)]}
+function rows(){const out=[myRow()];for(const r of N.players.values())if(r.inRun||r.seen)out.push([r.id,r.kl,r.hd,r.zd]);return out}
+function hostEnd(reason){
+  if(!isHost()||!N.inRun)return;
+  const s=rows(),w=S.G.wave|0;
+  // ostatni snapshot (zdarzenia z tej klatki), potem koniec
+  hostTick(1e9,SNAP_HZ);
+  send({k:'end',r:reason,w,s});
+  showEnd(reason,s,w);
+}
+handle('end',(d,from)=>{if(!N.room||from!==N.room.host||!N.inRun)return;
+  const s=d.s.filter(x=>Array.isArray(x)&&x.length===4&&typeof x[0]==='string'&&x.slice(1).every(n=>Number.isInteger(n)&&n>=0&&n<1e9));
+  showEnd(d.r,s,d.w)});
+handle('out',(d,from,r)=>{if(!r)return;r.inRun=false;destroyAvatar(r);if(N.inRun)announce(nameOf(from).toUpperCase()+' WYSZEDŁ','Gra toczy się dalej')});
+
+let lobbyBtn=null;
+function showEnd(reason,s,w){
+  const G=S.G;if(!G)return;
+  G.coopEnded=true;G.dead=true;G.paused=true;N.inRun=false;S.mouseDown=false;tip('');
+  if(isHost())try{N.room.lock(false)}catch(e){}
+  try{document.exitPointerLock()}catch(e){}
+  if((G.wave|0)>save.best)save.best=G.wave;persist();
+  submitRun(G);
+  {
+    $('#overCap').textContent=reason==='quit'?'Host zakończył grę.':reason==='host'?errText('HOST_LEFT'):'Cała ekipa leży. Fala '+w+'.';
+    const st=$('#overStats');clear(st);
+    st.append(h('span',null,'Fala'),h('span',null,String(w)),h('span',null,'Punkty (Ty)'),h('span',null,String(G.score||0)));
+    const tb=h('table',{class:'coopStats'},h('thead',null,h('tr',null,h('th',null,'Gracz'),h('th',null,'Zabici'),h('th',null,'Headshoty'),h('th',null,'ZD'))),
+      h('tbody',null,s.map(x=>h('tr',null,h('td',null,nameOf(x[0])),h('td',null,String(x[1])),h('td',null,String(x[2])),h('td',null,String(x[3]))))));   // nazwy wyłącznie jako tekst
+    st.append(tb);
+    $('#oRevive').hidden=true;$('#oAgain').hidden=true;
+    if(!lobbyBtn){lobbyBtn=h('button',{class:'btn red',id:'oLobby',type:'button',onclick:()=>backToLobby()},'Wróć do lobby');$('#oAgain').parentNode.prepend(lobbyBtn)}
+    lobbyBtn.hidden=false;
+    show('scrOver');fillOver(G);
+  }
+  changed();
+}
+function backToLobby(){toMenuMode();showLobby()}
+
+/** Pauza -> „Wyjdź do menu” w co-op: host kończy run wszystkim, klient wychodzi do lobby (gra innych trwa). */
+DS.net.quitRun=()=>{
+  if(isHost()){hostEnd('quit');return}
+  send({k:'out'});N.inRun=false;backToLobby();
+};
+
+/* ---------- sprzątanie ---------- */
+DS.bus.on('levelEnd',()=>{
+  for(const r of N.players.values())destroyAvatar(r);
+  clearReplicas();pend=[];downT=0;tip('');
+  if(prevDiff!==null){opt.difficulty=prevDiff;prevDiff=null}
+  if(lobbyBtn){lobbyBtn.hidden=true;$('#oAgain').hidden=false}
+});
+hooks.onPlayerGone=r=>{destroyAvatar(r);if(N.inRun&&r.inRun)announce(nameOf(r.id).toUpperCase()+' WYSZEDŁ','Gra toczy się dalej')};
+hooks.beforeLeave=()=>{if(N.inRun){if(isHost())hostEnd('quit');else send({k:'out'})}};
+hooks.onHostChange=()=>{if(N.inRun&&S.G)showEnd('host',rows(),S.G.wave|0)};
+hooks.onClosed=(reason,wasRun)=>{
+  if(wasRun&&S.G&&S.mode==='game')backToLobby();
+};
+/** Do testów / konsoli. */
+DS.net.debug=()=>({room:N.room?N.room.code:null,me:N.me,host:isHost(),inRun:N.inRun,players:N.players.size,
+  avatars:[...N.players.values()].filter(r=>r.avatar).length,replicas:replicaCount(),stats:Object.assign({},N.stats)});
+DS.net.hostStart=hostStart;
+DS.net.lobbyState=()=>({lob:JSON.parse(JSON.stringify(N.lob)),ready:allReady()});

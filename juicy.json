@@ -25,6 +25,7 @@
   "thumbnail": "thumbnail.png",
   "remixable": false,
   "features": [
-    "highscores"
+    "highscores",
+    "multiplayer"
   ]
 }

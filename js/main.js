@@ -11,6 +11,7 @@ import './input/index.js';
 import './progression/index.js';
 import './gunfeel/index.js';
 import './ui/index.js';
+import './net/index.js';
 import './game/index.js';
 
 import {DS} from './core/ds.js';
