@@ -8,3 +8,5 @@ import './shops.js';
 import './estate.js';
 import './osiedle.js';
 import './interior.js';
+import './rail.js';
+import './rail-stock.js';
