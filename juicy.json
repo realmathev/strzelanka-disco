@@ -23,5 +23,6 @@
   "orientation": "any",
   "aspectRatio": "16:9",
   "thumbnail": "thumbnail.png",
-  "remixable": false
+  "remixable": false,
+  "features": []
 }
