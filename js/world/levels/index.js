@@ -2,3 +2,4 @@
 import './remiza.js';
 import './blokowisko.js';
 import './kasyno.js';
+import './dworzec.js';

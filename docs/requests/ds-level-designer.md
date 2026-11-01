@@ -48,3 +48,30 @@ Zmiana w `common.js`: `buildNav(level,{coverMax,coverMaxH,coverLimit})` (domyśl
 
 **Uwagi o budżecie:** 30 wrogów + cały poziom: 215-325 draw calli i 217-290 tys. trójkątów (parking w kadrze = najgorszy przypadek, brak occlusion cullingu
 w silniku; 161 automatów x 396 tri i auta ~1100 tri to główni konsumenci). Kolejne wnętrza: rozważyć rekwizyty LOD albo `instance()` z neonami (dziś `instance` pomija neony/decale).
+
+## Poziom 4 „Dworzec i bocznica” (`dworzec.js`, id `dworzec`): stan i prośby
+
+Arena 78 m (3,45x Remiza), zmierzch, stacja czołowa: budynek dworca z poczekalnią i kasą (kolider hali przejezdny), 4 tory z perone-wyspami, składy jako
+labirynt (przerwy 2-9 m, przejścia przez perony G1/G2), plac manewrowy z nastawnią (arena bossa: `waves.bossArena` x 0, z -30, na torze 5 stoi SM42 jako osłona),
+bocznica T7 z dwoma magazynami z rampami, przejazd z zaporami, brama automatyczna (`slidingDoor auto`), wiadukt (3 łuki = 3 aleje E-W), 2 tunele (ślepe, iluzja),
+zejście do przejścia podziemnego (sekret). Znajdźki 13 (`dw-*`), sekrety: zejście służbowe (E na końcu zejścia), przekaźkownia za nastawnią, zaplecze magazynu.
+Wygrana: zabicie dowolnego bossa z puli tabeli (`e.boss`; dziś Jednooki, bo `boss_dyzurny` nie istnieje, po jego dodaniu wchodzi sam); `levelsDone.dworzec`.
+`tests/dworzec.js`: 81 asercji (BFS osiągalności z otwartymi sekretami, kieszenie, osłony <=10 m w 97% komórek, 30 wrogów: 200-273 calli / 181-219 tys. tri).
+
+**Zmiana w `common.js`:** `buildNav(level,{assign:true})` naprawia błąd z Remizy/Blokowiska/Kasyna: linia komentarza w `buildNav` połknęła przypisanie `level.nav=...`
+(literalne `\n` w komentarzu), więc te trzy poziomy NIE mają `level.nav.cover` (AI dostaje tylko siatkę). Nowy poziom używa `assign:true`; stare zostawiłem bez zmian,
+żeby nie ruszać ich testów. Prośba: po stronie ds-enemy-designer sprawdzić zachowanie `cover/flee` z listą osłon i włączyć `assign:true` także w starszych poziomach.
+
+**KOLIZJA ID (ds-world-modeler, pilne):** `props/road.js` rejestruje `wiadukt` (wiadukt drogowy 39 m) i nadpisuje `wiadukt` z `rail.js` (segment kolejowy 7,6 x 12 m). Poziom Dworzec
+buduje więc swój wiadukt lokalnie (`railViaduct` w `dworzec.js`). Prośba: zmienić id jednego z nich (np. `wiaduktDrogowy`); żaden inny id z `rail*.js` nie koliduje z `road.js`/`village.js`.
+
+**Brakujące rekwizyty (ds-world-modeler):**
+1. **Peron niski/chodliwy** (0,3-0,5 m) albo peron z rampą: wysoki `peron` (1,13 m) jest ścianą, więc perony są tu tylko osłonami przeciętymi przerwami (silnik: płaska podłoga).
+2. Wagon z otwartymi drzwiami/wejściem (poczekalnia w składzie, wagon-bar), wagon pocztowy, platforma kolejowa z kontenerem, wagon-cysterna z drabinką jako chodliwy pomost.
+3. Kolejowa wieża ciśnień, komin i dźwig/suwnica bramowa jako prop (dziś `addPart` w poziomie), semafor tarczowy, rozjazd z ręczną dźwignią jako interaktywny (rozjazd `torRozjazd` ma uproszczoną geometrię i nie łączy torów).
+4. Kontener morski (20 stóp) i paleta z workami jako osłony; tablica odjazdów LED nad halą; automat biletowy; kasownik; ławka peronowa z neonem; budka telefoniczna.
+5. Tabor ruchomy (animacja przejazdu składu po torze 2 w trakcie fali), animowana zapora kolejowa (opuszczana/podnoszona) i mrugające światła przejazdowe jako stan, nie tylko decal.
+6. Wiadukt ze schodami/rampą na górę (wymaga `world.groundY`, patrz punkt 4 wyżej): dziś górny tor jest tylko widokiem z alei (kozioł oporowy jest ustawiony na wysokości pomostu, `collide:false`).
+
+**Dla ds-enemy-designer:** boss `boss_dyzurny` (szkic w `bosses.js`): arena = plac przed nastawnią (x 0, z -30, hw 11, hd 13) z torem 5 pośrodku (telegrafowane pasy na torach pasują do osi Z);
+w arenie są 2 beczki wybuchowe, 6 skrzynek SRK (pełna osłona 1,7 m), lokomotywa SM42 jako duża przeszkoda.
