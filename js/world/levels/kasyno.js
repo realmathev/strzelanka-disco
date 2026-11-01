@@ -141,7 +141,7 @@ function buildKasyno(level){
   setEnv({sky:0x0b0a1e,fogNear:62,hemi:[0xd0b8ea,0x4a3a5e,1.0],sun:[0x8aa0ff,.55],sunDir:[-34,50,-26]});
 
   /* ---- teren: asfalt parkingu, podwórze ---- */
-  const gt=groundTex.clone();gt.repeat.set(40,40);gt.needsUpdate=true;
+  const gt=groundTex.clone();gt.ownedByLevel=true;gt.repeat.set(40,40);gt.needsUpdate=true;
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(420,420),toon(0x4a4654,{map:gt}));ground.rotation.x=-PI/2;ground.receiveShadow=true;scene.add(ground);world.meshes.push(ground);
   slab(-ARENA,ARENA,-ARENA,ARENA,0,.03,COL.asphalt);
   slab(-ARENA,ARENA,31,ARENA,.03,.01,COL.lot);                                   // parking

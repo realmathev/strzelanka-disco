@@ -117,7 +117,7 @@ function buildDworzec(level){
   setEnv({sky:0x9a5f86,fogNear:44,hemi:[0xf2b8a6,0x3e3a54,.68],sun:[0xff8e50,.82],sunDir:[48,22,28]});
 
   /* ---- teren ---- */
-  const gt=groundTex.clone();gt.repeat.set(40,40);gt.needsUpdate=true;
+  const gt=groundTex.clone();gt.ownedByLevel=true;gt.repeat.set(40,40);gt.needsUpdate=true;
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(420,420),toon(0x6f6a60,{map:gt}));ground.rotation.x=-PI/2;ground.receiveShadow=true;scene.add(ground);world.meshes.push(ground);
   slab(-ARENA,ARENA,-ARENA,ARENA,0,.03,C.grav);
   slab(-58,58,38,78,.03,.03,C.asph);                       // plac dworcowy

@@ -209,7 +209,7 @@ function buildDyskoteka(level){
   sky.traverse(o=>{o.frustumCulled=false});scene.add(sky);moonSky=sky;
 
   /* ---- teren ---- */
-  const gt=groundTex.clone();gt.repeat.set(46,46);gt.needsUpdate=true;
+  const gt=groundTex.clone();gt.ownedByLevel=true;gt.repeat.set(46,46);gt.needsUpdate=true;
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(460,460),toon(0x5d7a47,{map:gt}));ground.rotation.x=-PI/2;ground.receiveShadow=true;scene.add(ground);world.meshes.push(ground);
   slab(-ARENA,ARENA,-ARENA,ARENA,0,.03,C.grass);
   slab(-34,34,6,48,.03,.03,C.park);slab(-5,5,46,57,.03,.03,C.gravel);                       // parking + wjazd

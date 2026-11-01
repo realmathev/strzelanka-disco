@@ -140,7 +140,7 @@ function buildStacja(level){
   buildSky();
 
   /* ---- teren ---- */
-  const gt=groundTex.clone();gt.repeat.set(46,46);gt.needsUpdate=true;
+  const gt=groundTex.clone();gt.ownedByLevel=true;gt.repeat.set(46,46);gt.needsUpdate=true;
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(460,460),toon(0x7b7242,{map:gt}));ground.rotation.x=-PI/2;ground.receiveShadow=true;scene.add(ground);world.meshes.push(ground);
   slab(-ARENA,ARENA,-ARENA,ARENA,0,.03,C.grass);
   slab(-76,-8,-76,-40,.03,.03,C.dry);slab(-8,46,-76,-46,.03,.03,C.dry);                      // pole / nieużytek

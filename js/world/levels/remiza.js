@@ -1,6 +1,8 @@
 // Poziom 1: rynek pod remizą (pierwotna arena, przeniesiona 1:1). Właściciel katalogu: ds-level-designer.
 import {DS} from '../../core/ds.js';
 import {rand} from '../../core/util.js';
+import {save,persist} from '../../core/save.js';
+import {S} from '../../core/state.js';
 import {scene} from '../../render/renderer.js';
 import {toon} from '../../render/materials.js';
 import {groundTex} from '../../render/textures.js';
@@ -10,6 +12,9 @@ import {world} from '../state.js';
 DS.levels.register({
   id:'remiza',
   name:'Remiza i rynek',
+  desc:'Rynek pod remizą: kamienice, Maluchy, kiosk z automatami i lombard. Boss: Baron Jackpot.',
+  // nagroda tylko w ZD: klucze za Barona daje już killEnemy (combat.js)
+  win:{kind:'boss',reward:{coins:200,keys:0},text:'REMIZA WYCZYSZCZONA!'},
   arena:42,                              // połowa boku grywalnego kwadratu [m]
   spawn:{x:0,z:30,yaw:0},                // start gracza
   menuCam:{r:26,y:7,look:[0,4,0]},       // orbita kamery w menu
@@ -42,4 +47,14 @@ DS.levels.register({
     // clouds
     for(let i=0;i<10;i++){const a=i/10*Math.PI*2;P.get('cloud').place({x:Math.cos(a)*170,y:55+rand(0,25),z:Math.sin(a)*170})}
   },
+});
+
+// Ukończenie: pokonanie Barona Jackpota (boss gangster) zapisuje poziom i otwiera ekran „Poziom ukończony” (jak na pozostałych mapach).
+DS.bus.on('levelStart',()=>{const G=S.G;if(G)G.levelWon=false});
+DS.bus.on('kill',({enemy:e})=>{
+  const G=S.G,L=DS.levels.get('remiza');if(!G||!e||!e.boss||G.levelWon||!world.level||world.level.id!=='remiza')return;
+  G.levelWon=true;
+  save.coins+=L.win.reward.coins;G.earned+=L.win.reward.coins;
+  save.levelsDone=save.levelsDone||{};save.levelsDone.remiza=true;persist();
+  DS.bus.emit('levelComplete',{level:'remiza',wave:G.wave});
 });

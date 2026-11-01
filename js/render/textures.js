@@ -14,7 +14,9 @@ export const groundTex=new THREE.CanvasTexture(cnv(256,256,(g,w,h)=>{g.fillStyle
   g.strokeStyle='rgba(21,17,14,.35)';g.lineWidth=3;g.strokeRect(0,0,w,h)}));
 groundTex.wrapS=groundTex.wrapT=THREE.RepeatWrapping; groundTex.repeat.set(24,24);
 export function signTex(text,col,bg){return new THREE.CanvasTexture(cnv(512,140,(g,w,h)=>{g.fillStyle=bg;g.fillRect(0,0,w,h);g.strokeStyle='#15110e';g.lineWidth=12;g.strokeRect(0,0,w,h);
-  g.font='96px Bangers, Impact, sans-serif';g.textAlign='center';g.textBaseline='middle';g.shadowColor=col;g.shadowBlur=24;g.fillStyle=col;g.fillText(text,w/2,h/2+4);g.shadowBlur=0;g.lineWidth=4;g.strokeText(text,w/2,h/2+4)}))}
+  // długie napisy (np. „STRZELNICA GŁÓWNA”) zmniejszają czcionkę, zamiast wychodzić poza szyld
+  let fs=96;g.font=fs+'px Bangers, Impact, sans-serif';const tw=g.measureText(text).width;if(tw>w-48){fs=Math.floor(fs*(w-48)/tw);g.font=fs+'px Bangers, Impact, sans-serif'}
+  g.textAlign='center';g.textBaseline='middle';g.shadowColor=col;g.shadowBlur=24;g.fillStyle=col;g.fillText(text,w/2,h/2+4);g.shadowBlur=0;g.lineWidth=4;g.strokeText(text,w/2,h/2+4)}))}
 export const starTex=new THREE.CanvasTexture(cnv(128,128,(g)=>{g.translate(64,64);g.beginPath();for(let i=0;i<16;i++){const r=i%2?22:60,a=i/16*Math.PI*2;g.lineTo(Math.cos(a)*r,Math.sin(a)*r)}g.closePath();g.fillStyle='#ffe14a';g.fill();g.lineWidth=6;g.strokeStyle='#15110e';g.stroke();g.beginPath();g.arc(0,0,14,0,7);g.fillStyle='#fff';g.fill()}));
 export const puffTex=new THREE.CanvasTexture(cnv(128,128,(g)=>{g.translate(64,64);g.fillStyle='#f4e7c5';g.strokeStyle='#15110e';g.lineWidth=6;for(let i=0;i<6;i++){const a=i/6*7;g.beginPath();g.arc(Math.cos(a)*24,Math.sin(a)*24,24,0,7);g.fill();g.stroke()}g.beginPath();g.arc(0,0,26,0,7);g.fill()}));
 export const cloudTex=new THREE.CanvasTexture(cnv(256,128,(g)=>{g.fillStyle='#fff6dc';g.strokeStyle='#15110e';g.lineWidth=5;const b=[[60,80,34],[100,60,44],[150,64,40],[190,84,30],[120,90,36]];b.forEach(([x,y,r])=>{g.beginPath();g.arc(x,y,r,0,7);g.fill();g.stroke()});b.forEach(([x,y,r])=>{g.beginPath();g.arc(x,y,r-4,0,7);g.fill()})}));

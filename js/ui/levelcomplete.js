@@ -43,7 +43,9 @@ function open(e){
 }
 DS.bus.on('levelComplete',e=>{
   const G=S.G;if(!e||!G)return;
-  setTimeout(()=>{if(S.G===G&&!G.paused)open(e)},SHOW_DELAY);
+  // Zabicie bossa często daje level-up, który pauzuje grę: czekamy, aż gracz wybierze perk (albo zamknie pauzę), zamiast przepuścić ekran.
+  const tryOpen=()=>{if(S.G!==G||G.dead||S.mode!=='game')return;if(G.paused){setTimeout(tryOpen,300);return}open(e)};
+  setTimeout(tryOpen,SHOW_DELAY);
 });
 
 bKeep.addEventListener('click',()=>{sfx('tick',1000);resume()});

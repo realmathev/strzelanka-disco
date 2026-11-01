@@ -73,7 +73,7 @@ function buildBlokowisko(level){
   setEnv({sky:0xc4789a,fogNear:46,hemi:[0xffcfae,0x56486a,.74],sun:[0xffa868,.95],sunDir:[-44,34,-30]});
 
   /* ---- teren ---- */
-  const gt=groundTex.clone();gt.repeat.set(40,40);gt.needsUpdate=true;
+  const gt=groundTex.clone();gt.ownedByLevel=true;gt.repeat.set(40,40);gt.needsUpdate=true;
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(420,420),toon(0x8a8272,{map:gt}));ground.rotation.x=-PI/2;ground.receiveShadow=true;scene.add(ground);world.meshes.push(ground);
   slab(-ARENA,ARENA,-ARENA,ARENA,0,.03,GRASS);
   // jezdnie i place

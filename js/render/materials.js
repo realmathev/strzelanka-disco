@@ -25,7 +25,8 @@ export function disposeObject(root){
     if(o.geometry&&!o.isSprite&&!(o.geometry.userData&&o.geometry.userData.shared))o.geometry.dispose(); // Sprite: geometria wspólna dla całego three
 
     const ms=o.material&&(Array.isArray(o.material)?o.material:[o.material]);
-    if(ms)for(const m of ms)if(m!==inkMat&&m!==lineMat&&!(m.userData&&m.userData.shared))m.dispose()});
+    // material.dispose() nie zwalnia tekstur: zwalniamy te oznaczone ownedByLevel (np. klon gruntu poziomu); wspólne zostają
+    if(ms)for(const m of ms)if(m!==inkMat&&m!==lineMat&&!(m.userData&&m.userData.shared)){if(m.map&&m.map.ownedByLevel)m.map.dispose();m.dispose()}});
   for(let i=outlines.length-1;i>=0;i--)if(dead.has(outlines[i]))outlines.splice(i,1);
 }
 /** Usuwa z listy kontury obiektów odpiętych od sceny. */
