@@ -14,6 +14,13 @@ const SETUP=`(async()=>{(0,eval)(await (await fetch('/tests/harness.js')).text()
   QA.dmg=[];DS.bus.on('damage',e=>QA.dmg.push(e.amount));QA.kills=0;DS.bus.on('kill',()=>QA.kills++);
   QA.$=s=>document.querySelector(s);QA.txt=s=>{const e=document.querySelector(s);return e?e.textContent:null};
   QA.host=await import('/js/net/host.js');QA.en=await import('/js/enemies/manager.js');
+  QA.proj=await import('/js/enemies/proj.js');QA.lvc=await import('/js/world/levels/common.js');QA.pk=await import('/js/pickups/pickups.js');
+  QA.ann=[];DS.bus.on('update',()=>{const a=QA.S.G&&QA.S.G.announce;if(a&&a.t===0&&QA.ann[QA.ann.length-1]!==a.text)QA.ann.push(a.text)});
+  // strzał w punkt (x,y,z) z odległości dist, z kolejnych stron, aż padnie trafienie spełniające ok(hits)
+  QA.shootAt=(getPt,dist,okFn,tries=16)=>{const G=QA.S.G,P=QA.P;for(let k=0;k<tries;k++){const pt=getPt();if(!pt)return false;const a=k*Math.PI/8;
+    P.pos.set(pt.x+Math.sin(a)*dist,0,pt.z+Math.cos(a)*dist);P.vel.set(0,0,0);QA.frame();const q=getPt();const dx=q.x-P.pos.x,dz=q.z-P.pos.z;
+    P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(q.y-1.62-P.pos.y,Math.hypot(dx,dz));QA.frame();G.fireT=0;G.reloadT=0;G.ammo[G.weapon]=5;
+    let hits=null;const off=DS.bus.on('shot',e=>{hits=e.hits});QA.fire.fire();off();if(hits&&okFn(hits))return true}return false};
   return document.visibilityState})()`;
 
 (async()=>{
@@ -161,6 +168,81 @@ const SETUP=`(async()=>{(0,eval)(await (await fetch('/tests/harness.js')).text()
     await live(300,false);
     const rv=await B.ev(`({dead:QA.S.G.dead,hp:QA.S.G.hp,max:QA.S.G.maxHp})`);
     ok('revive.byTeammate',!rv.dead&&Math.abs(rv.hp/rv.max-.5)<.15,rv);
+
+    /* ===================== ETAP 2 ===================== */
+    /* --- boss: replika z paskiem HP i fazą u klienta --- */
+    const bossEid=await A.ev(`(()=>{const G=QA.S.G;const e=QA.en.spawnEnemy('boss_szef_ochrony',{boss:true,at:{x:QA.P.pos.x+10,z:QA.P.pos.z}});return e.eid})()`);
+    await live(1200);
+    const bB=await B.ev(`(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid});return {rep:!!e&&e.replica&&e.boss&&!!e.bar,bar:!document.getElementById('hBoss').hidden,name:QA.txt('#hBossName')}})()`);
+    ok('boss.replicaWithBar',bB.rep&&bB.bar&&/SZEF/.test(bB.name),bB);
+    const hpMul=await A.ev(`(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid});return +(e.maxHp/ (720+62*QA.S.G.wave) / ({easy:.75,normal:1,hard:1.35}[DS.opt.difficulty]||1)).toFixed(2)})()`);
+    ok('boss.hpScaled(x2.5 @3 graczy)',Math.abs(hpMul-2.5)<.05,hpMul);
+    await A.ev(`(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid});e.hp=e.maxHp*.6;return 1})()`);
+    await live(1500);
+    const ph=await B.ev(`({phase:QA.txt('#hBossPhase'),ann:QA.ann.slice(-6)})`);
+    ok('boss.phaseOnClient',/FAZA 2/.test(ph.phase)&&ph.ann.includes('WZYWAM POSIŁKI!'),ph);
+
+    /* --- kałuża i pocisk ranią klienta (obrażenia liczy host) --- */
+    const bp2=await B.ev(`(QA.dmg=[],[QA.P.pos.x,QA.P.pos.z])`);
+    await A.ev(`QA.proj.puddle(${bp2[0]},${bp2[1]},{r:2.5,life:4,dmg:6,kind:'bimber'});1`);
+    await Promise.all([A.ev(`QA.live(1500,true)`),B.ev(`(async()=>{const t0=performance.now();while(performance.now()-t0<1500){QA.P.pos.set(${bp2[0]},0,${bp2[1]});QA.S.G.invulnT=0;QA.frame();await QA.sleep(16)}})()`),C.ev(`QA.live(1500,true)`)]);
+    const pd=await B.ev(`({dmg:QA.dmg.length,puddles:QA.proj.projCount().puddles,hp:QA.S.G.hp})`);
+    ok('fx.puddleHurtsClient',pd.dmg>0&&pd.puddles>0,pd);
+    await B.ev(`(QA.dmg=[],QA.S.G.hp=QA.S.G.maxHp,1)`);
+    await A.ev(`QA.proj.throwProj('bottle',new THREE.Vector3(${bp2[0]}+5,1.6,${bp2[1]}),${bp2[0]},1.1,${bp2[1]},{speed:12,dmg:12});1`);
+    await Promise.all([A.ev(`QA.live(1200,true)`),B.ev(`(async()=>{const t0=performance.now();while(performance.now()-t0<1200){QA.P.pos.set(${bp2[0]},0,${bp2[1]});QA.frame();await QA.sleep(16)}})()`),C.ev(`QA.live(1200,true)`)]);
+    ok('fx.bottleHurtsClient',(await B.ev(`QA.dmg.length`))>0);
+
+    /* --- znajdźka zebrana przez klienta znika u hosta --- */
+    const pid=await A.ev(`(()=>{const p=QA.pk.spawnPickup('med',{x:${bp2[0]},z:${bp2[1]}},30);return p.nid})()`);
+    await B.ev(`(QA.S.G.hp=40,1)`);
+    await Promise.all([A.ev(`QA.live(1500,true)`),B.ev(`(async()=>{const t0=performance.now();while(performance.now()-t0<1500){QA.P.pos.set(${bp2[0]},0,${bp2[1]});QA.frame();await QA.sleep(16)}})()`),C.ev(`QA.live(1500,true)`)]);
+    const pkA=await A.ev(`QA.S.G.pickups.some(p=>p.nid===${pid})`),pkB=await B.ev(`({hp:QA.S.G.hp,mirror:QA.S.G.pickups.some(p=>p.nid===${pid})})`),pkC=await C.ev(`QA.S.G.pickups.some(p=>p.nid===${pid})`);
+    ok('pickup.clientTakes',!!pid&&!pkA&&!pkB.mirror&&!pkC&&pkB.hp>40,{pid,pkA,pkB,pkC});
+
+    /* --- beczka wysadzona przez klienta --- */
+    const bi=await B.ev(`(()=>{const b=QA.lvc.debugState().barrels;if(!b)return -1;return b.items.findIndex(x=>!x.dead)})()`);
+    let barrelOk=false;
+    if(bi>=0){
+      const shotB=await B.ev(`QA.shootAt(()=>{const b=QA.lvc.debugState().barrels.items[${bi}];return {x:b.x,y:.5,z:b.z}},7,h=>h.some(x=>QA.lvc.debugState().barrels.ims.has(x.object)))`);
+      await live(900);
+      const bA=await A.ev(`QA.lvc.debugState().barrels.items[${bi}].dead`),bC=await C.ev(`QA.lvc.debugState().barrels.items[${bi}].dead`);
+      barrelOk=shotB&&bA&&bC;ok('barrel.clientShot',barrelOk,{shotB,bA,bC});
+    }else ok('barrel.clientShot',false,'brak beczek');
+
+    /* --- drzwi otwarte przez klienta widoczne u hosta --- */
+    const di=await B.ev(`(()=>{const d=QA.lvc.debugState().doors;return d.findIndex(x=>!x.auto&&x.target===0)})()`);
+    if(di>=0){
+      await B.ev(`(()=>{const d=QA.lvc.debugState().doors[${di}];QA.P.pos.set(d.px+(d.axis==='x'?0:1.2),0,d.pz+(d.axis==='x'?1.2:0));QA.frame();QA.tap('KeyE');return d.target})()`);
+      await live(900);
+      const dA=await A.ev(`QA.lvc.debugState().doors[${di}].target`),dC=await C.ev(`QA.lvc.debugState().doors[${di}].target`);
+      ok('door.clientOpensForAll',dA===1&&dC===1,{dA,dC});
+    }else ok('door.clientOpensForAll',false,'brak drzwi');
+
+    /* --- boss poziomu zabity przez klienta: levelComplete u wszystkich, „Dalej” tylko host --- */
+    await A.ev(`(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid});if(e){e.hp=1;e.invulT=0}return 1})()`);
+    const ld0=await B.ev(`!!(DS.save.levelsDone&&DS.save.levelsDone.blokowisko)`);
+    const bossShot=await B.ev(`QA.shootAt(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid}&&x.alive);if(!e)return null;const v=new THREE.Vector3();(e.meshes.find(m=>m.userData.part==='body')||e.meshes[0]).getWorldPosition(v);return v},6,h=>h.some(x=>x.enemy&&x.enemy.eid===${bossEid}))`);
+    await live(900);
+    for(let i=0;i<6;i++){if(await A.ev(`!(QA.S.G.enemies.find(x=>x.eid===${bossEid})||{alive:false}).alive`))break;
+      await A.ev(`(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid});if(e){e.hp=1;e.invulT=0}return 1})()`);
+      await B.ev(`QA.shootAt(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid}&&x.alive);if(!e)return null;const v=new THREE.Vector3();(e.meshes.find(m=>m.userData.part==='body')||e.meshes[0]).getWorldPosition(v);return v},5,h=>h.some(x=>x.enemy&&x.enemy.eid===${bossEid}))`);
+      await live(700)}
+    ok('boss.killedByClient',await A.ev(`!(QA.S.G.enemies.find(x=>x.eid===${bossEid})||{alive:false}).alive`),{bossShot});
+    await live(3000);
+    const lcA=await A.ev(`({vis:QA.vis(),next:!document.getElementById('lcNext').disabled,nt:QA.txt('#lcNext')})`);
+    const lcB=await B.ev(`({vis:QA.vis(),dis:document.getElementById('lcNext').disabled,nt:QA.txt('#lcNext'),done:!!(DS.save.levelsDone&&DS.save.levelsDone.blokowisko)})`);
+    const lcC=await C.ev(`({vis:QA.vis(),dis:document.getElementById('lcNext').disabled})`);
+    ok('levelComplete.allScreens',lcA.vis==='scrLevelDone'&&lcB.vis==='scrLevelDone'&&lcC.vis==='scrLevelDone',{A:lcA.vis,B:lcB.vis,C:lcC.vis});
+    ok('levelComplete.onlyHostNext',lcA.next&&lcB.dis&&lcC.dis&&/Czekamy/.test(lcB.nt),{lcA,lcB});
+    ok('levelComplete.levelsDoneClient',lcB.done,{before:ld0});
+    const nextId=await A.ev(`(()=>{const l=DS.levels.all(),i=l.findIndex(x=>x.id==='blokowisko');return l[i+1]&&l[i+1].id})()`);
+    await A.ev(`document.getElementById('lcNext').click();1`);
+    await sleep(3000);
+    const nx=await Promise.all([A,B,C].map(p=>p.ev(`({mode:QA.S.mode,lvl:QA.wst.world.level.id,active:DS.net.active(),vis:QA.vis(),wave:QA.S.G&&QA.S.G.wave})`)));
+    ok('next.allOnNextLevel',nx.every(s=>s.mode==='game'&&s.active&&s.lvl===nextId),nx);
+    await live(1500);
+    const team=await A.ev(`DS.net.debug()`);ok('next.teamKept',team.players===2&&team.avatars===2,team);
 
     /* --- rozmiar snapshotu przy 30 wrogach --- */
     const snap=await A.ev(`(()=>{const G=QA.S.G;let n=G.enemies.filter(e=>e.alive).length;while(n<30){QA.en.spawnEnemy(['dres','bandyta','ochroniarz','pijak','medyk'][n%5],{});n++}
