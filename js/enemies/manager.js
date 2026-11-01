@@ -52,6 +52,7 @@ function placeEnemy(e,opts){
     else{const a=rand(0,Math.PI*2),r=rand(22,36);x=clamp(Math.cos(a)*r,-A+3,A-3);z=clamp(Math.sin(a)*r,-A+3,A-3)}
     const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz);
     if(d<(tries<60?16:12)||!nav.isFree(x,z,cls))continue;
+    if(DS.net.isHost()&&!DS.net.farFromPlayers(x,z,tries<60?16:12))continue;   // co-op: też z dala od zdalnych graczy
     const ang=Math.acos(clamp((dx*lx+dz*lz)/d,-1,1));
     const seen=ang<half&&nav.gridLos(P.pos.x,P.pos.z,x,z);
     if(!seen){g.position.set(x,0,z);return}
@@ -63,12 +64,16 @@ function placeEnemy(e,opts){
 
 /** Tworzy wroga typu `type`. opts: {boss, wave, at:{x,z}, aware:false (patrol zamiast pościgu)}. Mnożniki trudności liczone raz tutaj. */
 export function spawnEnemy(type,opts={}){
-  const G=S.G,def=DS.enemies.get(type);
+  const G=S.G,def=DS.enemies.get(type),coop=DS.net.isHost();
+  // Co-op: wariant modelu losowany tutaj (replika u klienta buduje ten sam), HP skalowane liczbą graczy (docs/COOP.md).
+  if(coop&&opts.variant===undefined)opts=Object.assign({},opts,{variant:Math.floor(Math.random()*1000)});
   const e=def.create(Object.assign({wave:G.wave},opts));e.def=def;e.type=type;
+  e.eid=G.eidSeq=(G.eidSeq||0)+1;if(opts.variant!==undefined)e.variant=opts.variant;
   if(e.xp===undefined&&def.xp!==undefined)e.xp=def.xp;
   e.meshes.forEach(m=>m.userData.enemy=e);
   // Trudność (opt.difficulty): mnożnik HP i obrażeń wroga, liczony raz przy spawnie.
   const dm=diffMul();if(dm.hp!==1){e.hp*=dm.hp;e.maxHp=(e.maxHp||e.hp/dm.hp)*dm.hp}if(dm.dmg!==1&&typeof e.dmg==='number')e.dmg*=dm.dmg;
+  if(coop){const k=DS.net.hpScale(e.boss);if(k!==1){e.maxHp=(e.maxHp||e.hp)*k;e.hp*=k}}
   placeEnemy(e,opts);
   if(e.ai&&!e.ai.home)e.ai.home={x:e.g.position.x,z:e.g.position.z};
   scene.add(e.g);G.enemies.push(e);
@@ -102,7 +107,7 @@ const eye=new THREE.Vector3();
 let pruneT=0;
 /** Aktualizuje wszystkich wrogów; zwraca liczbę żywych. */
 export function updateEnemies(dt){
-  const G=S.G;
+  const G=S.G,H=DS.net.isHost()?DS.net:null;   // co-op: AI celuje w wybranego gracza (DS.net.aim podmienia na chwilę stan P)
   eye.set(P.pos.x,P.pos.y+1.6,P.pos.z);
   beginFrame();
   let alive=0;
@@ -112,7 +117,8 @@ export function updateEnemies(dt){
       else{e.dieT+=dt;const k=Math.min(e.dieT/.55,1);e.g.rotation.x=-k*Math.PI/2*(e.boss?.9:1);e.g.position.y=-k*.15}
       if(e.dieT>5){disposeObject(e.g);e.gone=true}continue}
     alive++;
-    e.def.update(e,dt,eye);
+    if(H){H.aim(e,dt);eye.set(P.pos.x,P.pos.y+1.6,P.pos.z);try{e.def.update(e,dt,eye)}finally{H.unaim()}eye.set(P.pos.x,P.pos.y+1.6,P.pos.z)}
+    else e.def.update(e,dt,eye);
     if(e.boss&&e.alive){e._bhT=(e._bhT||0)-dt;if(e._bhT<=0){e._bhT=.4;DS.bus.emit('bossHp',{enemy:e,hp:e.hp,max:e.maxHp||e.hp,name:e.name,phase:e.phase||1})}}   // podtrzymanie paska, gdy typ bossa nie emituje sam
   }
   G.enemies=G.enemies.filter(e=>!e.gone);
@@ -126,7 +132,7 @@ const DROP_VAL=()=>({med:30,bandage:PCFG.bandage.total,adrenaline:PCFG.adrenalin
   zapiekanka:PCFG.food.zapiekanka.heal,kebab:PCFG.food.kebab.heal,zubr:PCFG.food.zubr.heal});
 DS.bus.on('kill',({enemy:e})=>{
   const d=e&&e.def;if(!d)return;
-  if(d.onKill)d.onKill(e);
+  if(d.onKill&&!e.replica)d.onKill(e);   // replika (co-op, klient): bez efektów typu (kałuże itd. liczy host; etap 2)
   const drops=e.drops||d.drops;if(!drops||!S.G)return;
   const val=DROP_VAL();
   for(const dr of drops)if(Math.random()<dr.p&&DS.pickups.has(dr.kind))spawnPickup(dr.kind,e.g.position.clone(),dr.val||val[dr.kind]||10);

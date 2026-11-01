@@ -200,7 +200,9 @@ export function open(level) {
   const G = S.G;
   if (!G || st) return false;
   audioInit();
-  G.paused = true; S.mouseDown = false;
+  // Co-op: automat NIE pauzuje gry (świat prowadzi host, koledzy grają dalej); po wyborze 3 s nietykalności (close()).
+  if (!DS.net.active()) G.paused = true;
+  S.mouseDown = false;
   try { document.exitPointerLock(); } catch (e) {}
   DS.bus.emit('pause', true);
   st = { G, level, spinning: false, done: false };
@@ -226,6 +228,7 @@ function close() {
   const G = s.G;
   if (S.G === G && S.mode === 'game') {
     G.paused = false;
+    if (DS.net.active()) G.invulnT = 3;   // co-op: nietykalność po wyborze perku (combat.hurt)
     if (G.prog) G.prog.delay = 0.3;
     try { const r = canvas.requestPointerLock && canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
     DS.bus.emit('pause', false);

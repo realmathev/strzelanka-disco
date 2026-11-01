@@ -11,7 +11,7 @@ import {useMedkit} from '../pickups/medkit.js';
 import {pause,lockPointer} from '../game/flow.js';
 
 const I=DS.input;
-const inGame=()=>S.mode==='game'&&S.G&&!S.G.paused&&!S.G.dead;
+const inGame=()=>S.mode==='game'&&S.G&&!S.G.paused&&!S.G.uiPause&&!S.G.dead;   // uiPause: pauza w co-op (świat idzie dalej)
 
 document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement!==canvas&&S.mode==='game'&&S.G&&!S.G.dead&&!S.G.paused)pause()});
 addEventListener('keydown',e=>{I.setCode(e.code,true);if(!inGame())return;

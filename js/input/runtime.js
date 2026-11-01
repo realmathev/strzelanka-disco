@@ -14,7 +14,7 @@ const I=DS.input;
 const TOGGLE={ads:'adsMode',sprint:'sprintMode',crouch:'crouchMode'};
 const on={ads:false,sprint:false,crouch:false};let sprintMoved=false;
 const isTog=id=>opt[TOGGLE[id]]==='toggle';
-const inGame=()=>{const G=S.G;return S.mode==='game'&&!!G&&!G.paused&&!G.dead};
+const inGame=()=>{const G=S.G;return S.mode==='game'&&!!G&&!G.paused&&!G.uiPause&&!G.dead};   // uiPause: pauza w co-op
 
 /* ---- isDown / pressed ---- */
 const isDown0=I.isDown;

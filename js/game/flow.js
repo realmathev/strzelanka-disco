@@ -20,8 +20,12 @@ export function startGame(){audioInit();newRun();S.mode='game';hideAll();$('#hud
   DS.bus.emit('levelStart',{level:world.level&&world.level.id})}
 /** Kończy run i wraca do trybu menu (bez wybierania ekranu). */
 export function toMenuMode(){clearRun();S.mode='menu';$('#hud').hidden=true;setTrack('A',true)}
-export function pause(){const G=S.G;if(!G||G.dead||G.paused)return;G.paused=true;S.mouseDown=false;show('scrPause');DS.bus.emit('pause',true)}
-export function resume(){S.G.paused=false;hideAll();lockPointer();clock.getDelta();DS.bus.emit('pause',false)}
-export function quitToMenu(){persist();toMenuMode();show('scrMenu')}
+/** Pauza. Co-op: tylko lokalne menu (G.uiPause), świat nie staje (wrogów prowadzi host, inni grają dalej). */
+export function pause(){const G=S.G;if(!G||G.dead||G.paused||G.uiPause)return;S.mouseDown=false;
+  if(DS.net.active()){const u=DS.progression&&DS.progression.ui;if(u&&u.isOpen())return;   // automat level-upu zwalnia kursor: to nie jest pauza
+    G.uiPause=true;DS.input.releaseAll();show('scrPause');DS.bus.emit('pause',true);return}
+  G.paused=true;show('scrPause');DS.bus.emit('pause',true)}
+export function resume(){S.G.paused=false;S.G.uiPause=false;hideAll();lockPointer();clock.getDelta();DS.bus.emit('pause',false)}
+export function quitToMenu(){persist();if(DS.net.active()&&DS.net.quitRun){DS.net.quitRun();return}toMenuMode();show('scrMenu')}
 export function revive(){const G=S.G;save.secondChance--;persist();G.revived=true;G.dead=false;G.hp=G.maxHp;G.deadT=0;P.pos.y=0;hideAll();announce('DRUGA SZANSA!','Siostra Halina postawiła cię na nogi');sfx('heal');G.enemies.forEach(e=>e.shootT=2.5);lockPointer();
   DS.bus.emit('heal',{amount:G.maxHp,source:'revive'})}

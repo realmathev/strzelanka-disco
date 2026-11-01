@@ -42,13 +42,14 @@ export function resetPlayer(){const sp=world.level&&world.level.spawn||{x:0,z:30
 export function updateMovement(dt){
   const G=S.G,inp=DS.input;
   if(!G.dead){
-    const sprint=inp.isDown('sprint');const sp=(sprint?11:7)*DS.player.speedMul();
-    let mx=(inp.isDown('moveRight')?1:0)-(inp.isDown('moveLeft')?1:0),mz=(inp.isDown('moveBack')?1:0)-(inp.isDown('moveForward')?1:0);const l=Math.hypot(mx,mz)||1;mx/=l;mz/=l;
+    const live=!G.uiPause;   // pauza w co-op: świat idzie dalej, ale gracz nie reaguje na klawisze
+    const sprint=live&&inp.isDown('sprint');const sp=(sprint?11:7)*DS.player.speedMul();
+    let mx=live?(inp.isDown('moveRight')?1:0)-(inp.isDown('moveLeft')?1:0):0,mz=live?(inp.isDown('moveBack')?1:0)-(inp.isDown('moveForward')?1:0):0;const l=Math.hypot(mx,mz)||1;mx/=l;mz/=l;
     const s=Math.sin(P.yaw),c=Math.cos(P.yaw);const tx=(mx*c+mz*s)*sp,tz=(-mx*s+mz*c)*sp;
     const acc=P.ground?14:4;P.vel.x+=(tx-P.vel.x)*Math.min(1,acc*dt);P.vel.z+=(tz-P.vel.z)*Math.min(1,acc*dt);
     P.pos.x+=(P.vel.x+P.knock.x)*dt;P.pos.z+=(P.vel.z+P.knock.z)*dt;collide(P.pos,.45);
     const kd=Math.exp(-KNOCK_DECAY*dt);P.knock.x*=kd;P.knock.z*=kd;
-    if(inp.isDown('jump')&&P.ground){P.vy=7;P.ground=false}
+    if(live&&inp.isDown('jump')&&P.ground){P.vy=7;P.ground=false}
     P.vy-=20*dt;P.pos.y+=P.vy*dt;if(P.pos.y<=0){P.pos.y=0;P.vy=0;P.ground=true}
     const spd=Math.hypot(P.vel.x,P.vel.z);if(P.ground&&spd>1)P.bob+=dt*spd*1.4;
   }else{P.pos.y=Math.max(P.pos.y-dt*2,-1.1)}

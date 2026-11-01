@@ -31,9 +31,10 @@ export function updateGame(dt){
   updateWeapons(dt);
   tickFlash(dt);
   tickPanels(dt);
-  // waves
-  const alive=updateEnemies(dt);
-  updateWaves(dt,alive);
+  // waves (co-op, klient: repliki wrogów od hosta zamiast AI i fal; js/net/replicas.js)
+  const net=DS.net.isClient()?DS.net:null;
+  const alive=net?net.updateReplicas(dt):updateEnemies(dt);
+  if(!net)updateWaves(dt,alive);
   updatePickups(dt);updateFx3d(dt);
   updateCamera(dt);
   updateViewmodel(dt);

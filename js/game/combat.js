@@ -1,4 +1,6 @@
 // Obrażenia, zabójstwa, rany gracza, śmierć.
+// Co-op (js/net/): damageEnemy na replice (klient) wysyła trafienie do hosta; host stosuje trafienia zdalne z `by` (id gracza);
+// hurt() u hosta może zostać przekierowane do zdalnego gracza (cel AI), die() w co-op = powalenie zamiast końca gry.
 import {rand,clamp,pick} from '../core/util.js';
 import {save,opt,persist} from '../core/save.js';
 import {S} from '../core/state.js';
@@ -11,19 +13,26 @@ import {comboMult} from './run.js';
 import {showOver} from '../ui/screens.js';
 import {submitRun} from '../ui/highscores.js';
 
-/** Trafienie wroga. Przed odjęciem HP leci 'beforeHit' {enemy,dmg,head}: słuchacz może zmienić `dmg` (tarcza ochroniarza); liczby i 'hit' dostają wartość po zmianie. */
-export function damageEnemy(e,dmg,head,point){
-  const G=S.G;
+/** Trafienie wroga. Przed odjęciem HP leci 'beforeHit' {enemy,dmg,head}: słuchacz może zmienić `dmg` (tarcza ochroniarza); liczby i 'hit' dostają wartość po zmianie.
+ *  `by` (tylko host w co-op): id zdalnego gracza; wtedy bez efektów lokalnych, zamiast 'hit' leci 'netHit' {enemy,dmg,head,point,by}. */
+export function damageEnemy(e,dmg,head,point,by){
+  const G=S.G,raw=dmg,remote=by!=null;
   const bh={enemy:e,dmg,head};DS.bus.emit('beforeHit',bh);
   if(typeof bh.dmg==='number'&&bh.dmg>=0&&bh.dmg<1e6)dmg=bh.dmg;
-  e.hp-=dmg;e.flashT=.12;G.hitT=.14;G.hitHead=head;sfx(head?'head':'hit');
+  if(e.replica){if(DS.net.sendHit)DS.net.sendHit(e,raw,head,point)}   // klient: HP odejmuje host (z własnym beforeHit), tu tylko efekty
+  else{e.hp-=dmg;if(DS.net.trackDamage)DS.net.trackDamage(e,dmg,by)}
+  e.flashT=.12;
+  if(remote){DS.bus.emit('netHit',{enemy:e,dmg,head,point,by});if(e.hp<=0&&e.alive)killEnemy(e,head,by);return}
+  G.hitT=.14;G.hitHead=head;sfx(head?'head':'hit');
   if(+opt.dmgNum)addFloater(String(Math.round(dmg)),{world:point.clone(),size:head?30:22,life:.7,color:head?'#ff3b30':'#f4e7c5',vy:-50,rot:rand(-.2,.2)});
   DS.bus.emit('hit',{enemy:e,dmg,head,point});
-  if(e.hp<=0)killEnemy(e,head);
+  if(e.hp<=0&&!e.replica)killEnemy(e,head);
 }
-export function killEnemy(e,head){
+/** Zabójstwo. `by` (host w co-op): zabił zdalny gracz, więc bez nagród lokalnych; leci 'netKill' {enemy,head,by} zamiast 'kill'. */
+export function killEnemy(e,head,by){
   const G=S.G;
   e.alive=false;e.mats.forEach(m=>m.emissive.setRGB(0,0,0));
+  if(by!=null){if(e.def&&e.def.onKill)e.def.onKill(e);DS.bus.emit('netKill',{enemy:e,head,by});return}
   G.kills++;save.kills++;if(head)G.heads++;
   G.combo=G.comboT>0?G.combo+1:1;G.comboT=3.5;
   const base=e.boss?260+G.wave*20:12+G.wave*2;const val=Math.round(base*(head?1.5:1)*comboMult()*(e.coins>0?e.coins:1));   // e.coins = mnożnik monet typu (domyślnie 1)
@@ -40,10 +49,13 @@ export function killEnemy(e,head){
   G.shake+=.25;
   DS.bus.emit('kill',{enemy:e,head,value:val,combo:G.combo});
 }
-/** Rana gracza. Pancerz (pickups/armor.js) pochłania część obrażeń; zdarzenie 'damage' niesie obrażenia, które faktycznie trafiły w HP. */
-export function hurt(d){const G=S.G;if(G.dead)return;d=absorbDamage(d);G.hp-=d;G.hurtT=.4;G.shake+=.3;sfx('hurt');if(G.hp<=0){G.hp=0;die()}
+/** Rana gracza. Pancerz (pickups/armor.js) pochłania część obrażeń; zdarzenie 'damage' niesie obrażenia, które faktycznie trafiły w HP.
+ *  Co-op: u hosta cios w zdalnego gracza (cel AI) idzie do niego siecią (DS.net.redirectHurt); G.invulnT > 0 = nietykalność po level-upie. */
+export function hurt(d){const G=S.G;if(DS.net.redirectHurt&&DS.net.redirectHurt(d))return;if(G.dead||G.invulnT>0)return;d=absorbDamage(d);G.hp-=d;G.hurtT=.4;G.shake+=.3;sfx('hurt');if(G.hp<=0){G.hp=0;die()}
   DS.bus.emit('damage',{amount:d,hp:G.hp})}
-export function die(){const G=S.G;G.dead=true;G.deadT=0;S.mouseDown=false;announce('POLEGŁEŚ','Fala '+G.wave);try{document.exitPointerLock()}catch(e){}
+export function die(){const G=S.G;G.dead=true;G.deadT=0;S.mouseDown=false;
+  if(DS.net.active()&&DS.net.onDowned){DS.net.onDowned();return}   // co-op: powalenie (koniec runu, gdy leżą wszyscy)
+  announce('POLEGŁEŚ','Fala '+G.wave);try{document.exitPointerLock()}catch(e){}
   if(G.wave>save.best)save.best=G.wave;persist();
   submitRun(G);   // ranking JuicyJuicy: wynik wysyłany od razu przy śmierci (nie czeka na ekran końca)
   setTimeout(showOver,1400)}

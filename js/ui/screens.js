@@ -80,7 +80,7 @@ export function goBack(){
   if(cancelBindUi())return true;
   const s=activeScreen();if(!s)return false;
   switch(s.id){
-    case 'scrPause':if(S.G&&S.G.paused){resume();return true}return false;
+    case 'scrPause':if(S.G&&(S.G.paused||S.G.uiPause)){resume();return true}return false;
     case 'scrOptions':$('#optBack').click();return true;
     case 'scrLevelDone':$('#lcKeep').click();return true;
     case 'scrMenu':case 'scrWarn':case 'scrOver':return false;

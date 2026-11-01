@@ -366,25 +366,36 @@ export function updateAI(e,dt,eye){
 /* ---------- trafienie i śmierć ---------- */
 // przed odjęciem HP: typ może zmienić ev.dmg (tarcza ochroniarza, nietykalność i luki w obronie bossów)
 DS.bus.on('beforeHit',ev=>{const e=ev.enemy;if(e&&e.cfg&&e.cfg.beforeHit)e.cfg.beforeHit(e,ev)});
-DS.bus.on('hit',ev=>{
+// 'netHit' (co-op, host): trafienie od zdalnego gracza; DS.net podstawia wtedy na chwilę jego pozycję pod P (kierunek, pościg).
+DS.bus.on('netHit',onEnemyHit);
+DS.bus.on('hit',onEnemyHit);
+function onEnemyHit(ev){
   const e=ev.enemy;if(!e||!e.ai)return;
   e.flinch=Math.min(1,e.flinch+(ev.dmg>25?1:.55));
   if(ev.dmg>30)e.slowT=Math.max(e.slowT,.25);
   const p=e.g.position,dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=Math.hypot(dx,dz)||1;
   e.hitDirX=dx/d;e.hitDirZ=dz/d;e.lastDmg=ev.dmg;
+  if(e.replica)return;                       // replika (co-op, klient): tylko drgnięcie i kierunek upadku, stan AI ma host
   const a=e.ai;a.hurtT=0;
   if(a.state==='patrol'||a.state==='alert'){a.lx=P.pos.x;a.lz=P.pos.z;a.hunt=Math.max(a.hunt,5);a.reactDone=true;a.react=0;enter(e,'chase');wakeAround(p.x,p.z,e.cfg.shoutR,P.pos.x,P.pos.z,e)}
   if(e.cfg.onHit)e.cfg.onHit(e,ev);
-});
+}
 // strzał gracza: słyszą go wrogowie w zasięgu `hear` (zapytanie o kierunek jest niedokładne: ±3 m)
-DS.bus.on('shot',()=>{
+DS.bus.on('shot',()=>wakeByShot(P.pos.x,P.pos.z));
+/** Strzał w punkcie (x,z) budzi wrogów w zasięgu słuchu (co-op: host woła to też dla strzałów zdalnych graczy). */
+export function wakeByShot(x,z){
   const G=S.G;if(!G)return;
   for(const o of G.enemies){
-    if(!o.alive||!o.ai)continue;
-    const d=Math.hypot(o.g.position.x-P.pos.x,o.g.position.z-P.pos.z);
-    if(d<o.cfg.hear)wake(o,P.pos.x+rand(-3,3),P.pos.z+rand(-3,3));
+    if(!o.alive||!o.ai||o.replica)continue;
+    const d=Math.hypot(o.g.position.x-x,o.g.position.z-z);
+    if(d<o.cfg.hear)wake(o,x+rand(-3,3),z+rand(-3,3));
   }
-});
+}
+/** Co-op (klient): animacja repliki bez AI. Pola e.ai.sp/age, e.crouch/lean/armT ustawia js/net/replicas.js; dist = odległość od gracza (LOD konturów). */
+export function animateReplica(e,dt,dist){
+  ctx.dist=dist;e.ai.age+=dt;tickStatus(e,dt);
+  if(e.cfg.animate)e.cfg.animate(e,dt);else animateHuman(e,dt);
+}
 
 const DV=new THREE.Vector3();
 /** „Ragdoll-lite”: ciało przewraca się zgodnie z kierunkiem trafienia, ślizga się i traci pęd, kończyny się rozkładają. */
