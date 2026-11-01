@@ -75,3 +75,19 @@ buduje więc swój wiadukt lokalnie (`railViaduct` w `dworzec.js`). Prośba: zmi
 
 **Dla ds-enemy-designer:** boss `boss_dyzurny` (szkic w `bosses.js`): arena = plac przed nastawnią (x 0, z -30, hw 11, hd 13) z torem 5 pośrodku (telegrafowane pasy na torach pasują do osi Z);
 w arenie są 2 beczki wybuchowe, 6 skrzynek SRK (pełna osłona 1,7 m), lokomotywa SM42 jako duża przeszkoda.
+
+## Poziom 5 „Wiejska dyskoteka w lesie” (`dyskoteka.js`, id `dyskoteka`): stan i prośby
+
+Arena 78 m (3,45x Remiza), noc z księżycem, gwiazdami i mgiełką (sky/Points/halo podążają za kamerą). Centrum: sala wiejska zbudowana lokalnie (ściany z wejściem i wyjściem awaryjnym `slidingDoor auto`,
+parkiet+kula, scena DJ, bar z półkami i stołkami, loże, kolumny-osłony, wieża OSP, billboard DYSKOTEKA). Parking przed salą = arena bossa (`bossArena` x 0, z 24): traktory, Maluchy, namiot z piwem, przyczepa z sianem, bele, beczki.
+Zagroda (dom, obora, stodoła z wnętrzem, brama `auto`), skład maszyn (Bizon, Ursusy), labirynt z kukurydzy 7x8 komórek (DFS + pętle, 3 wejścia, polana z kombajnem; instancing `poleZboza`), pole pszenicy, polana z ogniskiem,
+leśniczówka, ambona z pasieką, las: ok. 650 tanich świerków w `InstancedMesh` dzielonych na komórki 26 m z własnym frustum cullingiem (`cullForest` na `update`), pnie trafialne raycastem, plus drzewa `drzewo` jako osłony przy drogach.
+Znajdźki 13 (`dk-*`), sekrety (E): zaplecze DJ-a, bimbrownia w stodole, leśniczówka. Wygrana: zabicie dowolnego bossa z puli (dziś `boss_soltys`), `levelsDone.dyskoteka`.
+`tests/dyskoteka.js`: 86 asercji; 30 wrogów: 222-317 draw calli, 187-264 tys. tri.
+
+**Techniczne:** `ExtrudeGeometry` jest nieindeksowana i psuje `flushBatches` (`mergeGeometries: mieszane indeksowanie`), więc przed `addPart` trzeba ją zaindeksować (zrobione lokalnie w `gableRoof`).
+Instancje trafialne raycastem trzeba samemu dopisać do `world.meshes` (`inst()` w poziomie); `instance()` tego nie robi, więc bez tego kule i wzrok przenikają przez płoty/kukurydzę.
+
+**Brakujące rekwizyty (ds-world-modeler):** 1. sala wiejska z wnętrzem (dziś `salaWiejska` to zamknięta bryła; poziom buduje własną salę, prop stoi tylko jako remiza OSP przy szosie); 2. stodoła/obora z otwartym wnętrzem i drabiną na stryszek;
+3. prosty tani las (`swierkLowPoly` do instancingu) i krzewy jako ściana; 4. stoły biesiadne z ławami, grill, scena/podest dla kapeli, girlandy (dziś `bulbs` w poziomie); 5. kukurydza jako rośliny (dziś bloki rzędów), snop/kopa jako osłona;
+6. Maluch/Polonez z drzwiami otwartymi (kryjówka), kombajn z wejściem do kabiny; 7. wąskotorówka lub rampa/schody na dach sali (silnik ma płaską podłogę, więc "piętra" są tylko wizualne).
