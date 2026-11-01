@@ -82,6 +82,18 @@ są lokalne; brak HUD-u kolegów (pasków HP), dołączania w trakcie (`full`), 
 
 Zmiana względem decyzji: monety z zabójstwa leżą na ziemi dla wszystkich (wcześniej: strzelec). XP i asysty bez zmian. Jazda windą jest lokalnym teleportem.
 
+## Stan: etap 3 zrobiony (test: `node tests/coop.js 4203 --gpu`, 77 sprawdzeń; HUD: `tests/viewport.js` na 375/768/1280)
+
+- Dołączanie w trakcie: pokój zamknięty w trakcie fali, otwarty między falami (wybór: nikt nie wpada w środek walki, a skalowanie i tak liczy się od fali).
+  Dołączający dostaje `full` (poziom, fala, wrogowie z bossami, znajdźki, drzwi/windy/beczki/automaty, wiązki), staje w punkcie startu z pełnym HP;
+  HP i `maxAlive` wrogów przeliczają się od następnej fali.
+- Zerwane połączenie: „Rozłączono — próbuję wrócić…”, po powrocie `hi` → `full` i gra trwa dalej; nieudany powrót: lobby z komunikatem „Nie udało się wrócić do gry”.
+  Zmiana hosta przez JuicyJuicy: run kończy się u wszystkich, lobby z nowym hostem i komunikatem (bez migracji stanu, etap 4 opcjonalny).
+- Karta w tle: klienci widzą „Host zminimalizował grę”, gdy brak snapshotów > 1,5 s; host w tle liczy grę na `setInterval` 20 Hz (bez renderu, ok. 0,3 ms/krok).
+- HUD co-op: paski HP kolegów z nickami i stanem (POWALONY / OGŁUSZONY), znaczniki na krawędzi ekranu z odległością, „PODNIEŚ [E]” przy leżącym,
+  komunikaty dołączenia/wyjścia/rozłączenia, zawołania Z „Tutaj!”, X „Pomocy!”, B „Uwaga, boss!” (zmiana klawiszy: Opcje → Sterowanie, grupa
+  „Gra ze znajomymi”). Klawisz C zajmuje już kucanie, dlatego trzecie zawołanie jest pod B.
+
 ## Bezpieczeństwo
 
 Wszystko, co przychodzi z sieci, to dane: `JSON` z relaya waliduj (typy, zakresy, istniejące `eid`), nazwy graczy tylko przez `textContent`, żadnego `innerHTML`/`eval` na danych od innych graczy. Limity: odrzucaj wiadomości > 16 KB i nadmiar częstotliwości po stronie hosta (ignoruj, nie crashuj).

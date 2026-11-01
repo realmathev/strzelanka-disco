@@ -220,6 +220,7 @@ działają między kartami tego samego originu przez BroadcastChannel; pokój ż
 | `interp.js` | `SampleBuf`: próbki z zegarem nadawcy, interpolacja z opóźnieniem 100 ms (kąty po najkrótszym łuku) |
 | `host.js` | cel AI (najbliższy widoczny gracz), podmiana `P` na czas `e.def.update`, trafienia zdalne, asysty, rany zdalnych, snapshot |
 | `replicas.js` | klient: repliki wrogów (`def.create` bez AI, `e.replica=true`), interpolacja, animacja (`ai.animateReplica`), śmierć; bossowie (faza, `bossHp/bossPhase`), efekty, kosmetyka, wiązki |
+| `hud.js` | HUD co-op: panel kolegów (nick, HP, POWALONY/OGŁUSZONY), znaczniki na krawędzi ekranu i „PODNIEŚ [E]” przy leżącym, kanał komunikatów, baner ostrzeżeń, zawołania (`callHere/callHelp/callBoss`, Z/X/B, rebind w Sterowaniu), `DS.net.hudDemo` (tests/viewport.js) |
 | `world.js` | znajdźki pod kontrolą hosta (`ps/pg`, prośba `pick`), stan drzwi/wind/beczek/automatów (`ws`, prośba `use`), `anyNear` dla drzwi automatycznych |
 | `avatars.js` | awatary kolegów: postać z `enemies/kit.js` w kolorze gracza, `getWorldModel()` broni, nick na canvasie (sprite), powalenie |
 | `coop.js` | run: start, `in` 20 Hz, `shot`, nagrody za zabójstwa/asysty, powalenie i podnoszenie, koniec runu, wyjście |
@@ -269,6 +270,18 @@ DS.net.active() / isHost() / isClient()   // tylko w trakcie runu co-op (pokój 
 | `use` | klient → host | `{o:'d'|'l'|'m'|'b', i, v}` drzwi/winda (stan v), automat (zużyty), beczka (wysadź) |
 | `level` | host → wszyscy | `{lv, seed}` „Dalej”: kolejny poziom u wszystkich (nowy run, ta sama drużyna, pokój zamknięty) |
 | `lobby` | host → wszyscy | „Menu” na ekranie ukończenia: drużyna wraca do lobby |
+| `full` | host → jeden | `{lv, df, seed, w, q, t, e:[wpisy wrogów], pk:[[id,typ,x,z,wartość]…], ws?, bm?}`: dołączający w trakcie runu (od razu po `join`) albo klient po powrocie połączenia |
+| `hi` | klient → host | „wróciłem po zerwaniu” → host odpowiada `full` (najwyżej raz na 2 s) |
+| `call` | każdy → wszyscy | `{c:0..2}` gotowe zawołanie („Tutaj!”, „Pomocy!”, „Uwaga, boss!”); brak wolnego tekstu |
+
+**Dołączanie w trakcie runu:** host zamyka pokój w trakcie fali (wrogowie żyją albo kolejka spawnu > 0) i otwiera między falami (`lockTick` w `coop.js`);
+dołączający dostaje `full`, startuje run na tym samym poziomie i fali w punkcie startu z pełnym HP. Liczba graczy do skalowania (`DS.net.rescale`, `N.scaleN`)
+jest ustalana na starcie runu i każdej fali, więc nowy gracz podnosi HP i `maxAlive` wrogów od następnej fali. Pozostali oznaczają go jako „w runie” po pierwszym `in`.
+**Zerwane połączenie:** snippet wznawia połączenie sam (3 próby, `room.link === null` w trakcie); `session.js` co 250 ms pokazuje „Rozłączono — próbuję wrócić…”,
+po powrocie klient wysyła `hi` i odbudowuje repliki/znajdźki/świat z `full` (`replicas.applyFull`); nieudany powrót (`close` DISCONNECTED) = lobby z komunikatem
+„Nie udało się wrócić do gry…”. **Zmiana hosta** (zdarzenie `host` relaya): run kończy się u wszystkich bez migracji stanu, drużyna wraca do lobby z nowym hostem.
+**Karta w tle:** klient bez snapshotu > 1,5 s pokazuje „Host zminimalizował grę”; host przy `document.hidden` liczy grę z `setInterval` 20 Hz bez renderu
+(koszt kroku ≈ 0,3 ms przy kilku wrogach, `N.stats.bgMs`); przeglądarka i tak może dławić timery kart w tle, wtedy klienci widzą ostrzeżenie.
 
 `ev`: `{t:'wave',w,c,b?,n?}`, `{t:'clear',w}`, `{t:'kill',id,by,hd,a:[asysty]}`, `{t:'fx',f:'th'|'pk'|'pu'|'ig'|'ex'|'sw',k?,id?,a:[liczby]}` (efekty wrogów),
 `{t:'ps',id,k,a:[x,z],v}` / `{t:'pg',id,by|null}` (znajdźka: spawn / zniknięcie), `{t:'lc',lv,w}` (poziom ukończony).
@@ -277,9 +290,9 @@ DS.net.active() / isHost() / isClient()   // tylko w trakcie runu co-op (pokój 
 Zdarzenia i rany jadą w snapshocie (zamiast osobnych `ev`/`hurt`), żeby host mieścił się w limicie 60 wiadomości/s. Rozmiar `snap` przy 30 wrogach ≈ 1,1–1,3 KB (`tests/coop.js`).
 
 **Ograniczenia:** znajdźki poziomu (kasety, plakaty, łańcuchy) są lokalne (każdy zbiera do własnego zapisu, host ich nie widzi); jazda windą to lokalny
-teleport (synchronizowane są drzwi wind); przy jednoczesnym użyciu stacji leczenia przez dwóch graczy obaj się uleczą; brak dołączania w trakcie,
-reconnectu i migracji hosta (wyjście hosta kończy run); karta w tle (brak `requestAnimationFrame`) przestaje wysyłać `in`, a karta hosta w tle
-zatrzymuje wrogów wszystkim. Test: `node tests/coop.js 4203 --gpu`
+teleport (synchronizowane są drzwi wind); przy jednoczesnym użyciu stacji leczenia przez dwóch graczy obaj się uleczą; brak migracji stanu przy
+zmianie hosta (run się kończy); klient w tle przestaje wysyłać `in` (koledzy widzą zamrożony awatar, AI przestaje w niego celować po 4 s).
+Testy: `node tests/coop.js 4203 --gpu` (runner `tests/cdp-multi.js`), HUD co-op na 375/768/1280: `node tests/cdp-run.js viewport.js 4203 --size=375x667`.
 (runner wielokartowy `tests/cdp-multi.js`).
 
 ## Zdarzenia (`DS.bus.on(name, fn)` zwraca funkcję wypisującą; `emit(name, payload)`)
