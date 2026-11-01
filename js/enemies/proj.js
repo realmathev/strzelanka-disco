@@ -16,13 +16,15 @@ import * as nav from './nav.js';
 
 const sh=o=>(o.userData.shared=true,o);
 const GEO={bottle:sh(new THREE.CylinderGeometry(.04,.05,.28,6)),chip:sh(new THREE.CylinderGeometry(.15,.15,.04,10)),petard:sh(new THREE.CylinderGeometry(.035,.035,.24,6)),
-  puddle:sh(new THREE.CircleGeometry(1,18)),ball:sh(new THREE.SphereGeometry(1,14,10)),ring:sh(new THREE.CylinderGeometry(1,1,1,36,1,true)),box:sh(new THREE.BoxGeometry(1,1,1))};
-GEO.puddle.rotateX(-Math.PI/2);
-const MAT={bottle:sh(toon(0x5f8a2a)),chip:sh(toon(0xd3242a)),petard:sh(toon(0xd3242a,{emissive:0x331100})),
+  puddle:sh(new THREE.CircleGeometry(1,18)),milk:sh(new THREE.SphereGeometry(.13,10,8)),jerry:sh(new THREE.BoxGeometry(.22,.32,.12)),ball:sh(new THREE.SphereGeometry(1,14,10)),ring:sh(new THREE.CylinderGeometry(1,1,1,36,1,true)),box:sh(new THREE.BoxGeometry(1,1,1))};
+GEO.puddle.rotateX(-Math.PI/2);GEO.bimber=GEO.milk;
+const pudMat=(c,o)=>sh(new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,depthWrite:false}));
+const MAT={milk:sh(toon(0xf7f3e8)),bimber:sh(toon(0xe0b040,{emissive:0x221400})),jerry:sh(toon(0xd3242a)),pmilk:pudMat(0xf4f0e6,.85),pbimber:pudMat(0xd9a030,.8),pfuel:pudMat(0x4a3a18,.85),pfire:pudMat(0xff7a1a,.9),bottle:sh(toon(0x5f8a2a)),chip:sh(toon(0xd3242a)),petard:sh(toon(0xd3242a,{emissive:0x331100})),
   puddle:sh(new THREE.MeshBasicMaterial({color:0xd9a441,transparent:true,opacity:.8,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,depthWrite:false})),
   glass:sh(new THREE.MeshBasicMaterial({color:0xcfe9d6,transparent:true,opacity:.35,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3,depthWrite:false}))};
 const G_ACC=14;
 const projs=[],puddles=[],fx=[],waves=[];
+let stunT=0;                                   // ogłuszenie gracza (gwizdek): drżenie kamery + spowolnienie
 const BEAMS=[];
 const V=new THREE.Vector3();
 
@@ -35,7 +37,7 @@ export function throwProj(kind,from,tx,ty,tz,o={}){
   const G=S.G;if(!G)return null;
   const mesh=new THREE.Mesh(GEO[kind],MAT[kind]);mesh.position.copy(from);mesh.castShadow=false;scene.add(mesh);
   const dx=tx-from.x,dz=tz-from.z,d=Math.hypot(dx,dz)||1,sp=o.speed||14,T=Math.max(.25,d/sp);
-  const p={kind,mesh,vx:dx/T,vz:dz/T,vy:(ty-from.y+.5*G_ACC*T*T)/T,t:0,dmg:o.dmg||8,fuse:o.fuse||0,r:o.r||3.5,splash:o.splash||1.6,owner:o.owner,spin:rand(-12,12),rest:false};
+  const p={kind,mesh,vx:dx/T,vz:dz/T,vy:(ty-from.y+.5*G_ACC*T*T)/T,t:0,dmg:o.dmg||8,fuse:o.fuse||0,r:o.r||3.5,splash:o.splash||1.6,owner:o.owner,ignite:!!o.ignite,spin:rand(-12,12),rest:false};
   projs.push(p);return p;
 }
 function wallHit(x,y,z){
@@ -51,6 +53,18 @@ function impact(p,direct){
       const dp=Math.hypot(P.pos.x-x,P.pos.z-z);
       if(direct)hurt(p.dmg);else if(dp<p.splash&&P.pos.y<1)hurt(p.dmg*.5);
       break}
+    case 'milk':case 'bimber':{
+      sfx('e_splash');addFloater(p.kind==='milk'?'PLUM!':'BIMBER!',{world:V.set(x,.8,z).clone(),size:30,life:.6,color:p.kind==='milk'?'#f4f0e6':'#ffd34a',vy:-30,rot:rand(-.2,.2)});
+      puddle(x,z,{r:rand(1.2,1.6),life:6,dmg:p.dmg*.22,kind:p.kind});
+      const dp=Math.hypot(P.pos.x-x,P.pos.z-z);
+      if(direct)hurt(p.dmg);else if(dp<p.splash&&P.pos.y<1)hurt(p.dmg*.5);
+      break}
+    case 'jerry':{
+      sfx('e_glass');addFloater('KANISTER!',{world:V.set(x,.8,z).clone(),size:30,life:.6,color:'#ff8a3a',vy:-30,rot:rand(-.2,.2)});
+      puddle(x,z,{r:rand(1.9,2.3),life:10,dmg:0,kind:'fuel',fdmg:p.dmg*.3});
+      if(direct)hurt(p.dmg*.5);
+      if(p.ignite){explode(x,.4,z,{r:3.4,dmg:p.dmg*.6,shake:.6});igniteFuel(.25)}
+      break}
     case 'chip':if(direct)hurt(p.dmg);addFloater('ŻETON!',{world:V.set(x,1,z).clone(),size:22,life:.5,color:'#ffe14a',vy:-30});break;
     case 'petard':p.rest=true;p.vx=p.vy=p.vz=0;p.mesh.position.y=Math.max(p.mesh.position.y,.1);return false;   // leży i syczy do końca lontu
   }
@@ -59,13 +73,28 @@ function impact(p,direct){
 function killProj(p){scene.remove(p.mesh);p.dead=true}
 
 /* ---------- kałuże ---------- */
-/** Kałuża piwa z odłamkami szkła: rani gracza stojącego w środku (tykanie co 0,5 s). */
-export function puddle(x,z,{r=1.2,life=7,dmg=1.5}={}){
-  while(puddles.length>=10){killPuddle(puddles.shift())}
-  const m=new THREE.Mesh(GEO.puddle,MAT.puddle);m.position.set(x,.035,z);m.scale.set(r,1,r);m.rotation.y=rand(0,6);scene.add(m);
-  puddles.push({mesh:m,x,z,r,life,t:0,dmg,tick:.3,warned:false});
+/**
+ * Kałuża: rodzaj `kind` = 'glass' (piwo z odłamkami, domyślna), 'milk', 'bimber' (rani gracza stojącego w środku, tykanie co 0,5 s),
+ * 'fuel' (paliwo: nieszkodliwe, dopóki nie zostanie podpalone przez `igniteFuel`) albo 'fire' (płonące paliwo; `fdmg` = obrażenia za tykanie).
+ */
+export function puddle(x,z,{r=1.2,life=7,dmg=1.5,kind='glass',fdmg=3}={}){
+  while(puddles.length>=18){killPuddle(puddles.shift())}
+  const m=new THREE.Mesh(GEO.puddle,MAT[kind==='glass'?'puddle':'p'+kind]);m.position.set(x,.035+(kind==='fire'?.01:0),z);m.scale.set(r,1,r);m.rotation.y=rand(0,6);scene.add(m);
+  puddles.push({mesh:m,x,z,r,life,t:0,dmg,fdmg,kind,ign:0,tick:.3,warned:false});
 }
 function killPuddle(q){scene.remove(q.mesh)}
+function ignite(q){
+  q.kind='fire';q.mesh.material=MAT.pfire;q.dmg=q.fdmg;q.life=q.t+3.6;q.tick=.15;q.ign=0;
+  for(const o of puddles)if(o.kind==='fuel'&&!o.ign&&Math.hypot(o.x-q.x,o.z-q.z)<q.r+o.r+.5)o.ign=rand(.12,.3);   // ogień biegnie po paliwie
+}
+/** Podpala wszystkie kałuże paliwa (z rozrzutem opóźnień, więc ogień przebiega wzdłuż strumienia). */
+export function igniteFuel(delay=.3){
+  let n=0;for(const q of puddles)if(q.kind==='fuel'){q.ign=delay+rand(0,.4);n++}
+  if(n)sfx('e_ignite');return n;
+}
+/** Ogłuszenie gracza na `t` s (gwizdek): wstrząs kamery i spowolnienie ruchu; krótsze trwanie nie skraca dłuższego. */
+export function stunPlayer(t){stunT=Math.max(stunT,t)}
+export const isStunned=()=>stunT>0;
 
 /* ---------- wybuchy i fale ---------- */
 /** Wybuch w (x,y,z): obrażenia gracza malejące z odległością (mur zasłania w 70%), odrzut, błysk i dym. */
@@ -80,7 +109,7 @@ export function explode(x,y,z,{r=4.5,dmg=30,color=0xff9a2a,shake=1.1}={}){
   if(!G.dead&&d<r){
     let f=1-(d/r)*.7;if(!nav.gridLos(x,z,px,pz))f*=.3;
     hurt(dmg*f);G.shake+=shake*f;
-    const dx=px-x,dz=pz-z,l=Math.hypot(dx,dz)||1;P.vel.x+=dx/l*9*f;P.vel.z+=dz/l*9*f;
+    const dx=px-x,dz=pz-z,l=Math.hypot(dx,dz)||1;DS.player.knock({x:(dx/l*9*f)*.7,z:(dz/l*9*f)*.7});
   }else if(d<r*2)G.shake+=shake*.3;
 }
 /** Fala uderzeniowa po ziemi (DJ): pierścień rośnie od (x,z); gracz na ziemi w pasie fali dostaje obrażenia raz — trzeba skoczyć. */
@@ -96,9 +125,9 @@ export function beam(){
   let b=BEAMS.find(q=>!q.used);
   if(!b){const mat=new THREE.MeshBasicMaterial({color:0xff2222,transparent:true,opacity:.8,depthWrite:false});const mesh=new THREE.Mesh(GEO.box,mat);mesh.raycast=()=>{};mesh.frustumCulled=false;
     b={mesh,mat,used:false,
-      set(ax,ay,az,bx,by,bz,w=.04,color,opacity){
+      set(ax,ay,az,bx,by,bz,w=.04,color,opacity,h){
         const m=this.mesh;m.position.set((ax+bx)/2,(ay+by)/2,(az+bz)/2);
-        const len=Math.hypot(bx-ax,by-ay,bz-az)||.01;m.scale.set(w,w,len);m.lookAt(bx,by,bz);
+        const len=Math.hypot(bx-ax,by-ay,bz-az)||.01;m.scale.set(w,h===undefined?w:h,len);m.lookAt(bx,by,bz);
         if(color!==undefined)this.mat.color.setHex(color);if(opacity!==undefined)this.mat.opacity=opacity;
       },
       release(){if(this.used){this.used=false;scene.remove(this.mesh)}}};
@@ -130,13 +159,16 @@ export function updateProj(dt){
   compact(projs);
   for(const q of puddles){
     q.t+=dt;const k=q.t>q.life-1?Math.max(0,q.life-q.t):1;
-    q.mesh.scale.set(q.r*k,1,q.r*k);
-    if(!G.dead&&P.pos.y<.4&&Math.hypot(P.pos.x-q.x,P.pos.z-q.z)<q.r*.9){
-      q.tick-=dt;if(q.tick<=0){q.tick=.5;hurt(q.dmg);if(!q.warned){q.warned=true;addFloater('SZKŁO!',{world:V.set(P.pos.x,1.6,P.pos.z).clone(),size:26,life:.6,color:'#cfe9d6',vy:-30})}}
+    if(q.ign>0&&(q.ign-=dt)<=0)ignite(q);
+    const fl=q.kind==='fire'?1+.1*Math.sin(q.t*22+q.x):1;
+    q.mesh.scale.set(q.r*k*fl,1,q.r*k*fl);
+    if(q.dmg>0&&!G.dead&&P.pos.y<(q.kind==='fire'?.9:.4)&&Math.hypot(P.pos.x-q.x,P.pos.z-q.z)<q.r*.9){
+      q.tick-=dt;if(q.tick<=0){q.tick=.5;hurt(q.dmg);if(!q.warned){q.warned=true;const W={fire:['PŁOMIENIE!','#ff8a3a'],milk:['MLEKO!','#f4f0e6'],bimber:['BIMBER!','#ffd34a']}[q.kind]||['SZKŁO!','#cfe9d6'];addFloater(W[0],{world:V.set(P.pos.x,1.6,P.pos.z).clone(),size:26,life:.6,color:W[1],vy:-30})}}
     }
     if(q.t>=q.life){killPuddle(q);q.dead=true}
   }
   compact(puddles);
+  if(stunT>0){stunT-=dt;if(!G.dead){G.shake=Math.max(G.shake,Math.min(2.4,stunT*2));const k=Math.exp(-dt*5);P.vel.x*=k;P.vel.z*=k}}
   for(const f of fx){
     f.t+=dt;const k=f.t/f.life,s=.3+(f.r*.55-.3)*Math.min(1,k*2.2);f.mesh.scale.setScalar(s);f.mat.opacity=.9*Math.max(0,1-k);
     if(f.t>=f.life){scene.remove(f.mesh);f.mat.dispose();f.dead=true}
@@ -146,7 +178,7 @@ export function updateProj(dt){
     w.r+=w.speed*dt;w.mesh.scale.set(w.r,w.height,w.r);w.mat.opacity=.7*(1-w.r/w.max);
     if(!w.hit&&!G.dead&&P.pos.y<.45){
       const d=Math.hypot(P.pos.x-w.x,P.pos.z-w.z);
-      if(Math.abs(d-w.r)<.9){w.hit=true;hurt(w.dmg);const dx=P.pos.x-w.x,dz=P.pos.z-w.z,l=Math.hypot(dx,dz)||1;P.vel.x+=dx/l*7;P.vel.z+=dz/l*7;G.shake+=.6}
+      if(Math.abs(d-w.r)<.9){w.hit=true;hurt(w.dmg);const dx=P.pos.x-w.x,dz=P.pos.z-w.z,l=Math.hypot(dx,dz)||1;DS.player.knock({x:(dx/l*7)*.7,z:(dz/l*7)*.7});G.shake+=.6}
     }
     if(w.r>=w.max){scene.remove(w.mesh);w.mat.dispose();w.dead=true}
   }
@@ -161,6 +193,7 @@ export function clearProj(){
   for(const f of fx){scene.remove(f.mesh);f.mat.dispose()}fx.length=0;
   for(const w of waves){scene.remove(w.mesh);w.mat.dispose()}waves.length=0;
   for(const b of BEAMS)b.release();
+  stunT=0;
 }
 export const projCount=()=>({projs:projs.length,puddles:puddles.length,fx:fx.length,waves:waves.length,beams:BEAMS.filter(b=>b.used).length});
 DS.bus.on('levelStart',clearProj);DS.bus.on('levelEnd',clearProj);DS.bus.on('levelUnload',clearProj);

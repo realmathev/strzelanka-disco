@@ -64,7 +64,7 @@ DS.enemies.register({
         return false;
       },
       attack(e,dt,ctx){enter(e,'chase')},
-      animate:animateCar,onHit(e,ev){if(e.vuln&&!ev.head)e.hp-=ev.dmg*.5},
+      animate:animateCar,beforeHit(e,ev){if(e.vuln&&!ev.head)ev.dmg*=1.5},
       states:{
         rev:{enter(e){const a=e.ai;a.st=0;sfx('e_rev',0);noise(e,40);addFloater('BRRRRM!',{world:e.g.localToWorld(new THREE.Vector3(0,2.2,0)),size:40,life:.9,color:'#ffe14a',vy:-20,rot:-.1})},locked:e=>true,
           update(e,dt,ctx){const a=e.ai;a.st+=dt;stopMove(e,dt);facePlayer(e);e.shake=.03;e.pitch=.05*Math.min(1,a.st*3);
@@ -85,7 +85,7 @@ DS.enemies.register({
             if(!a.hitDone&&!S.G.dead){
               // elipsa pojazdu ~ (0,7 × 1,5 m): kolizja z graczem
               const rx=P.pos.x-p.x,rz=P.pos.z-p.z,fwd=rx*a.dx+rz*a.dz,side=Math.abs(rx*a.dz-rz*a.dx);
-              if(P.pos.y<1.1&&Math.abs(fwd)<1.9&&side<1.15){a.hitDone=true;if(hitPlayer(e,e.dmg)){P.vel.x+=a.dx*15;P.vel.z+=a.dz*15;S.G.shake+=1.2;sfx('e_crash');addFloater('BUM!',{world:new THREE.Vector3(P.pos.x,1.6,P.pos.z),size:50,life:.7,color:'#ff6a3a',vy:-30,burst:true})}}
+              if(P.pos.y<1.1&&Math.abs(fwd)<1.9&&side<1.15){a.hitDone=true;if(hitPlayer(e,e.dmg)){DS.player.knock({x:(a.dx*15)*.7,z:(a.dz*15)*.7});S.G.shake+=1.2;sfx('e_crash');addFloater('BUM!',{world:new THREE.Vector3(P.pos.x,1.6,P.pos.z),size:50,life:.7,color:'#ff6a3a',vy:-30,burst:true})}}
             }
             if(a.st>.3&&moved<a.csp*dt*.35){e.stun=2.2;sfx('e_crash');S.G.shake+=.8;noise(e,35);enter(e,'crash');return}   // wjechał w ścianę
             if(a.st>2.3||Math.hypot(p.x-a.px,p.z-a.pz)>40){enter(e,'brake')}}},

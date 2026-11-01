@@ -1,5 +1,6 @@
 // Pijak z butelkami: chwiejny slalom, rzuca butelkami po łuku (zapowiedź: zamach nad głowę), butelka rozbija się w kałużę
 // z odłamkami, która rani stojącego w niej gracza. Z bliska tłucze butelką. Po śmierci zostawia kałużę po wódce.
+import {DS} from '../core/ds.js';
 import {sfx} from '../audio/sfx.js';
 import {P} from '../player/player.js';
 import {humanBase} from './kit.js';
@@ -48,7 +49,7 @@ reg('pijak','Pijak z butelkami',(o={})=>{
           case 3:a.st+=dt;stopMove(e,dt);if(a.st>=.5){a.sub=0;a.cd=rand(2.2,3.4)}break;
           case 4:                                                          // cios butelką
             a.st+=dt;stopMove(e,dt);
-            if(a.st>=.45&&!a.hit){a.hit=true;e.armT=1.1;e.lean=.6;if(ctx.dist<2.8){if(hitPlayer(e,e.dmg*.7)){P.vel.x+=ctx.nx*4;P.vel.z+=ctx.nz*4;sfx('e_glass')}}}
+            if(a.st>=.45&&!a.hit){a.hit=true;e.armT=1.1;e.lean=.6;if(ctx.dist<2.8){if(hitPlayer(e,e.dmg*.7)){DS.player.knock({x:(ctx.nx*4)*.7,z:(ctx.nz*4)*.7});sfx('e_glass')}}}
             if(a.st>=.9){a.sub=0;a.hit=false;a.cd=rand(1.2,2);e.armT=0;e.lean=0}
             break;
         }

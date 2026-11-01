@@ -45,7 +45,7 @@ export function meleeAttack(e,dt,ctx,o){
     case 1:
       a.st+=dt;stopMove(e,dt);e.lean=-.35*Math.min(1,a.st/o.windup);if(e.armR)e.armT=-.9*Math.min(1,a.st/o.windup);
       if(a.st>=o.windup){a.sub=2;a.st=0;e.lean=.75;if(e.armR)e.armT=.8;sfx('e_whoosh');
-        if(ctx.dist<o.reach*1.3){const ok=hitPlayer(e,o.dmg);if(ok){P.vel.x+=ctx.nx*(o.knock||5);P.vel.z+=ctx.nz*(o.knock||5);if(o.hitSnd)sfx(o.hitSnd)}}}
+        if(ctx.dist<o.reach*1.3){const ok=hitPlayer(e,o.dmg);if(ok){DS.player.knock({x:(ctx.nx*(o.knock||5))*.7,z:(ctx.nz*(o.knock||5))*.7});if(o.hitSnd)sfx(o.hitSnd)}}}
       break;
     case 2:
       a.st+=dt;if(a.st>.2){a.sub=3;a.st=0;e.lean=0;if(e.armR)e.armT=0}

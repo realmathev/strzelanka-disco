@@ -1,10 +1,10 @@
 // Testy samoczynne areny (tools/enemy-test.html): ARENA.selfTest([typ]) -> {nazwa: 'PASS' | 'FAIL (szczegóły)' | 'info: …'}.
 // Bez GPU render jest programowy i wolny, więc symulacja idzie klatkami po 1/30 s z renderem co kilkadziesiąt klatek; czasy w sekundach SYMULACJI.
-import {clearProj,projCount,puddle} from './proj.js';
+import {clearProj,projCount,puddle,igniteFuel} from './proj.js';
 import {makeEnemy} from './manager.js';
 
 const TYPES=['dres','ochroniarz','bandyta','snajper','pijak','kamikadze','medyk','kierowca'];
-const BOSSES=['boss_dj','boss_jednooki','boss_szef_ochrony'];
+const BOSSES=['boss_dj','boss_jednooki','boss_szef_ochrony','boss_soltys','boss_dyzurny','boss_szef_stacji'];
 
 export async function runAll(A,X,only){
   const {S,DS,P,world,nav,opt,damageEnemy,spawnEnemy,updateEnemies,enter}=X;
@@ -237,6 +237,71 @@ export async function runAll(A,X,only){
       A.shoot(e,{dmg:1e6,head:true});A.step(5);ok('szef.zabity',!e.alive);
     },
   };
+  const pickKinds=()=>S.G.pickups.map(q=>q.type);
+  /** Wspólne dla nowych bossów: pasek HP, nietykalność w przejściu fazy, zdarzenia, śmierć, drop, brak wycieku. */
+  const bossCommon=(e,tag,drop)=>{
+    ok(tag+'.pasekHP',!!e.bar&&e.boss===true&&e.xp>=170&&e.xp<=190,'xp '+e.xp);
+    ok(tag+'.tarczaNaBeforeHit',typeof e.cfg.beforeHit==='function');
+  };
+  const BOSS2={
+    boss_soltys:async()=>{
+      reset();const e=A.spawn('boss_soltys',{d:14});phases.length=0;bossHpEv=0;faceP(e);bossCommon(e,'soltys');
+      let milk=false;e.forceAct='milk';run(240,()=>{if(projCount().projs>0)milk=true;return milk});
+      ok('soltys.bańki',milk,JSON.stringify(projCount()));
+      let pud=false;run(120,()=>{if(projCount().puddles>0)pud=true;return pud});ok('soltys.kałużaPoBańce',pud,JSON.stringify(projCount()));
+      e.hp=e.maxHp*.6;run(12);ok('soltys.faza2',e.phase===2&&e.invulT>0,'faza '+e.phase);
+      const hp1=e.hp;A.shoot(e,{dmg:80});ok('soltys.nietykalnyPrzyFazie',e.hp>=hp1-.01,fx(hp1-e.hp));
+      run(90);const pj=A.alive().filter(x=>x.type==='pijak').length;ok('soltys.faza2:pijacy',pj>=3,pj+' pijaków');
+      run(45);e.forceAct='quorum';let q=false;run(90,()=>{if(e.quorum>0)q=true;return q});const h2=e.hp;A.shoot(e,{dmg:100});
+      ok('soltys.kworum',q&&h2-e.hp<=100*.2+.5,'tracone '+fx(h2-e.hp)+' z 100');
+      e.quorum=0;e.hp=e.maxHp*.3;run(12);ok('soltys.faza3',e.phase===3,'faza '+e.phase);
+      run(60);e.forceAct='tractor';let ch=false,dm0=A.dmgN;run(240,()=>{if(e.ai.act==='tractor'&&e.ai.st>1.1)ch=true;return ch&&A.dmgN>dm0});
+      ok('soltys.ciągnik',ch,'szarża='+ch+' trafień '+(A.dmgN-dm0));
+      ok('soltys.fazyZdarzenia',phases.join()==='2,3'&&bossHpEv>0,phases.join()+' bossHp×'+bossHpEv);
+      kills.length=0;A.shoot(e,{dmg:1e6,head:true});A.step(30);
+      ok('soltys.zabity',!e.alive&&kills.length===1);ok('soltys.drop',pickKinds().some(k=>k==='med'),pickKinds().join());
+    },
+    boss_dyzurny:async()=>{
+      reset();const e=A.spawn('boss_dyzurny',{d:16});phases.length=0;bossHpEv=0;faceP(e);bossCommon(e,'dyzurny');
+      let tele=false,train=false;e.forceAct='sklad';
+      run(420,()=>{const b=projCount().beams;if(b>=1)tele=true;if(e.ai.lanes&&e.ai.lanes.some(l=>l.go)&&b>=2)train=true;return train});
+      ok('dyzurny.semaforZapowiedź',tele&&train,'zapowiedź='+tele+' skład='+train);
+      // gwizdek ogłusza gracza w zasięgu (LOS), faza 1 bez wymuszonego ataku po
+      reset();const g=A.spawn('boss_dyzurny',{d:12});faceP(g);g.forceAct='gwizdek';let sh=0;run(90,()=>{sh=Math.max(sh,S.G.shake);return false});
+      ok('dyzurny.gwizdekOgłusza',sh>=1.2&&A.dmgN>0,'wstrząs '+fx(sh)+' trafień '+A.dmgN);
+      reset();const f=A.spawn('boss_dyzurny',{d:16});faceP(f);phases.length=0;
+      f.hp=f.maxHp*.6;run(12);ok('dyzurny.faza2',f.phase===2&&f.invulT>0,'faza '+f.phase);
+      const hp1=f.hp;A.shoot(f,{dmg:80});ok('dyzurny.nietykalnyPrzyFazie',f.hp>=hp1-.01,fx(hp1-f.hp));
+      run(60);f.forceAct='drezyna';let dr=false;run(420,()=>{if(f.ai.lanes&&f.ai.lanes.some(l=>l.w===2&&l.go))dr=true;return dr});ok('dyzurny.drezyna',dr,JSON.stringify(projCount()));
+      run(120);f.hp=f.maxHp*.3;run(12);ok('dyzurny.faza3',f.phase===3,'faza '+f.phase);
+      run(60);f.forceAct='rozjazd';let rz=false;run(420,()=>{if(f.ai.lanes&&f.ai.lanes.length>=2)rz=true;return rz});ok('dyzurny.rozjazd:dwaPasy',rz,JSON.stringify(projCount()));
+      ok('dyzurny.fazyZdarzenia',phases.join()==='2,3'&&bossHpEv>0,phases.join());
+      kills.length=0;A.shoot(f,{dmg:1e6,head:true});A.step(30);
+      ok('dyzurny.zabity',!f.alive&&projCount().beams===0&&kills.length===1,JSON.stringify(projCount()));ok('dyzurny.drop',pickKinds().some(k=>k==='vest'||k==='med'),pickKinds().join());
+    },
+    boss_szef_stacji:async()=>{
+      reset();const e=A.spawn('boss_szef_stacji',{d:14});phases.length=0;bossHpEv=0;faceP(e);bossCommon(e,'stacja');
+      e.forceAct='strumien';let fuel=false;run(420,()=>{if(projCount().puddles>=5)fuel=true;return fuel});
+      ok('stacja.strumieńKałuże',fuel,JSON.stringify(projCount()));
+      let burn=false;const d0=A.dmgN;run(150,()=>{if(e.ai.act==='podpal')burn=true;return false});
+      ok('stacja.podpala',burn,'podpal='+burn);
+      // gracz stojący w płonącej kałuży dostaje obrażenia
+      reset();puddle(P.pos.x,P.pos.z,{r:1.8,life:9,dmg:0,kind:'fuel',fdmg:5});A.dmg=0;run(5);const sit=A.dmg;igniteFuel(.05);run(60);
+      ok('stacja.ogieńRani',sit===0&&A.dmg>0,'przed '+fx(sit)+' po podpaleniu '+fx(A.dmg));
+      reset();const f=A.spawn('boss_szef_stacji',{d:14});faceP(f);f.forceAct='kanister';let jc=false;run(420,()=>{if(projCount().projs>0)jc=true;return jc});
+      ok('stacja.kanistry',jc,JSON.stringify(projCount()));let pd=false;run(300,()=>{if(projCount().puddles>=1)pd=true;return pd});ok('stacja.kanisterRozlewa',pd,JSON.stringify(projCount()));
+      f.hp=f.maxHp*.6;run(12);ok('stacja.faza2',f.phase===2&&f.invulT>0,'faza '+f.phase);
+      const hp1=f.hp;A.shoot(f,{dmg:80});ok('stacja.nietykalnyPrzyFazie',f.hp>=hp1-.01,fx(hp1-f.hp));
+      run(90);ok('stacja.faza2:kierowca',A.alive().some(x=>x.type==='kierowca'));
+      f.hp=f.maxHp*.3;run(12);ok('stacja.faza3',f.phase===3,'faza '+f.phase);
+      ok('stacja.faza3:kamikadze',A.alive().some(x=>x.type==='kamikadze'));
+      run(60);f.forceAct='pump';let pm=false;const dm=A.dmgN;run(420,()=>{if(f.ai.act==='pump')pm=true;return pm&&A.dmgN>dm});
+      ok('stacja.pompa:wybuch',pm,'pump='+pm+' trafień '+(A.dmgN-dm));
+      ok('stacja.fazyZdarzenia',phases.join()==='2,3'&&bossHpEv>0,phases.join());
+      kills.length=0;A.shoot(f,{dmg:1e6,head:true});A.step(30);
+      ok('stacja.zabity',!f.alive&&kills.length===1&&!f.beams);ok('stacja.drop',pickKinds().some(k=>k==='med'),pickKinds().join());
+    },
+  };
   const GLOBAL={
     nawigacja:async()=>{
       const g=nav.grid();ok('nav.siatka',g.cols>=80&&g.rows>=80&&g.b0.some(v=>v===1),`${g.cols}×${g.rows}, zajęte ${g.b0.reduce((a,b)=>a+b,0)} (klasa 0), ${g.b1.reduce((a,b)=>a+b,0)} (klasa 1)`);
@@ -306,7 +371,9 @@ export async function runAll(A,X,only){
       ok('tabela.rośnieZFalą',t20.maxAlive>t8.maxAlive&&t20.weights.dres>t8.weights.dres);
       const bp=[5,10,15].map(w=>t8.boss.pick(w).type);
       ok('tabela.bossRemizy',bp.join()==='gangster,boss_dj,boss_jednooki',bp.join());
-      ok('tabela.bossKasyno',DS.enemies.table('kasyno',5).boss.pick(5).type==='boss_szef_ochrony');
+      {const kl=DS.levels.get('kasyno'),ko=kl&&kl.enemies&&kl.enemies.boss&&kl.enemies.boss.pool;ok('tabela.bossKasyno',DS.enemies.table('kasyno',5).boss.pick(5).type===(ko?String(ko[0]).split(':')[0]:'boss_szef_ochrony'));}
+      for(const [lv,b] of [['dyskoteka','boss_soltys'],['dworzec','boss_dyzurny'],['stacja','boss_szef_stacji']]){const L=DS.levels.has(lv)?DS.levels.get(lv):null,o=L&&L.enemies&&L.enemies.boss&&L.enemies.boss.pool;
+        const tp=DS.enemies.table(lv,5).boss;ok('tabela.boss.'+lv,DS.enemies.has(b)&&(o?true:tp.pick(5).type===b),tp.pool.map(x=>x.type).join())}
       ok('tabela.nieznanyPoziom',Object.keys(DS.enemies.table('nie-ma',9).weights).length>=5);
       const lv=DS.levels.get('remiza');lv.enemies={weights:{dres:500},caps:{dres:1},mul:{kierowca:0}};
       const to=DS.enemies.table('remiza',9);delete lv.enemies;
@@ -346,7 +413,7 @@ export async function runAll(A,X,only){
   for(const t of TYPES.concat(BOSSES)){
     if(wants&&!wants.includes(t))continue;
     await common(t);
-    const f=SCEN[t]||BOSS[t];if(f)await f();
+    const f=SCEN[t]||BOSS[t]||BOSS2[t];if(f)await f();
   }
   if(!wants){for(const k of ['nawigacja','osłona','flankowanie','ucieczka','spawn','tabela','wydajność','konsola'])await GLOBAL[k]()}
   else if(wants.includes('global'))for(const k in GLOBAL)await GLOBAL[k]();

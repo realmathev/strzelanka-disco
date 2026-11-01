@@ -11,3 +11,4 @@ import './kamikadze.js';
 import './medyk.js';
 import './kierowca.js';
 import './bosses.js';
+import './bosses2.js';

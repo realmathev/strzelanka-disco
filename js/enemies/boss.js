@@ -45,10 +45,10 @@ export function enterPhase(e,n,{title,sub,onEnter}){
   if(onEnter)onEnter(e);
 }
 /** Ranienie podczas nietykalności / luk w obronie jest w cfg.onHit bossa; ta funkcja zwraca zwrot obrażeń. */
-export function bossOnHit(e,ev){
-  if(e.invulT>0){e.hp+=ev.dmg;e.flashT=0;return}
-  if(e.vuln)e.hp-=ev.dmg*.35;
+export function bossBeforeHit(e,ev){
+  if(e.invulT>0)ev.dmg=0;else if(e.vuln)ev.dmg*=1.35;
 }
+export function bossOnHit(e){if(e.invulT>0)e.flashT=0}
 /** Wołane w decide(): sprawdza progi faz (phases: [{at:.66,title,sub,onEnter}, ...]) i emituje bossHp. Zwraca true, gdy akcja trwa. */
 export function bossThink(e,phases){
   const f=e.hp/e.maxHp;

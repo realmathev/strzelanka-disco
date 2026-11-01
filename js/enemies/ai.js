@@ -145,7 +145,7 @@ export function fireAt(e,from,eye,{dmg,acc,spread=1.4,color=0xff5533,snd='enemyS
   const G=S.G;if(!G||G.dead)return false;
   const dist=from.distanceTo(eye);
   if(!los(from,eye))return false;
-  const moveF=P.vel.length()>4?.65:1;
+  const moveF=P.vel.length()+P.knock.length()>4?.65:1;
   const hit=Math.random()<acc*moveF*clamp(1.4-dist/40,.35,1.2);
   const end=T2.copy(eye);if(!hit){end.x+=rand(-spread,spread);end.y+=rand(-.6,.8);end.z+=rand(-spread,spread)}
   for(let i=0;i<tracers;i++)addTracer(from,end,color,.08);
@@ -364,6 +364,8 @@ export function updateAI(e,dt,eye){
 }
 
 /* ---------- trafienie i śmierć ---------- */
+// przed odjęciem HP: typ może zmienić ev.dmg (tarcza ochroniarza, nietykalność i luki w obronie bossów)
+DS.bus.on('beforeHit',ev=>{const e=ev.enemy;if(e&&e.cfg&&e.cfg.beforeHit)e.cfg.beforeHit(e,ev)});
 DS.bus.on('hit',ev=>{
   const e=ev.enemy;if(!e||!e.ai)return;
   e.flinch=Math.min(1,e.flinch+(ev.dmg>25?1:.55));

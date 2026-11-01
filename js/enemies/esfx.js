@@ -19,3 +19,10 @@ def('e_crash',(c,o,t,a,h)=>{h.nz(500,'lowpass',.35,.9);h.tone('square',160,50,.2
 def('e_bass',(c,o,t,a,h)=>{h.tone('sine',110,38,.5,1);h.nz(200,'lowpass',.4,.5)});                         // DJ: bas
 def('e_sting',(c,o,t,a,h)=>{[0,3,7,12].forEach((n,i)=>h.tone('sawtooth',h.mtof(55+n),0,.2,.16,i*.07))});    // boss: faza
 def('e_shove',(c,o,t,a,h)=>{h.nz(400,'lowpass',.15,.6);h.tone('sine',120,60,.12,.4)});
+def('e_whistle',(c,o,t,a,h)=>{h.tone('sine',2900,3300,.6,.3);h.tone('sine',2950,3350,.6,.2,.02);h.nz(3500,'bandpass',.5,.12,6)});   // dyżurny: gwizdek
+def('e_horn',(c,o,t,a,h)=>{h.tone('sawtooth',196,196,.5,.22);h.tone('sawtooth',247,247,.5,.18)});                                 // dyżurny: sygnał semafora / tyfon
+def('e_chug',(c,o,t,a,h)=>{h.nz(180,'lowpass',.35,.5);h.tone('square',70,45,.3,.3);h.nz(2500,'bandpass',.2,.2,2,.12)});               // skład / drezyna po szynach
+def('e_splash',(c,o,t,a,h)=>{h.nz(1400,'bandpass',.3,.4,.8);h.tone('sine',420,200,.18,.2)});                                       // sołtys: bańka z mlekiem / bimbrem
+def('e_ignite',(c,o,t,a,h)=>{h.nz(900,'lowpass',.6,.7);h.tone('sawtooth',90,300,.4,.18);h.nz(3500,'highpass',.3,.2)});              // szef stacji: zapłon paliwa
+def('e_hiss',(c,o,t,a,h)=>{h.nz(4500,'highpass',.3,.25,.8)});                                                                      // strumień paliwa
+def('e_oink',(c,o,t,a,h)=>{h.tone('sawtooth',150,95,.25,.22);h.tone('square',300,190,.2,.1)});                                      // sołtys: okrzyk wiecu

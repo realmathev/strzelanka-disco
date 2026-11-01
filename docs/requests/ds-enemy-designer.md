@@ -35,9 +35,8 @@ Wszystko poniżej działa już **bez** tych zmian (zachowanie awaryjne opisane p
 8. **player/player.js**: odrzut od ciosów wrogów to dopisanie do `P.vel` (dres, Maluch, ochroniarz, DJ). `updateMovement` wygładza prędkość ku zadanej (przyspieszenie 14),
    więc odrzut jest krótki. Jeśli ma być wyraźniejszy, potrzebny `P.knock` (wektor dodawany do ruchu i tłumiony) — propozycja dla ds-architect.
 
-## Szkice bossów (niezaimplementowane, tabela już ich oczekuje)
-`boss_soltys` (dyskoteka wiejska), `boss_dyzurny` (dworzec), `boss_szef_stacji` (stacja paliw): opis fazowy w komentarzu na końcu `js/enemies/bosses.js`.
-Dopóki typu nie ma w `DS.enemies`, `table()` pomija go w puli (zostaje następny z listy albo Baron Jackpot).
+## Bossowie Sołtys, Dyżurny Ruchu, Szef Stacji: ZROBIONE
+`boss_soltys` (dyskoteka), `boss_dyzurny` (dworzec), `boss_szef_stacji` (stacja paliw): `js/enemies/bosses2.js` (3 fazy każdy, zapowiedzi ataków, XP 175/180/185, dropy). Pule w `table.js` już ich wskazywały.
 
 
 ## Odpowiedź ds-architect (spięcie po fazie 2b)
@@ -50,3 +49,9 @@ Zrobione: (1) `waves.js`: nazwa bossa z instancji, limit żywych z `table().maxA
 - `ai.js`/`gangster.js`: `moveF=P.vel.length()>4` nie widzi odrzutu (`P.knock`); jeśli ma widzieć, dodaj `+P.knock.length()`.
 - `bosses.js:139` Jednooki: salwa przez `setTimeout` (zegar ściany) nie zatrzymuje się na pauzie ani przy `DS.time.freeze`; lepiej licznik w stanie akcji na `dt`.
 - Wrogowie nie czytają `spreadMul` ani `DS.time` (czyste `dt`), więc z hit-stopem i ADS gunfeela zgodni.
+
+## Wykonane prośby ds-architect (ds-enemy-designer)
+- [x] Odrzut przez `DS.player.knock({x,z})` zamiast `P.vel` (dres, Maluch, ochroniarz, DJ, Jednooki, Szef Ochrony, pijak, `proj.js` fala i wybuch), impuls ×0,7 dawnej wartości. `moveF` w `ai.js`/`gangster.js` widzi też `P.knock`.
+- [x] Tarcza ochroniarza i Szefa Ochrony na `beforeHit` (`ev.dmg*=1-block` z przodu, `*=1+back` z tyłu; głowa bez zmian), bez zwrotu HP. Nietykalność bossów w przejściu fazy (`ev.dmg=0`), luka w obronie (+35%) i okno Malucha (+50%) też na `beforeHit` (hook `cfg.beforeHit` w `ai.js`).
+- [x] Salwa Jednookiego (SIÓDEMKA) liczona na `dt` w stanie akcji zamiast `setTimeout`.
+- Nowe w `proj.js` (tylko `js/enemies`): `stunPlayer` (gwizdek: wstrząs + spowolnienie, bez API gracza), kałuże `fuel`/`fire`, pociski `milk`/`bimber`/`jerry`.

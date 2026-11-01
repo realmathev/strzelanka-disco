@@ -1,4 +1,4 @@
-// Bossowie z fazami (pełne: DJ, Jednooki Bandyta, Szef Ochrony; reszta w szkicu na końcu pliku).
+// Bossowie z fazami: DJ, Jednooki Bandyta, Szef Ochrony (pozostali: bosses2.js).
 // Boss poziomu: DS.enemies.table(levelId, fala).boss.pick(fala); po fali 5, 10, 15… (co `boss.every`) waves.js woła makeEnemy(true).
 import {S} from '../core/state.js';
 import {rand,clamp,pick} from '../core/util.js';
@@ -9,7 +9,7 @@ import {P} from '../player/player.js';
 import {humanBase} from './kit.js';
 import {fireAt,moveDir,moveToward,stopMove,noise,hitPlayer,facePlayer} from './ai.js';
 import {throwProj,shockwave,beam,explode} from './proj.js';
-import {addBossBar,animateBoss,bossOnHit,bossThink,bossAttack,summon} from './boss.js';
+import {addBossBar,animateBoss,bossOnHit,bossBeforeHit,bossThink,bossAttack,summon} from './boss.js';
 import {shieldHit} from './ochroniarz.js';
 import {makeHuman,reg,wv,aiOpts,SKIN} from './common.js';
 
@@ -38,7 +38,7 @@ reg('boss_dj','DJ',(o={})=>{
     cfg:{speed:wv(2.9,.04,w),turn:6,sight:70,fov:3.6,range:[3,30],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,DJ_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,DJ_ACT,djPick,{dmin:10,dmax:17})},
-      animate:animateBoss,onHit:bossOnHit},
+      animate:animateBoss,beforeHit:bossBeforeHit,onHit:bossOnHit},
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0}});
   addBossBar(e,2.55,1.9);return e;
 },{drops:[{kind:'med',p:1},{kind:'vest',p:.6},{kind:'adrenaline',p:.5}],tableTags:['boss'],
@@ -94,7 +94,7 @@ reg('boss_jednooki','Jednooki Bandyta',(o={})=>{
     cfg:{speed:wv(3.1,.04,w),turn:7,sight:70,fov:3.4,range:[3,26],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,JO_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,JO_ACT,joPick,{dmin:7,dmax:13})},
-      animate:animateBoss,onHit:bossOnHit},
+      animate:animateBoss,beforeHit:bossBeforeHit,onHit:bossOnHit},
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0}});
   addBossBar(e,2.5,1.9);return e;
 },{drops:[{kind:'med',p:1},{kind:'vest',p:.6},{kind:'kebab',p:.5}],tableTags:['boss'],
@@ -122,21 +122,22 @@ const JO_ACT={
     run(e,dt,ctx){const a=e.ai;e.armT=-.4;
       if(a.st<.5){stopMove(e,dt);e.glow=.2+.1*Math.sin(a.st*40);e.lean=-.3;a.face=2;a.faceYaw=Math.atan2(-a.dx,-a.dz);return false}   // zapowiedź: ugina się
       e.glow=0;e.lean=.7;moveDir(e,dt,a.dx,a.dz,11);
-      if(!a.hitDone&&ctx.dist<1.9&&!S.G.dead){a.hitDone=true;if(hitPlayer(e,e.dmg*1.8)){P.vel.x+=a.dx*10;P.vel.z+=a.dz*10;sfx('e_shove')}}
+      if(!a.hitDone&&ctx.dist<1.9&&!S.G.dead){a.hitDone=true;if(hitPlayer(e,e.dmg*1.8)){DS.player.knock({x:(a.dx*10)*.7,z:(a.dz*10)*.7});sfx('e_shove')}}
       return a.st>=1.2||a.hitDone&&a.st>.7},cool:e=>rand(1.2,2)},
   jackpot:{start(e){const a=e.ai;const K=['SIÓDEMKA','DZWONEK','WIŚNIE','GWIAZDA'];a.reels=[pick(K),pick(K),pick(K)];if(Math.random()<.2)a.reels=[a.reels[0],a.reels[0],a.reels[0]];
       a.q=a.reels.slice();if(a.reels[0]===a.reels[1]&&a.reels[1]===a.reels[2])a.q=[a.reels[0],a.reels[0],a.reels[0],a.reels[0]];a.qi=0;
       addFloater(a.reels.join(' | '),{world:e.g.localToWorld(new THREE.Vector3(0,3.1,0)),size:34,life:1.6,color:'#ffe14a',vy:-10});
       if(a.q.length>3)announce('TRZY '+a.reels[0]+'!','Ataki x4');sfx('jackpot')},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-2.4;e.glow=.2+.15*Math.sin(a.st*25);
+      if(a.salvo>0&&(a.salvoT-=dt)<=0){a.salvo--;a.salvoT=.13;gunMuzzle(e);fireAt(e,MZ,ctx.eye,{dmg:e.dmg*.8,acc:.8,color:0xffd34a,tracers:1})}
       if(a.st<1.0)return false;
       const idx=Math.floor((a.st-1.0)/.9);
       if(idx<a.q.length&&idx>=a.qi){a.qi=idx+1;doReel(e,a.q[idx],ctx)}
-      return a.st>=1.0+a.q.length*.9+.2},end(e){e.glow=0},cool:e=>rand(1.8,2.6)},
+      return a.st>=1.0+a.q.length*.9+.45&&!(a.salvo>0)},end(e){e.glow=0;e.ai.salvo=0},cool:e=>rand(1.8,2.6)},
 };
 function doReel(e,kind,ctx){
   switch(kind){
-    case 'SIÓDEMKA':for(let i=0;i<3;i++)setTimeout(()=>{if(e.alive&&S.G){gunMuzzle(e);fireAt(e,MZ,P.pos.clone().setY(P.pos.y+1.5),{dmg:e.dmg*.8,acc:.8,color:0xffd34a,tracers:1})}},i*130);break;
+    case 'SIÓDEMKA':e.ai.salvo=3;e.ai.salvoT=0;break;      // salwa liczona na dt w jackpot.run (bez setTimeout: pauza i DS.time.freeze ją zatrzymują)
     case 'DZWONEK':shockwave(e.g.position.x,e.g.position.z,{speed:10,max:26,dmg:e.dmg*1.2,color:0xffd34a});break;
     case 'WIŚNIE':e.armR.localToWorld(H.set(-.1,-.1,-.5));for(let i=-1;i<=1;i++)throwProj('chip',H,P.pos.x+ctx.nz*i*2.4,P.pos.y+.9,P.pos.z-ctx.nx*i*2.4,{speed:15,dmg:e.dmg*.8});sfx('e_throw');break;
     case 'GWIAZDA':summon(e,'dres',1);break;
@@ -163,7 +164,7 @@ reg('boss_szef_ochrony','Szef Ochrony',(o={})=>{
     cfg:{speed:wv(2.7,.04,w),turn:3.2,sight:60,fov:3,range:[2,22],melee:true,flank:0,cover:0,fleeHp:0,holdGround:true,hear:70,lose:8,
       decide(e){return bossThink(e,SZ_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,SZ_ACT,szPick,{dmin:3,dmax:9})},
-      animate:animateBoss,onHit(e,ev){if(e.invulT>0){e.hp+=ev.dmg;return}shieldHit(e,ev,{front:.4,block:.9,back:.35})}},
+      animate:animateBoss,beforeHit(e,ev){if(e.invulT>0){ev.dmg=0;return}shieldHit(e,ev,{front:.4,block:.9,back:.35})},onHit:bossOnHit},
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0}});
   addBossBar(e,2.6,2);return e;
 },{drops:[{kind:'vest',p:1},{kind:'med',p:1}],tableTags:['boss'],onKill(e){announce('SZEF OCHRONY PADA!','Tarcza pęka')}});
@@ -176,24 +177,17 @@ const SZ_ACT={
   bash:{run(e,dt,ctx){const a=e.ai;a.face=1;
       if(a.st<.1&&ctx.dist>2.2){moveToward(e,dt,P.pos.x,P.pos.z,e.cfg.speed*1.4,1.8);a.st=0;if(a.t>6)return true;return false}
       stopMove(e,dt);e.lean=a.st<.7?-.35:.7;
-      if(a.st>=.7&&!a.did){a.did=true;sfx('e_whoosh');if(ctx.dist<2.7){if(hitPlayer(e,e.dmg)){P.vel.x+=ctx.nx*13;P.vel.z+=ctx.nz*13;sfx('e_shove')}}}
+      if(a.st>=.7&&!a.did){a.did=true;sfx('e_whoosh');if(ctx.dist<2.7){if(hitPlayer(e,e.dmg)){DS.player.knock({x:(ctx.nx*13)*.7,z:(ctx.nz*13)*.7});sfx('e_shove')}}}
       if(a.st>=1.3){a.did=false;return true}return false},cool:e=>rand(1,1.6)},
   rush:{start(e,ctx){const a=e.ai;a.hitDone=false;const l=ctx.dist||1;a.dx=ctx.nx;a.dz=ctx.nz;sfx('e_yell')},
     run(e,dt,ctx){const a=e.ai;
       if(a.st<.7){stopMove(e,dt);e.lean=-.4;e.glow=.18+.1*Math.sin(a.st*40);a.face=2;a.faceYaw=Math.atan2(-a.dx,-a.dz);return false}
       e.glow=0;e.lean=.6;moveDir(e,dt,a.dx,a.dz,e.phase>=3?10:8);
-      if(!a.hitDone&&ctx.dist<2.1&&!S.G.dead){a.hitDone=true;if(hitPlayer(e,e.dmg*1.5)){P.vel.x+=a.dx*14;P.vel.z+=a.dz*14;sfx('e_shove');S.G.shake+=.8}}
+      if(!a.hitDone&&ctx.dist<2.1&&!S.G.dead){a.hitDone=true;if(hitPlayer(e,e.dmg*1.5)){DS.player.knock({x:(a.dx*14)*.7,z:(a.dz*14)*.7});sfx('e_shove');S.G.shake+=.8}}
       return a.st>=1.9||a.hitDone&&a.st>1.1},cool:e=>rand(1.8,2.8)},
   guards:{start(e){e.ai.did=false},run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=0;e.lean=-.1;e.glow=.12;
       if(a.st>.8&&!a.did){a.did=true;summon(e,'ochroniarz',1);sfx('e_sting');addFloater('POMOCY!',{world:e.g.localToWorld(new THREE.Vector3(0,3.2,0)),size:36,life:.8,color:'#c8f000',vy:-20})}
       return a.st>=1.4},cool:e=>rand(3,4.5)},
 };
 
-/* ======================= SZKICE (jeszcze niezarejestrowane) =======================
- * Sołtys (dyskoteka wiejska): gruby, w garniturze i z szarfą; faza 1: rzuca kiełbasami (jak żetony), faza 2: wzywa dresy i pijaków
- *   (głosowanie = tarcza „kworum” co 15 s), faza 3: szarża traktorem (jak Maluch, większy).
- * Dyżurny Ruchu (dworzec): mundur kolejarza, lizak/semafor w ręce; telegrafowane pasy zagrożenia (jak laser DJ) na torach, nadjeżdżający skład
- *   jako fala po ziemi (shockwave wzdłuż osi), faza 3: przełącza „rozjazdy” = losowa strona areny jest śmiertelna.
- * Szef Stacji (stacja paliw): kombinezon i kanister; ogniste kałuże (puddle z DOT większym), wybuchające beczki (explode), faza 3: tir w szarży.
- * Wymagają poziomów (ds-level-designer) i dodatkowych rekwizytów (ds-world-modeler); kontrakt tabeli: DS.enemies.table + level.enemies.
- */
+// Sołtys, Dyżurny Ruchu i Szef Stacji: bosses2.js.

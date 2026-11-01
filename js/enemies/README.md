@@ -14,11 +14,11 @@ Kontrakt rejestru (`DS.enemies.register`) i zdarzenia: `ARCHITECTURE.md`. Tu: co
 | `esfx.js` | dźwięki `e_*` w `sfxBank` |
 | `common.js` / `boss.js` | fabryka człowieka + atak wręcz / pasek, fazy i silnik akcji bossów |
 | `gangster.js` | pierwotny wróg jako „Bandyta” (zachowanie bez zmian), boss Baron Jackpot |
-| `dres.js … kierowca.js`, `bosses.js` | typy |
+| `dres.js … kierowca.js`, `bosses.js`, `bosses2.js` | typy; `bosses2.js`: Sołtys, Dyżurny Ruchu, Szef Stacji (3 fazy, pasy zagrożenia, ogień z paliwa) |
 | `selftest.js` | testy samoczynne areny (`tools/enemy-test.html`, `ARENA.selfTest()`) |
 
 ## Typy (`id`) i pola przekazywane do reszty gry
-`gangster` (Bandyta), `dres`, `ochroniarz`, `bandyta` (z obrzynem), `snajper`, `pijak`, `kamikadze`, `medyk`, `kierowca`, `boss_dj`, `boss_jednooki`, `boss_szef_ochrony`.
+`gangster` (Bandyta), `dres`, `ochroniarz`, `bandyta` (z obrzynem), `snajper`, `pijak`, `kamikadze`, `medyk`, `kierowca`, `boss_dj`, `boss_jednooki`, `boss_szef_ochrony`, `boss_soltys`, `boss_dyzurny`, `boss_szef_stacji`.
 Wróg ma `name`, `xp` (czyta je progresja), `boss`, `hp/maxHp/dmg` (pomnożone przez trudność w `spawnEnemy`), a typ może mieć `drops:[{kind,p,val?}]`, `onKill(e)`, `silentDie(e)`.
 
 ## Jak dodać typ
@@ -34,4 +34,5 @@ Potem `import './id.js'` w `index.js`, wpis w `TYPES` w `table.js` (wagi i limit
 ## Stany AI
 `patrol → alert → chase → (flank | cover | attack) → flee`, plus stany typu (`wind/charge/recover` dresa, `fuse/toss` kamikadze, `heal` medyka,
 `rev/charge/brake/crash` Malucha, `reposition` snajpera). `e.ai.state` jest widoczny w arenie (etykiety nad głowami).
+Trafienia: typ może zmieniać obrażenia w `cfg.beforeHit(e,ev)` (zdarzenie `beforeHit`: tarcza ochroniarza, nietykalność bossa w przejściu fazy, luki w obronie, kworum Sołtysa); odrzut gracza przez `DS.player.knock`.
 Zdarzenia szyny od bossów: `bossHp {enemy,hp,max,name,phase}`, `bossPhase {enemy,phase,name}`.

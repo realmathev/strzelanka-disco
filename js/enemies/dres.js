@@ -45,7 +45,7 @@ reg('dres','Dres',(o={})=>{
           update(e,dt,ctx){const a=e.ai,p=e.g.position;a.st+=dt;
             a.face=2;a.faceYaw=Math.atan2(-a.dx,-a.dz);e.lean=.6;
             moveDir(e,dt,a.dx,a.dz,e.cfg.speed*2.1);
-            if(!a.hitDone&&ctx.dist<1.3&&!S.G.dead){a.hitDone=true;if(hitPlayer(e,e.dmg)){P.vel.x+=a.dx*8;P.vel.z+=a.dz*8;sfx('hurt')}enter(e,'recover');e.ai.rec=.7;return}
+            if(!a.hitDone&&ctx.dist<1.3&&!S.G.dead){a.hitDone=true;if(hitPlayer(e,e.dmg)){DS.player.knock({x:(a.dx*8)*.7,z:(a.dz*8)*.7});sfx('hurt')}enter(e,'recover');e.ai.rec=.7;return}
             if(a.st>.25&&Math.hypot(p.x-a.px,p.z-a.pz)<.25*a.st*e.cfg.speed){enter(e,'recover');e.ai.rec=1.5;e.flinch=1;return}   // walnął w ścianę
             if(a.st>1.1){enter(e,'recover');e.ai.rec=.9}}},
         recover:{enter(e){e.ai.st=0;e.ai.rec=e.ai.rec||.8},

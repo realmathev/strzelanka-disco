@@ -89,7 +89,7 @@ DS.enemies.register({
       e.shootT=e.boss?rand(.5,1.1):rand(1.1,2.4);
       const muzzle=e.gun.localToWorld(new THREE.Vector3(0,0,-.25));
       if(dist<45&&los(muzzle,eye)){
-        const moveF=P.vel.length()>4?.65:1;const hit=Math.random()<e.acc*moveF*clamp(1.4-dist/40,.35,1.2);
+        const moveF=P.vel.length()+P.knock.length()>4?.65:1;const hit=Math.random()<e.acc*moveF*clamp(1.4-dist/40,.35,1.2);
         const end=eye.clone();if(!hit){end.x+=rand(-1.4,1.4);end.y+=rand(-.6,.8);end.z+=rand(-1.4,1.4)}
         addTracer(muzzle,end,0xff5533,.08);sfx('enemyShot',clamp(1.3-dist/40,.2,1));
         if(e.boss){for(let i=0;i<2;i++){const m2=end.clone();m2.x+=rand(-1,1);m2.z+=rand(-1,1);addTracer(muzzle,m2,0xff5533,.08)}}
