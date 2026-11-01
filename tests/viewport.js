@@ -15,4 +15,16 @@ for(const id of ids){if(id==='scrWarn'||id==='scrPause'||id==='scrOver')continue
   if(id==='scrOptions'){for(const t of ['gfx','snd','ctl','xh','acc','game']){opts.openOptionsTab(t);await sleep(40);out.screens['opt:'+t]={hScroll:document.documentElement.scrollWidth-W,over:bad(root)}}}
   if(id==='scrShop'){for(const n of ['heniek','zdzichu','halina']){document.querySelector('#shopTabs button[data-npc='+n+']').click();await sleep(40);out.screens['shop:'+n]={hScroll:document.documentElement.scrollWidth-W,over:bad(root)}}}}
 scr.show('scrMenu');
+// HUD co-op (podgląd bez sieci: 3 kolegów, komunikaty, baner, znaczniki): nic poza ekranem, panel drużyny nie nachodzi na rogi HUD
+if(window.DS&&DS.net&&DS.net.hudDemo){
+  const hud=document.getElementById('hud'),was=hud.hidden;hud.hidden=false;DS.net.hudDemo(true);await sleep(80);
+  const R=s=>{const e=document.querySelector(s);return e&&!e.hidden?e.getBoundingClientRect():null};
+  const ov=(a,b)=>!!(a&&b&&a.left<b.right&&b.left<a.right&&a.top<b.bottom&&b.top<a.bottom);
+  const team=R('#coopTeam'),feed=R('#coopFeed'),ban=R('#coopBanner');
+  const inView=r=>!r||(r.left>=-1&&r.top>=-1&&r.right<=W+1&&r.bottom<=H+1);
+  out.coopHud={over:bad(hud),inView:inView(team)&&inView(feed)&&inView(ban),
+    overlap:{teamTL:ov(team,R('.hud-tl')),teamBL:ov(team,R('.hud-bl')),feedTR:ov(feed,R('.hud-tr')),teamFeed:ov(team,feed),bannerTeam:ov(ban,team)},
+    marks:[...document.querySelectorAll('#coopMarks .coopMark')].filter(m=>!m.hidden).map(m=>{const r=m.getBoundingClientRect();return r.left>=-1&&r.right<=W+1&&r.top>=-1&&r.bottom<=H+1})};
+  DS.net.hudDemo(false);hud.hidden=was;
+}
 return out})()

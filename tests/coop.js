@@ -11,7 +11,7 @@ const info=(n,v)=>R['info.'+n]=v;
 const SETUP=`(async()=>{(0,eval)(await (await fetch('/tests/harness.js')).text());await new Promise(r=>{const t=setInterval(()=>{if(window.QA){clearInterval(t);r()}},20)});
   QA.live=async(ms,god)=>{const t0=performance.now();while(performance.now()-t0<ms){const G=QA.S.G;if(god&&G&&!G.dead&&!G.coopEnded)G.hp=G.maxHp;QA.frame(1/60);await QA.sleep(16)}};
   QA.until=async(fn,ms=8000,god=true)=>{const t0=performance.now();while(performance.now()-t0<ms){if(fn())return true;const G=QA.S.G;if(god&&G&&!G.dead&&!G.coopEnded)G.hp=G.maxHp;if(QA.S.mode==='game')QA.frame(1/60);await QA.sleep(16)}return !!fn()};
-  QA.dmg=[];DS.bus.on('damage',e=>QA.dmg.push(e.amount));QA.kills=0;DS.bus.on('kill',()=>QA.kills++);
+  QA.dmg=[];DS.bus.on('damage',e=>QA.dmg.push(e.amount));QA.heals=[];DS.bus.on('heal',e=>QA.heals.push(e.source));QA.kills=0;DS.bus.on('kill',()=>QA.kills++);
   QA.$=s=>document.querySelector(s);QA.txt=s=>{const e=document.querySelector(s);return e?e.textContent:null};
   QA.host=await import('/js/net/host.js');QA.en=await import('/js/enemies/manager.js');
   QA.proj=await import('/js/enemies/proj.js');QA.lvc=await import('/js/world/levels/common.js');QA.pk=await import('/js/pickups/pickups.js');
@@ -194,11 +194,12 @@ const SETUP=`(async()=>{(0,eval)(await (await fetch('/tests/harness.js')).text()
     ok('fx.bottleHurtsClient',(await B.ev(`QA.dmg.length`))>0);
 
     /* --- znajdźka zebrana przez klienta znika u hosta --- */
+    await A.ev(`(QA.P.pos.set(${bp2[0]}+18,0,${bp2[1]}),1)`);   // host daleko: jego magnes nie może zgarnąć znajdźki
     const pid=await A.ev(`(()=>{const p=QA.pk.spawnPickup('med',{x:${bp2[0]},z:${bp2[1]}},30);return p.nid})()`);
-    await B.ev(`(QA.S.G.hp=40,1)`);
+    await B.ev(`(QA.S.G.hp=40,QA.heals=[],1)`);
     await Promise.all([A.ev(`QA.live(1500,true)`),B.ev(`(async()=>{const t0=performance.now();while(performance.now()-t0<1500){QA.P.pos.set(${bp2[0]},0,${bp2[1]});QA.frame();await QA.sleep(16)}})()`),C.ev(`QA.live(1500,true)`)]);
-    const pkA=await A.ev(`QA.S.G.pickups.some(p=>p.nid===${pid})`),pkB=await B.ev(`({hp:QA.S.G.hp,mirror:QA.S.G.pickups.some(p=>p.nid===${pid})})`),pkC=await C.ev(`QA.S.G.pickups.some(p=>p.nid===${pid})`);
-    ok('pickup.clientTakes',!!pid&&!pkA&&!pkB.mirror&&!pkC&&pkB.hp>40,{pid,pkA,pkB,pkC});
+    const pkA=await A.ev(`QA.S.G.pickups.some(p=>p.nid===${pid})`),pkB=await B.ev(`({hp:QA.S.G.hp,healed:QA.heals.includes('pickup'),mirror:QA.S.G.pickups.some(p=>p.nid===${pid})})`),pkC=await C.ev(`QA.S.G.pickups.some(p=>p.nid===${pid})`);
+    ok('pickup.clientTakes',!!pid&&!pkA&&!pkB.mirror&&!pkC&&pkB.healed,{pid,pkA,pkB,pkC});
 
     /* --- beczka wysadzona przez klienta --- */
     const bi=await B.ev(`(()=>{const b=QA.lvc.debugState().barrels;if(!b)return -1;return b.items.findIndex(x=>!x.dead)})()`);
@@ -243,6 +244,72 @@ const SETUP=`(async()=>{(0,eval)(await (await fetch('/tests/harness.js')).text()
     ok('next.allOnNextLevel',nx.every(s=>s.mode==='game'&&s.active&&s.lvl===nextId),nx);
     await live(1500);
     const team=await A.ev(`DS.net.debug()`);ok('next.teamKept',team.players===2&&team.avatars===2,team);
+
+    /* ===================== ETAP 3 ===================== */
+    /* --- HUD kolegów i zawołania --- */
+    const hudA=await A.ev(`({rows:[...document.querySelectorAll('#coopTeam .coopRow')].map(r=>r.querySelector('.coopName').textContent),vis:!document.getElementById('coopTeam').hidden,
+      txtOnly:[...document.querySelectorAll('#coopTeam .coopName')].every(e=>e.children.length===0)})`);
+    ok('hud.teamPanel',hudA.vis&&hudA.rows.length===2&&hudA.txtOnly,hudA);
+    await B.ev(`QA.tap('KeyZ');1`);await live(400);
+    const callA=await A.ev(`({feed:[...document.querySelectorAll('#coopFeed .coopFeedItem')].map(e=>e.textContent),callT:DS.net.N.players.get('${ids.B}').callT,
+      mark:[...document.querySelectorAll('#coopMarks .coopMark')].some(m=>!m.hidden&&/Tutaj/.test(m.textContent))})`);
+    ok('hud.callout',callA.feed.some(t=>/Tutaj!/.test(t))&&callA.callT>0&&callA.mark,callA);
+    await B.ev(`QA.cmb.hurt(99999);1`);await live(500);
+    const downRow=await A.ev(`[...document.querySelectorAll('#coopTeam .coopRow')].map(r=>r.querySelector('.coopState').textContent)`);
+    const reviveMark=await C.ev(`(()=>{const r=DS.net.N.players.get('${ids.B}');QA.P.pos.set(r.pos.x+6,0,r.pos.z);const dx=r.pos.x-QA.P.pos.x,dz=r.pos.z-QA.P.pos.z;QA.P.yaw=Math.atan2(-dx,-dz);QA.P.pitch=-.2;QA.frame();QA.frame();
+      const ms=[...document.querySelectorAll('#coopMarks .coopMark')].map(m=>({h:m.hidden,t:m.textContent}));return {ok:ms.some(m=>!m.h&&/PODNIEŚ/.test(m.t)),ms,down:r.down,rp:[r.pos.x,r.pos.y,r.pos.z],p:[QA.P.pos.x,QA.P.pos.z]}})()`);
+    ok('hud.downedState',downRow.includes('POWALONY')&&reviveMark.ok,{downRow,reviveMark});
+    await C.ev(`DS.net.N.room.send({k:'rev'},'${ids.B}');1`);await live(400,false);
+
+    /* --- dołączenie w trakcie runu (między falami) z pełnym stanem --- */
+    await A.ev(`(()=>{const G=QA.S.G;G.wave=Math.max(G.wave,1);G.enemies.forEach(e=>{if(e.alive){e.alive=false;e.dieT=4.9}});G.queue=0;G.cleared=true;G.between=60;return 1})()`);
+    await live(1600);
+    ok('join.roomOpenBetweenWaves',await A.ev(`DS.net.N.room.locked===false`));
+    const jp=await A.ev(`(()=>{const p=QA.pk.spawnPickup('kebab',{x:QA.P.pos.x+14,z:QA.P.pos.z},20);return p.nid})()`);
+    await live(300);
+    await D.ev(`(()=>{if(QA.vis()!=='scrCoop')document.getElementById('mCoop').click();document.getElementById('coopCode').value='${code}';document.getElementById('coopJoin').click();return 1})()`);
+    ok('join.midRun',await D.ev(`QA.until(()=>DS.net.active()&&QA.S.mode==='game',6000)`));
+    await Promise.all([A,B,C,D].map(p=>p.ev(`QA.live(1200,true)`)));
+    const jD=await D.ev(`({lvl:QA.wst.world.level.id,wave:QA.S.G.wave,hp:QA.S.G.hp===QA.S.G.maxHp,pk:QA.S.G.pickups.some(p=>p.nid===${jp}&&p.mirror),avatars:DS.net.debug().avatars,
+      spawn:(()=>{const s=QA.wst.world.level.spawn||{x:0,z:30};return Math.hypot(QA.P.pos.x-s.x,QA.P.pos.z-s.z)<3})()})`);
+    const jA=await A.ev(`({lvl:QA.wst.world.level.id,wave:QA.S.G.wave,players:DS.net.debug().players,avatars:DS.net.debug().avatars})`);
+    ok('join.fullState',jD.lvl===jA.lvl&&jD.wave===jA.wave&&jD.hp&&jD.pk&&jD.spawn,{jD,jA});
+    ok('join.seenByAll',jA.avatars===3&&jD.avatars===3&&(await B.ev(`DS.net.debug().avatars`))===3,{jA:jA.avatars,jD:jD.avatars});
+    await A.ev(`(QA.S.G.between=.3,1)`);
+    await Promise.all([A,B,C,D].map(p=>p.ev(`QA.live(2500,true)`)));
+    const sc=await A.ev(`({n:DS.net.N.scaleN,locked:DS.net.N.room.locked,alive:QA.S.G.enemies.filter(e=>e.alive).length,wave:QA.S.G.wave})`);
+    ok('join.rescaleNextWave',sc.n===4&&sc.locked===true,sc);
+    ok('join.replicasOnJoiner',(await D.ev(`QA.S.G.enemies.filter(e=>e.alive&&e.replica).length`))>=Math.max(1,sc.alive-1),{host:sc.alive});
+
+    /* --- zerwane połączenie klienta: komunikat, powrót, pełny stan --- */
+    await B.ev(`(()=>{const r=DS.net.N.room;window.__lk=r.link;r.link=null;return 1})()`);
+    await Promise.all([A,B,C,D].map(p=>p.ev(`QA.live(900,true)`)));
+    const rc1=await B.ev(`({banner:QA.txt('#coopBanner'),hidden:document.getElementById('coopBanner').hidden})`);
+    await A.ev(`(()=>{QA.en.spawnEnemy('dres',{});return 1})()`);
+    await B.ev(`(()=>{DS.net.N.room.link=window.__lk;return 1})()`);
+    await Promise.all([A,B,C,D].map(p=>p.ev(`QA.live(1500,true)`)));
+    const rcA=await A.ev(`QA.S.G.enemies.filter(e=>e.alive).length`),rcB=await B.ev(`({rep:QA.S.G.enemies.filter(e=>e.alive&&e.replica).length,feed:[...document.querySelectorAll('#coopFeed .coopFeedItem')].map(e=>e.textContent),banner:document.getElementById('coopBanner').hidden,active:DS.net.active()})`);
+    ok('reconnect.message',!rc1.hidden&&/Rozłączono/.test(rc1.banner),rc1);
+    ok('reconnect.backWithFull',rcB.active&&rcB.banner&&rcB.feed.some(t=>/wróciło/.test(t))&&Math.abs(rcB.rep-rcA)<=1,{rcA,rcB});
+
+    /* --- host w tle: ostrzeżenie u klientów, symulacja hosta na setInterval --- */
+    await A.ev(`(()=>{const r=DS.net.N.room;window.__snd=r.send;r.send=function(){};return 1})()`);
+    await Promise.all([B,C].map(p=>p.ev(`QA.live(2000,true)`)));
+    const hw=await B.ev(`({t:QA.txt('#coopBanner'),hidden:document.getElementById('coopBanner').hidden})`);
+    await A.ev(`(()=>{const r=DS.net.N.room;r.send=window.__snd;return 1})()`);
+    await Promise.all([A,B,C,D].map(p=>p.ev(`QA.live(800,true)`)));
+    ok('bg.clientWarning',!hw.hidden&&/zminimalizował/.test(hw.t)&&await B.ev(`document.getElementById('coopBanner').hidden`),hw);
+    const bg=await A.ev(`(async()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});DS.net.checkHidden();const s0=DS.net.N.stats.bgSteps||0,n0=DS.net.N.stats.snaps;
+      await QA.sleep(1500);const out={steps:(DS.net.N.stats.bgSteps||0)-s0,snaps:DS.net.N.stats.snaps-n0,ms:DS.net.N.stats.bgMs};delete document.hidden;await QA.sleep(150);return out})()`);
+    ok('bg.hostIntervalSim',bg.steps>=20&&bg.snaps>=10,bg);info('bg.stepCostMs',bg.ms);
+
+    /* --- odejście hosta (JuicyJuicy przekazuje rolę): run kończy się, lobby z nowym hostem --- */
+    // Lokalny relay (BroadcastChannel) nie przenosi hosta, więc symulujemy zdarzenia relaya JuicyJuicy u gracza D.
+    await D.ev(`(()=>{const r=DS.net.N.room;r.receive({t:'leave',id:'${ids.A}'});r.receive({t:'host',id:DS.net.me()});return 1})()`);
+    await sleep(400);
+    const hl=await D.ev(`({vis:QA.vis(),mode:QA.S.mode,host:DS.net.N.room&&DS.net.N.room.isHost(),msg:QA.txt('#coopMsg'),active:DS.net.active()})`);
+    ok('hostLeft.lobbyNewHost',hl.vis==='scrCoop'&&hl.mode==='menu'&&hl.host&&!hl.active&&/Host wyszedł/.test(hl.msg),hl);
+    await D.ev(`DS.net.leaveRoom();1`);await live(600);
 
     /* --- rozmiar snapshotu przy 30 wrogach --- */
     const snap=await A.ev(`(()=>{const G=QA.S.G;let n=G.enemies.filter(e=>e.alive).length;while(n<30){QA.en.spawnEnemy(['dres','bandyta','ochroniarz','pijak','medyk'][n%5],{});n++}
