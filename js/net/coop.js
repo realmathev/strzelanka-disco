@@ -23,7 +23,9 @@ import {N,rec,send,handle,hooks,isHost,nameOf,changed,setMsg,errText,allReady} f
 import {q2,IN_HZ,SNAP_HZ,MAX_HITS,isVec} from './proto.js';
 import {buildAvatar,destroyAvatar,updateAvatar,flashAvatar} from './avatars.js';
 import {updateReplicas,clearReplicas,setReplicaHooks,replicaCount} from './replicas.js';
-import {applyRemoteHits,assistsOf,queueEv,hostTick,resetHost} from './host.js';
+import {applyRemoteHits,assistsOf,queueEv,hostTick,resetHost,flushNow} from './host.js';
+import {resetWorldSync} from './world.js';
+import {stunPlayer} from '../enemies/proj.js';
 
 const REVIVE_TIME=3,REVIVE_R=2,BACK_HP=.5;
 const V1=new THREE.Vector3(),V2=new THREE.Vector3();
@@ -45,12 +47,13 @@ let prevDiff=null;
 function beginRun(lv,df,seed){
   if(!N.room)return;
   if(S.mode==='game')toMenuMode();
-  N.inRun=true;N.seed=seed;N.down=false;N.revT=0;resetHost();clearReplicas();
+  N.inRun=true;N.seed=seed;N.down=false;N.revT=0;resetHost();clearReplicas();resetWorldSync();
   for(const r of N.players.values()){r.inRun=true;r.down=false;r.kl=r.hd=r.zd=0;r.lastIn=performance.now();r.seen=false}
   if(prevDiff===null)prevDiff=opt.difficulty;opt.difficulty=df;    // trudność hosta tylko na czas runu (bez zapisu opcji)
   if(!world.level||world.level.id!==lv)loadLevel(lv);
   startGame();
   S.G.coop=true;S.G.seed=seed;
+  if(!isHost())S.G.levelWon=true;   // klient: warunek wygranej liczy host (ev `lc` -> winLevel), lokalne słuchacze poziomu milczą
   sendIn();changed();
 }
 
@@ -106,7 +109,7 @@ DS.bus.on('netKill',ev=>{
 });
 DS.bus.on('waveStart',ev=>{
   if(!DS.net.active())return;
-  if(DS.net.isHost())queueEv({t:'wave',w:ev.wave|0,c:ev.count|0});
+  if(DS.net.isHost()){const v={t:'wave',w:ev.wave|0,c:ev.count|0};if(ev.boss){v.b=1;if(ev.bossName)v.n=String(ev.bossName).slice(0,40)}queueEv(v)}
   const G=S.G;if(G&&G.dead&&!G.coopEnded)reviveLocal(BACK_HP,'Nowa fala: wracasz do gry z połową zdrowia');
 });
 DS.bus.on('waveClear',ev=>{if(DS.net.isHost())queueEv({t:'clear',w:ev.wave|0})});
@@ -118,13 +121,45 @@ function assistXp(e){
 }
 setReplicaHooks({
   onKill(e,v){
-    if(v.by===N.me)killEnemy(e,v.hd===1);   // moje zabójstwo: monety, XP, combo, dropy jak w solo
-    else{e.alive=false;e.mats.forEach(m=>m.emissive.setRGB(0,0,0));if(v.a.includes(N.me))assistXp(e)}
+    if(v.by===N.me)killEnemy(e,v.hd===1);   // moje zabójstwo: XP, combo, napisy jak w solo (monety i dropy rzuca host)
+    else{e.alive=false;e.mats.forEach(m=>m.emissive.setRGB(0,0,0));if(v.a.includes(N.me))assistXp(e);
+      if(e.boss)announce((e.name||'BOSS').toUpperCase()+' POKONANY!',nameOf(v.by)+' zadał ostatni cios')}
   },
-  onWave(v){const G=S.G;if(!G)return;waveIntro(G);DS.bus.emit('waveStart',{wave:v.w,boss:false,count:v.c})},
+  onWave(v){const G=S.G;if(!G)return;G.boss=v.b===1;waveIntro(G,v.n||undefined);DS.bus.emit('waveStart',{wave:v.w,boss:G.boss,count:v.c})},
   onClear(){if(S.G)waveClearReward(S.G)},
-  onHurt(d,kx,kz){const G=S.G;if(!G||!N.inRun)return;if(d>0)hurt(d);if(kx||kz)DS.player.knock({x:kx,z:kz})},
+  onHurt(d,kx,kz,stun){const G=S.G;if(!G||!N.inRun)return;if(d>0)hurt(d);if(kx||kz)DS.player.knock({x:kx,z:kz});if(stun>0)stunPlayer(stun)},
+  onLevelDone(v){winLevel(v.lv,v.w)},
 });
+
+/* ---------- poziom ukończony, „Dalej”, „Menu” ---------- */
+// Host: poziom sam emituje 'levelComplete' (warunek wygranej, także po zabójstwie zdalnego gracza: 'netKill'); idzie do klientów jako ev `lc`.
+DS.bus.on('levelComplete',e=>{if(DS.net.isHost()&&e&&e.level)queueEv({t:'lc',lv:String(e.level),w:(S.G&&S.G.wave)|0})});
+/** Klient: nagroda poziomu do własnego zapisu (levelsDone, ZD, klucze) i ekran „Poziom ukończony”. */
+function winLevel(lv,w){
+  const G=S.G,L=DS.levels.get(lv);if(!G||!L||G.coopWon||!world.level||world.level.id!==lv)return;
+  G.coopWon=true;
+  const r=(L.win&&L.win.reward)||{};
+  save.coins+=r.coins|0;save.keys+=r.keys|0;G.earned+=r.coins|0;G.keysFound+=r.keys|0;
+  save.levelsDone=save.levelsDone||{};save.levelsDone[lv]=true;persist();
+  setTimeout(()=>{if(S.G===G&&L.win)announce(L.win.text||'POZIOM UKOŃCZONY!','+'+(r.coins|0)+' ZD'+(r.keys?' i klucze: '+r.keys:''))},1500);
+  DS.bus.emit('levelComplete',{level:lv,wave:w});
+}
+/** Host: „Dalej” = kolejny poziom u wszystkich (ta sama drużyna, nowy run). */
+function nextLevel(id){
+  if(!isHost()||!DS.levels.has(id))return;
+  const seed=Math.floor(Math.random()*2147483647);
+  flushNow();send({k:'level',lv:id,seed});
+  opt.level=id;
+  beginRun(id,N.lob.df,seed);
+}
+handle('level',(d,from)=>{if(!N.room||from!==N.room.host||isHost()||!DS.levels.has(d.lv))return;beginRun(d.lv,N.lob.df,d.seed)});
+/** Host: „Menu” na ekranie ukończenia = cała drużyna wraca do lobby (pokój zostaje). */
+function toLobbyAll(){
+  if(!isHost())return;
+  flushNow();send({k:'lobby'});N.inRun=false;try{N.room.lock(false)}catch(e){}backToLobby();
+}
+handle('lobby',(d,from)=>{if(!N.room||from!==N.room.host||isHost())return;N.inRun=false;if(S.G)S.G.coopEnded=true;backToLobby()});
+DS.net.nextLevel=nextLevel;DS.net.toLobbyAll=toLobbyAll;
 
 /* ---------- powalenie i podnoszenie ---------- */
 /** combat.die w co-op: zamiast końca gry gracz leży (G.dead), czeka na kumpla albo następną falę. */

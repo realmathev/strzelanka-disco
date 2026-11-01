@@ -1,28 +1,35 @@
 // Klient co-op: repliki wrogów ze snapshotów hosta. Te same fabryki modeli (def.create) bez AI, interpolacja ~100 ms,
-// animacja chodu (ai.animateReplica) i śmierci (def.dying). Zdarzenia hosta (fala, czysta fala, zabójstwo) z pola `ev`.
+// animacja chodu (ai.animateReplica) i śmierci (def.dying); bossowie z fazą, paskiem HP (bossHp/bossPhase) i nietykalnością.
+// Z hosta: zdarzenia `ev` (fala, czysta fala, zabójstwo, efekty wrogów, znajdźki, poziom ukończony), kosmetyka `fx`, wiązki `bm`, stan świata `ws`.
 import {DS} from '../core/ds.js';
 import {S} from '../core/state.js';
 import {scene} from '../render/renderer.js';
 import {disposeObject} from '../render/materials.js';
+import {addFloater,announce} from '../render/comicfx.js';
+import {addTracer,puff} from '../render/fx3d.js';
+import {sfx} from '../audio/sfx.js';
 import {P} from '../player/player.js';
 import {animateReplica} from '../enemies/ai.js';
+import {updateProj,replayFx,applyBeams} from '../enemies/proj.js';
 import {N,rec,handle,isHost} from './session.js';
 import {SampleBuf,DELAY} from './interp.js';
-import {validEnemy,validEv,unpackAnim,STATES,isNum} from './proto.js';
+import {validEnemy,validEv,validCos,unpackAnim,STATES,isNum} from './proto.js';
+import {pickupEv,applyWs} from './world.js';
 
 const reps=new Map();            // eid -> wróg-replika (ten sam obiekt jest w S.G.enemies, więc strzały fire.js trafiają w repliki)
 const bad=new Set();             // eid, których nie udało się zbudować (nie próbujemy co snapshot)
 const tmp=new Float32Array(3),AN={crouch:0,lean:0,arm:0};
-let hooks={onKill:null,onWave:null,onClear:null,onHurt:null};
+const V1=new THREE.Vector3(),V2=new THREE.Vector3();
+let hooks={onKill:null,onWave:null,onClear:null,onHurt:null,onLevelDone:null};
 export function setReplicaHooks(h){hooks=Object.assign(hooks,h)}
 export const replicaCount=()=>reps.size;
 export const getReplica=eid=>reps.get(eid)||null;
 
-function create(eid,ti,va,x,z,ry){
+function create(eid,ti,va,x,z,ry,boss){
   const G=S.G,id=DS.enemies.ids()[ti],def=id&&DS.enemies.get(id);
   if(!def||bad.has(eid))return null;
   let e;
-  try{e=def.create({wave:G.wave,variant:va>=0?va:undefined,aware:false,boss:false})}catch(err){bad.add(eid);console.warn('replika',id,err);return null}
+  try{e=def.create({wave:G.wave,variant:va>=0?va:undefined,aware:false,boss})}catch(err){bad.add(eid);console.warn('replika',id,err);return null}
   e.def=def;e.type=id;e.replica=true;e.eid=eid;e.variant=va;
   if(!e.ai)e.ai={sp:0,age:0,state:'other'};          // typ bez rdzenia AI (pierwotny Bandyta 'gangster'): minimalny stan do animacji
   if(e.xp===undefined&&def.xp!==undefined)e.xp=def.xp;
@@ -36,14 +43,22 @@ function removeRep(e){
   reps.delete(e.eid);disposeObject(e.g);e.gone=true;
   const G=S.G;if(G){const i=G.enemies.indexOf(e);if(i>=0)G.enemies.splice(i,1)}
 }
+function bossInfo(e,b){
+  const ph=Math.floor(b/10),inv=b%10===1;
+  if(e.phase!==undefined&&ph>e.phase)DS.bus.emit('bossPhase',{enemy:e,phase:ph,name:e.name});
+  e.phase=ph;e.invulT=inv?.25:0;
+}
 
 /** Snapshot od hosta (~15 Hz). */
 handle('snap',(d,from)=>{
   if(!N.room||from!==N.room.host||isHost()||!N.inRun)return;
-  const G=S.G;if(!G||S.mode!=='game')return;
+  const G=S.G;if(!G||S.mode!=='game'||G.coopEnded)return;
   // zdarzenia najpierw (zabójstwo przed zniknięciem wroga ze snapshotu)
   if(d.ev)for(const v of d.ev)if(validEv(v))applyEv(v);
-  if(d.hu)for(const h of d.hu){if(Array.isArray(h)&&h[0]===N.me&&isNum(h[1],0,1000)&&isNum(h[2],-40,40)&&isNum(h[3],-40,40))hooks.onHurt&&hooks.onHurt(h[1],h[2],h[3])}
+  if(d.fx)for(const v of d.fx)if(validCos(v))cosmetic(v);
+  if(d.hu)for(const h of d.hu){if(Array.isArray(h)&&h[0]===N.me&&isNum(h[1],0,1000)&&isNum(h[2],-40,40)&&isNum(h[3],-40,40)&&(h[4]===undefined||isNum(h[4],0,5)))hooks.onHurt&&hooks.onHurt(h[1],h[2],h[3],h[4]||0)}
+  applyBeams(d.bm||[]);
+  if(d.ws)applyWs(d.ws);
   G.queue=d.q;if(d.w>G.wave)G.wave=d.w;
   N.stats.snaps++;
   const seen=new Set();
@@ -51,11 +66,12 @@ handle('snap',(d,from)=>{
     if(!validEnemy(a))continue;
     const [eid,ti,va,x,z,ry,hp,st]=a;seen.add(eid);
     let e=reps.get(eid);
-    if(!e){e=create(eid,ti,va,x,z,ry);if(!e)continue}
+    if(!e){e=create(eid,ti,va,x,z,ry,a.length===10);if(!e)continue}
     if(!e.alive)continue;
     e.rbuf.push(d.t,[x,z,ry]);
     e.hp=e.maxHp*hp/100;e.ai.state=STATES[st];
     unpackAnim(a[8],AN);e.crouch=AN.crouch;e.lean=AN.lean;e.armT=AN.arm;
+    if(a.length===10)bossInfo(e,a[9]);
   }
   // żywa replika, której nie ma w snapshocie: host ją usunął bez zabójstwa (np. wybuch kamikadze) -> znika
   for(const e of [...reps.values()])if(e.alive&&!seen.has(e.eid)){e.alive=false;removeRep(e)}
@@ -63,18 +79,33 @@ handle('snap',(d,from)=>{
 
 function applyEv(v){
   const G=S.G;
-  if(v.t==='wave'){if(v.w>=G.wave){G.wave=v.w;G.boss=false;hooks.onWave&&hooks.onWave(v)}}
-  else if(v.t==='clear'){hooks.onClear&&hooks.onClear(v)}
-  else if(v.t==='kill'){
-    const e=reps.get(v.id);if(!e||!e.alive)return;
-    // kierunek upadku: od zabójcy
-    const k=v.by===N.me?P.pos:(rec(v.by)&&rec(v.by).pos);
-    if(k){const dx=e.g.position.x-k.x,dz=e.g.position.z-k.z,l=Math.hypot(dx,dz)||1;e.hitDirX=dx/l;e.hitDirZ=dz/l}
-    hooks.onKill&&hooks.onKill(e,v);
+  switch(v.t){
+    case 'wave':if(v.w>=G.wave){G.wave=v.w;G.boss=v.b===1;hooks.onWave&&hooks.onWave(v)}break;
+    case 'clear':hooks.onClear&&hooks.onClear(v);break;
+    case 'kill':{
+      const e=reps.get(v.id);if(!e||!e.alive)return;
+      // kierunek upadku: od zabójcy
+      const k=v.by===N.me?P.pos:(rec(v.by)&&rec(v.by).pos);
+      if(k){const dx=e.g.position.x-k.x,dz=e.g.position.z-k.z,l=Math.hypot(dx,dz)||1;e.hitDirX=dx/l;e.hitDirZ=dz/l}
+      hooks.onKill&&hooks.onKill(e,v);
+      break}
+    case 'fx':replayFx(v);break;
+    case 'ps':case 'pg':pickupEv(v);break;
+    case 'lc':hooks.onLevelDone&&hooks.onLevelDone(v);break;
+  }
+}
+/** Kosmetyka wrogów od hosta: napisy w świecie (canvas), zapowiedzi, dźwięki, smugi, dym. */
+function cosmetic(v){
+  switch(v.t){
+    case 'fl':addFloater(v.s,{world:new THREE.Vector3(v.a[0],v.a[1],v.a[2]),size:v.z,life:v.l,color:v.c,vy:-30});break;
+    case 'an':announce(v.s,v.u);break;
+    case 'sf':sfx(v.s,v.v||undefined);break;
+    case 'tr':addTracer(V1.set(v.a[0],v.a[1],v.a[2]),V2.set(v.a[3],v.a[4],v.a[5]),v.c,.08);break;
+    case 'pf':puff(V1.set(v.a[0],v.a[1],v.a[2]));break;
   }
 }
 
-/** Co klatkę (zamiast updateEnemies u klienta): interpolacja, animacja, śmierć. Zwraca liczbę żywych replik. */
+/** Co klatkę (zamiast updateEnemies u klienta): interpolacja, animacja, śmierć, efekty wrogów. Zwraca liczbę żywych replik. */
 export function updateReplicas(dt){
   const G=S.G;let alive=0;
   for(let i=G.enemies.length-1;i>=0;i--){
@@ -99,7 +130,9 @@ export function updateReplicas(dt){
       e.walk=(e.walk||0)+dt*9*Math.min(1,e.ai.sp/2);if(e.hipL){const s=Math.sin(e.walk)*.6*Math.min(1,e.ai.sp/1.5);e.hipL.rotation.x=s;e.hipR.rotation.x=-s}
       if(e.flashT>0){e.flashT-=dt;const f=Math.max(e.flashT/.12,0);for(const m of e.mats)m.emissive.setRGB(f*.9,f*.15,f*.1)}
     }
+    if(e.boss){e._bhT=(e._bhT||0)-dt;if(e._bhT<=0){e._bhT=.3;DS.bus.emit('bossHp',{enemy:e,hp:e.hp,max:e.maxHp||e.hp,name:e.name,phase:e.phase||1})}}   // pasek bossa u klienta
   }
+  updateProj(dt);                                     // pociski, kałuże, fale i wybuchy od hosta (bez obrażeń), ogłuszenie
   return alive;
 }
 /** Sprzątanie (koniec runu): obiekty zwalnia clearRun (S.G.enemies), tu tylko indeks. */

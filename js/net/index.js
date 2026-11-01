@@ -5,10 +5,12 @@
 //  avatars.js   awatary pozostałych graczy
 //  replicas.js  klient: repliki wrogów ze snapshotów
 //  host.js      host: cele AI, trafienia zdalne, snapshoty, rany zdalnych graczy
-//  coop.js      przebieg runu: start, `in`, strzały, powalenie/podnoszenie, koniec
+//  world.js     znajdźki pod kontrolą hosta, drzwi/windy/beczki/automaty (stan `ws`)
+//  coop.js      przebieg runu: start, `in`, strzały, powalenie/podnoszenie, koniec, poziom ukończony, „Dalej”
 //  lobby.js     ekran „Graj ze znajomymi”
 import './session.js';
 import './host.js';
+import './world.js';
 import './replicas.js';
 import './coop.js';
 import './lobby.js';
