@@ -1,7 +1,7 @@
 {
   "$schema": "https://juicyjuicy.games/schema/juicy.json",
   "slug": "disco-strzelnica",
-  "title": "Disco Shooting Gallery",
+  "title": "Disco Shooter",
   "description": "11:14 PM, a village fire hall in the middle of fucking nowhere. The One-Armed Bandit gang just robbed the casino and the DJ is blasting disco polo till your ears bleed. You have a pistol and sweet fuck all, but you have rhythm. Blast waves of dickheads across 6 maps in a comic-book FPS, beat 7 bosses, level up on a slot machine, blow your cash in the casino and bring up to 3 mates in co-op. English and Polish. WASD + mouse.",
   "buildDir": ".",
   "entry": "index.html",

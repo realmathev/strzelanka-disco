@@ -52,7 +52,6 @@ h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:.03em;margin:
 .title{display:flex;flex-direction:column;gap:10px}
 .title h1{font-size:clamp(56px,11vw,128px);line-height:.86;color:var(--yellow);-webkit-text-stroke:3px var(--ink);text-shadow:7px 7px 0 var(--ink),7px 7px 0 var(--ink);transform:rotate(-3deg);transform-origin:left}
 .title h1 em{font-style:normal;color:var(--red);display:block}
-html[lang=en] .title h1 em{font-size:.6em;line-height:1}   /* „Shooting Gallery” jest dłuższe niż „Strzelnica” */
 .title .caption{align-self:flex-start;max-width:48ch;font-size:calc(16px*var(--ts,1));line-height:1.25;text-transform:none;font-weight:700}
 .menu-btns{display:flex;flex-direction:column;gap:12px;padding:18px}
 .menu-btns .btn{font-size:calc(28px*var(--ts,1));text-align:left}

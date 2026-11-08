@@ -45,7 +45,7 @@ function Outlined($text,$size,$x,$y,$fill,$rot,$shadow){
   $g.DrawPath($p,$gp)
 }
 Outlined 'DISCO' 190 150 110 ([System.Drawing.Color]::FromArgb(247,197,30)) -4 10
-Outlined 'SHOOTING GALLERY' 104 90 312 ([System.Drawing.Color]::FromArgb(255,248,230)) -4 10
+Outlined 'SHOOTER' 170 150 290 ([System.Drawing.Color]::FromArgb(255,248,230)) -4 10
 
 # yellow caption box
 $cap=New-Object System.Drawing.Rectangle 60,590,830,90
