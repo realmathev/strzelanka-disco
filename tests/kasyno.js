@@ -13,7 +13,7 @@ const shot=async n=>{Q.frames(3);if(window.shot){await window.shot('kasyno-'+n+'
   try{await fetch('/__shot/kasyno-'+n+'.png',{method:'POST',body:Q.rend.renderer.domElement.toDataURL('image/png')})}catch(e){}};
 if(document.getElementById('warnFull'))document.getElementById('warnFull').click();await Q.sleep(150);
 // --- 1. wybor poziomu w menu przez UI ---
-const zmien=[...document.querySelectorAll('#scrMenu *')].find(e=>e.textContent.trim().toLowerCase()==='zmień');
+const zmien=[...document.querySelectorAll('#scrMenu *')].find(e=>e.textContent.trim().toLowerCase().match(/^(zmień|change)$/));
 if(zmien){zmien.click();await Q.sleep(150);const it=[...document.querySelectorAll('.screen:not([hidden]) *')].find(e=>/kasyno/i.test(e.textContent)&&(e.tagName==='BUTTON'||e.onclick||e.closest('button')));if(it){(it.closest('button')||it).click();await Q.sleep(400)}}
 if(world.level.id!=='kasyno'){inf('menuPicker','nie udalo sie wybrac przez UI, uzyto levelSelect');(await import('/js/core/save.js')).opt.level='kasyno';DS.bus.emit('levelSelect',{level:'kasyno'});await Q.sleep(300)}
 ok('level.loadedFromMenu',world.level.id==='kasyno',world.level.id);
@@ -151,7 +151,7 @@ if(boss){boss.hp=boss.maxHp*.6;Q.frames(30);ok('boss.barFollowsHp',document.getE
 ok('boss.barHidesAfterKill',bb.hidden);
 ok('boss.levelCompleteOnce',evs.complete===1&&G.levelWon===true,'complete='+evs.complete);
 ok('boss.rewardAndSave',Q.sv.save.keys>=kb+1&&Q.sv.save.coins>=cb0+400&&Q.sv.save.levelsDone&&Q.sv.save.levelsDone.kasyno===true,'klucze '+kb+'->'+Q.sv.save.keys);
-{const scr=document.getElementById('scrLevelDone');ok('boss.levelDoneScreen',scr&&!scr.hidden&&/ukończony|wyczyszczone/i.test(document.getElementById('lcT').textContent),scr&&('hidden='+scr.hidden));
+{const scr=document.getElementById('scrLevelDone');ok('boss.levelDoneScreen',scr&&!scr.hidden&&/ukończony|wyczyszczone|complete|cleared|conquered/i.test(document.getElementById('lcT').textContent),scr&&('hidden='+scr.hidden));
   inf('levelDoneStats',(document.getElementById('lcStats')||{}).textContent);await shot('poziom-ukonczony');
   const keep=document.getElementById('lcKeep');if(keep)keep.click();}
 offs.forEach(f=>f());

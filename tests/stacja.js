@@ -15,7 +15,7 @@ const shot=async n=>{Q.frames(3);if(window.shot){await window.shot('stacja-'+n+'
 ok('viewport.realSize',innerWidth>=800&&innerHeight>=500,innerWidth+'x'+innerHeight);
 if(document.getElementById('warnFull'))document.getElementById('warnFull').click();await Q.sleep(150);
 // --- 1. wybor poziomu w menu przez UI ---
-const zmien=[...document.querySelectorAll('#scrMenu *')].find(e=>e.textContent.trim().toLowerCase()==='zmień');
+const zmien=[...document.querySelectorAll('#scrMenu *')].find(e=>e.textContent.trim().toLowerCase().match(/^(zmień|change)$/));
 if(zmien){zmien.click();await Q.sleep(150);const it=[...document.querySelectorAll('.screen:not([hidden]) *')].find(e=>/stacja paliw|autostrad/i.test(e.textContent)&&(e.tagName==='BUTTON'||e.onclick||e.closest('button')));if(it){(it.closest('button')||it).click();await Q.sleep(400)}}
 if(world.level.id!=='stacja'){inf('menuPicker','nie udalo sie wybrac przez UI, uzyto levelSelect');(await import('/js/core/save.js')).opt.level='stacja';DS.bus.emit('levelSelect',{level:'stacja'});await Q.sleep(300)}
 ok('level.loadedFromMenu',world.level.id==='stacja',world.level.id);
@@ -173,8 +173,8 @@ if(boss){boss.hp=boss.maxHp*.6;step(30);ok('boss.barFollowsHp',document.getEleme
 ok('boss.barHidesAfterKill',bb.hidden);
 ok('boss.levelCompleteOnce',evs.complete===1&&G.levelWon===true,'complete='+evs.complete);
 ok('boss.rewardAndSave',Q.sv.save.keys>=kb+2&&Q.sv.save.coins>=cb0+800&&Q.sv.save.levelsDone&&Q.sv.save.levelsDone.stacja===true,'klucze '+kb+'->'+Q.sv.save.keys);
-{const scr=document.getElementById('scrLevelDone');ok('boss.levelDoneScreen',scr&&!scr.hidden&&/zdobyta|ukończony|wyczyszczony|oczyszczony/i.test(document.getElementById('lcT').textContent),scr&&('hidden='+scr.hidden));
-  const nx=document.getElementById('lcNext');ok('boss.lastLevelHasNoNextButton',nx&&(nx.hidden||getComputedStyle(nx).display==='none')&&!/Dalej:/.test(nx.textContent),nx&&('hidden='+nx.hidden+' text='+nx.textContent));
+{const scr=document.getElementById('scrLevelDone');ok('boss.levelDoneScreen',scr&&!scr.hidden&&/zdobyta|ukończony|wyczyszczony|oczyszczony|complete|cleared|conquered/i.test(document.getElementById('lcT').textContent),scr&&('hidden='+scr.hidden));
+  const nx=document.getElementById('lcNext');ok('boss.lastLevelHasNoNextButton',nx&&(nx.hidden||getComputedStyle(nx).display==='none')&&!/Dalej:|Next:/.test(nx.textContent),nx&&('hidden='+nx.hidden+' text='+nx.textContent));
   const keep=document.getElementById('lcKeep'),menu=document.getElementById('lcMenu');ok('boss.keepAndMenuButtonsVisible',keep&&menu&&getComputedStyle(keep).display!=='none'&&getComputedStyle(menu).display!=='none');
   inf('levelDoneStats',(document.getElementById('lcStats')||{}).textContent);await shot('poziom-ukonczony');
   if(keep)keep.click();await Q.sleep(150);ok('boss.keepPlayingResumes',!G.paused&&S.mode==='game');}

@@ -9,9 +9,9 @@ const world=ws.world,info=Q.rend.renderer.info;
 if(document.getElementById('warnFull'))document.getElementById('warnFull').click();await Q.sleep(150);
 // --- 1. wybor poziomu w menu przez UI ---
 document.querySelector('#scrMenu [data-go=scrPlay]')&&0;
-const zmien=[...document.querySelectorAll('#scrMenu *')].find(e=>e.textContent.trim().toLowerCase()==='zmień');
+const zmien=[...document.querySelectorAll('#scrMenu *')].find(e=>e.textContent.trim().toLowerCase().match(/^(zmień|change)$/));
 if(zmien){zmien.click();await Q.sleep(150);const it=[...document.querySelectorAll('.screen:not([hidden]) *')].find(e=>/blokowisko/i.test(e.textContent)&&(e.tagName==='BUTTON'||e.onclick||e.closest('button')));if(it){(it.closest('button')||it).click();await Q.sleep(400)}}
-if(world.level.id!=='blokowisko'){inf('menuPicker','nie udalo sie wybrac przez UI, uzyto levelSelect');DS.bus.emit('levelSelect',{level:'blokowisko'});await Q.sleep(300)}
+if(world.level.id!=='blokowisko'){inf('menuPicker','nie udalo sie wybrac przez UI, uzyto levelSelect');(await import('/js/core/save.js')).opt.level='blokowisko';DS.bus.emit('levelSelect',{level:'blokowisko'});await Q.sleep(300)}
 ok('level.loadedFromMenu',world.level.id==='blokowisko',world.level.id);
 const L=world.level;
 // --- 2. ostrzezenie atlasu ---

@@ -174,7 +174,7 @@ const SETUP=`(async()=>{(0,eval)(await (await fetch('/tests/harness.js')).text()
     const bossEid=await A.ev(`(()=>{const G=QA.S.G;const e=QA.en.spawnEnemy('boss_szef_ochrony',{boss:true,at:{x:QA.P.pos.x+10,z:QA.P.pos.z}});return e.eid})()`);
     await live(1200);
     const bB=await B.ev(`(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid});return {rep:!!e&&e.replica&&e.boss&&!!e.bar,bar:!document.getElementById('hBoss').hidden,name:QA.txt('#hBossName')}})()`);
-    ok('boss.replicaWithBar',bB.rep&&bB.bar&&/SZEF/.test(bB.name),bB);
+    ok('boss.replicaWithBar',bB.rep&&bB.bar&&/SZEF|HEAD OF SECURITY/i.test(bB.name),bB);
     const hpMul=await A.ev(`(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid});return +(e.maxHp/ (720+62*QA.S.G.wave) / ({easy:.75,normal:1,hard:1.35}[DS.opt.difficulty]||1)).toFixed(2)})()`);
     ok('boss.hpScaled(x2.5 @3 graczy)',Math.abs(hpMul-2.5)<.05,hpMul);
     await A.ev(`(()=>{const e=QA.S.G.enemies.find(x=>x.eid===${bossEid});e.hp=e.maxHp*.6;return 1})()`);
