@@ -13,6 +13,7 @@ import {addBossBar,animateBoss,bossOnHit,bossBeforeHit,bossThink,bossAttack,summ
 import * as nav from './nav.js';
 import {makeHuman,reg,wv,aiOpts,SKIN} from './common.js';
 import {eachPlayer,isDone,hitOnce,isLocal} from './players.js';
+import {L} from '../core/i18n.js';
 
 const MZ=new THREE.Vector3(),H=new THREE.Vector3();
 const aliveOf=t=>{let n=0;if(S.G)for(const e of S.G.enemies)if(e.alive&&e.type===t)n++;return n};
@@ -85,8 +86,8 @@ function buildSoltys(P_,meta,v){
   for(const dx of [-.095,0,.095])P_.arm.limb(0x9a9aa2,hx+dx,1.8,-.07,hx+dx,2.02,-.07,.012,.006,{t:.05});
 }
 const SO_PHASES=[
-  {at:.66,title:'WYBORY SOŁTYSA!',sub:'Pijacy głosują za sołtysem',onEnter:e=>{summon(e,'pijak',3)}},
-  {at:.33,title:'ŻNIWA!',sub:'Sołtys wsiada w ciągnik',onEnter:e=>{summon(e,'dres',2)}},
+  {at:.66,title:L('WYBORY SOŁTYSA!','VILLAGE ELECTION!'),sub:L('Pijacy głosują za sołtysem','The drunks vote for the Village Head'),onEnter:e=>{summon(e,'pijak',3)}},
+  {at:.33,title:L('ŻNIWA!','HARVEST TIME!'),sub:L('Sołtys wsiada w ciągnik','The Village Head climbs onto his tractor'),onEnter:e=>{summon(e,'dres',2)}},
 ];
 const soPick=e=>{
   const d=distP(e),pj=aliveOf('pijak');
@@ -109,17 +110,17 @@ const SO_ACT={
       return a.st>=1.4},cool:e=>rand(1,1.7)},
   call:{start(e){e.ai.did=false},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-2.7;e.lean=-.1;e.glow=.12;
-      if(a.st>.8&&!a.did){a.did=true;sfx('e_oink');above(e,'GŁOSOWANIE!','#ffd34a');summon(e,'pijak',e.phase>=3?3:2)}
+      if(a.st>.8&&!a.did){a.did=true;sfx('e_oink');above(e,L('GŁOSOWANIE!','ALL IN FAVOUR!'),'#ffd34a');summon(e,'pijak',e.phase>=3?3:2)}
       return a.st>=1.5},cool:e=>rand(3.5,5)},
-  quorum:{start(e){e.quorum=4;sfx('e_sting');above(e,'KWORUM!','#9fd3ea',40)},
+  quorum:{start(e){e.quorum=4;sfx('e_sting');above(e,L('KWORUM!','QUORUM!'),'#9fd3ea',40)},
     run(e,dt,ctx){stopMove(e,dt);e.armT=-2.7;return e.ai.st>=1.0},cool:e=>rand(2,3)},
   tractor:{start(e,ctx){chargeStart(e,ctx);above(e,'BRRRM!','#ffe14a',44)},
     run(e,dt,ctx){return chargeRun(e,dt,ctx,{wind:1.0,speed:14,dur:1.7,hitR:2.3,dmg:1.8,knock:16,stun:2.4})},end(e){e.vuln=false;e.glow=0},cool:e=>rand(2,3)},
 };
 function animateSoltys(e,dt){animateBoss(e,dt);if(e.quorum>0){e.quorum-=dt;e.glow=Math.max(e.glow,.14)}}
-reg('boss_soltys','Sołtys',(o={})=>{
+reg('boss_soltys',L('Sołtys','Village Head'),(o={})=>{
   const w=o.wave||0,si=3;
-  const e=makeHuman({key:'soltys',build:(P_,m)=>buildSoltys(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(620,55,w),dmg:wv(13,1,w),radius:.8,scale:1.3,name:'Sołtys',xp:175,
+  const e=makeHuman({key:'soltys',build:(P_,m)=>buildSoltys(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(620,55,w),dmg:wv(13,1,w),radius:.8,scale:1.3,name:L('Sołtys','Village Head'),xp:175,
     cfg:{speed:wv(2.7,.04,w),turn:5,sight:70,fov:3.4,range:[3,26],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,SO_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,SO_ACT,soPick,{dmin:5,dmax:13})},
@@ -128,7 +129,7 @@ reg('boss_soltys','Sołtys',(o={})=>{
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0;e.quorum=0}});
   addBossBar(e,2.6,1.9);return e;
 },{drops:[{kind:'med',p:1},{kind:'zubr',p:.8},{kind:'kebab',p:.5}],tableTags:['boss'],
-  onKill(e){announce('SOŁTYS PADA!','Wiec rozwiązany')}});
+  onKill(e){announce(L('SOŁTYS PADA!','THE VILLAGE HEAD IS DOWN!'),L('Wiec rozwiązany','Meeting adjourned'))}});
 
 /* ======================= DYŻURNY RUCHU ======================= */
 function buildDyzurny(P_,meta,v){
@@ -150,8 +151,8 @@ function buildDyzurny(P_,meta,v){
   P_.arm.cyl(0xd3242a,.17,.17,.03,hx,1.8,-.07,{rx:Math.PI/2,t:.04},18);P_.arm.cyl(0xf4efe4,.1,.1,.034,hx,1.8,-.07,{rx:Math.PI/2,t:0},18);
 }
 const DY_PHASES=[
-  {at:.66,title:'OPÓŹNIENIE POCIĄGU!',sub:'Drezyna wjeżdża na tor',onEnter:e=>{summon(e,'ochroniarz',1);summon(e,'kamikadze',1)}},
-  {at:.33,title:'ROZJAZDY!',sub:'Tory krzyżują się na tobie',onEnter:e=>{summon(e,'dres',2);summon(e,'snajper',1)}},
+  {at:.66,title:L('OPÓŹNIENIE POCIĄGU!','TRAIN DELAYED!'),sub:L('Drezyna wjeżdża na tor','A handcar rolls onto the track'),onEnter:e=>{summon(e,'ochroniarz',1);summon(e,'kamikadze',1)}},
+  {at:.33,title:L('ROZJAZDY!','JUNCTION!'),sub:L('Tory krzyżują się na tobie','All tracks lead to you'),onEnter:e=>{summon(e,'dres',2);summon(e,'snajper',1)}},
 ];
 const dyPick=e=>{
   const d=distP(e);
@@ -163,24 +164,24 @@ const dyPick=e=>{
 const dirTo=(ang)=>[Math.sin(ang),Math.cos(ang)];
 const DY_ACT={
   sklad:{start(e,ctx){const a=e.ai;laneEnd(e);sfx('e_horn');
-      const ang=Math.atan2(ctx.nx,ctx.nz)+(Math.random()<.5?1:-1)*(Math.PI/2+rand(-.35,.35)),[ux,uz]=dirTo(ang),L=34;
-      laneAdd(e,P.pos.x-ux*L/2,P.pos.z-uz*L/2,ux,uz,{len:L,w:3,h:2.8,seg:9,speed:38,tele:e.longTele?1.5:(e.phase>=3?1.0:1.25),dmg:1.3,color:0x5b6b8a});
-      e.longTele=0;above(e,'SEMAFOR!','#ff5a4a')},
+      const ang=Math.atan2(ctx.nx,ctx.nz)+(Math.random()<.5?1:-1)*(Math.PI/2+rand(-.35,.35)),[ux,uz]=dirTo(ang),LN=34;
+      laneAdd(e,P.pos.x-ux*LN/2,P.pos.z-uz*LN/2,ux,uz,{len:LN,w:3,h:2.8,seg:9,speed:38,tele:e.longTele?1.5:(e.phase>=3?1.0:1.25),dmg:1.3,color:0x5b6b8a});
+      e.longTele=0;above(e,L('SEMAFOR!','RED SIGNAL!'),'#ff5a4a')},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-2.4;e.glow=.1+.1*Math.sin(a.st*28);return !laneTick(e,dt)},end(e){laneEnd(e);e.glow=0},cool:e=>rand(1.6,2.4)},
-  drezyna:{start(e,ctx){laneEnd(e);sfx('e_horn');const [ux,uz]=[ctx.nx,ctx.nz],L=36;
-      laneAdd(e,e.g.position.x-ux*2,e.g.position.z-uz*2,ux,uz,{len:L,w:2,h:.9,seg:4.2,speed:21,tele:e.longTele?1.5:.95,dmg:1.1,color:0xb05a1a});
-      e.longTele=0;above(e,'DREZYNA!','#ffb12a')},
+  drezyna:{start(e,ctx){laneEnd(e);sfx('e_horn');const [ux,uz]=[ctx.nx,ctx.nz],LN=36;
+      laneAdd(e,e.g.position.x-ux*2,e.g.position.z-uz*2,ux,uz,{len:LN,w:2,h:.9,seg:4.2,speed:21,tele:e.longTele?1.5:.95,dmg:1.1,color:0xb05a1a});
+      e.longTele=0;above(e,L('DREZYNA!','HANDCAR!'),'#ffb12a')},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-1.6;e.glow=.08;return !laneTick(e,dt)},end(e){laneEnd(e);e.glow=0},cool:e=>rand(1.6,2.4)},
-  rozjazd:{start(e,ctx){laneEnd(e);sfx('e_horn');const base=Math.atan2(ctx.nx,ctx.nz),L=34;
-      for(const s of [-1,1]){const [ux,uz]=dirTo(base+s*.75);laneAdd(e,P.pos.x-ux*L/2,P.pos.z-uz*L/2,ux,uz,{len:L,w:2.4,h:2.2,seg:9,speed:36,tele:1.5,dmg:1.2,color:0x6b5b8a})}
-      above(e,'ROZJAZD!','#ff5a4a',42)},
+  rozjazd:{start(e,ctx){laneEnd(e);sfx('e_horn');const base=Math.atan2(ctx.nx,ctx.nz),LN=34;
+      for(const s of [-1,1]){const [ux,uz]=dirTo(base+s*.75);laneAdd(e,P.pos.x-ux*LN/2,P.pos.z-uz*LN/2,ux,uz,{len:LN,w:2.4,h:2.2,seg:9,speed:36,tele:1.5,dmg:1.2,color:0x6b5b8a})}
+      above(e,L('ROZJAZD!','SWITCH!'),'#ff5a4a',42)},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-2.6;e.glow=.1+.1*Math.sin(a.st*30);return !laneTick(e,dt)},end(e){laneEnd(e);e.glow=0},cool:e=>rand(2,3)},
   gwizdek:{start(e){e.ai.did=false;sfx('e_horn')},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.lean=-.15;e.armT=-2.6;e.glow=a.st<.85?.1+.15*Math.sin(a.st*35):0;
       if(a.st>=.85&&!a.did){a.did=true;sfx('e_whistle');noise(e,40);
         let heard=false;
-        eachPlayer((k,tgt)=>{if((tgt?ctx.dist:distP(e))<28&&nav.gridLos(e.g.position.x,e.g.position.z,P.pos.x,P.pos.z)){heard=true;stunPlayer(1.8);hitPlayer(e,e.dmg*.35);if(isLocal(k))S.G.shake+=1.5;addFloater('DZWONI W USZACH!',{world:new THREE.Vector3(P.pos.x,1.7,P.pos.z),size:30,life:1,color:'#ffe14a',vy:-20})}});
-        if(!heard)above(e,'FIIIU!','#cfd3d8',30);
+        eachPlayer((k,tgt)=>{if((tgt?ctx.dist:distP(e))<28&&nav.gridLos(e.g.position.x,e.g.position.z,P.pos.x,P.pos.z)){heard=true;stunPlayer(1.8);hitPlayer(e,e.dmg*.35);if(isLocal(k))S.G.shake+=1.5;addFloater(L('DZWONI W USZACH!','EARS RINGING!'),{world:new THREE.Vector3(P.pos.x,1.7,P.pos.z),size:30,life:1,color:'#ffe14a',vy:-20})}});
+        if(!heard)above(e,L('FIIIU!','FWEEEET!'),'#cfd3d8',30);
         e.armT=.5}
       if(a.st>=1.5){if(e.phase>=2&&!e.forceAct){e.forceAct=Math.random()<.5?'drezyna':'sklad';e.longTele=1}return true}return false},cool:e=>rand(2,3)},
   lizak:{start(e){e.ai.did=false},
@@ -189,9 +190,9 @@ const DY_ACT={
       else if(!a.did){a.did=true;sfx('e_whoosh');e.armT=1.0;e.lean=.7;if(ctx.dist<3.4&&hitPlayer(e,e.dmg*1.2)){knockDir(ctx.nx,ctx.nz,12);sfx('e_shove')}}
       return a.st>=1.1},cool:e=>rand(.8,1.4)},
 };
-reg('boss_dyzurny','Dyżurny Ruchu',(o={})=>{
+reg('boss_dyzurny',L('Dyżurny Ruchu','Station Dispatcher'),(o={})=>{
   const w=o.wave||0,si=0;
-  const e=makeHuman({key:'dyzurny',build:(P_,m)=>buildDyzurny(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(600,55,w),dmg:wv(14,1,w),radius:.7,scale:1.32,name:'Dyżurny Ruchu',xp:180,
+  const e=makeHuman({key:'dyzurny',build:(P_,m)=>buildDyzurny(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(600,55,w),dmg:wv(14,1,w),radius:.7,scale:1.32,name:L('Dyżurny Ruchu','Station Dispatcher'),xp:180,
     cfg:{speed:wv(2.9,.04,w),turn:6,sight:70,fov:3.6,range:[3,30],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,DY_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,DY_ACT,dyPick,{dmin:8,dmax:16})},
@@ -199,7 +200,7 @@ reg('boss_dyzurny','Dyżurny Ruchu',(o={})=>{
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0}});
   addBossBar(e,2.6,1.9);return e;
 },{drops:[{kind:'vest',p:1},{kind:'med',p:.9},{kind:'adrenaline',p:.5}],tableTags:['boss'],
-  onKill(e){announce('DYŻURNY PADA!','Pociąg odjeżdża bez niego')}});
+  onKill(e){announce(L('DYŻURNY PADA!','THE DISPATCHER IS DOWN!'),L('Pociąg odjeżdża bez niego','The train leaves without him'))}});
 
 /* ======================= SZEF STACJI ======================= */
 function buildSzefStacji(P_,meta,v){
@@ -221,8 +222,8 @@ function buildSzefStacji(P_,meta,v){
   P_.arm.limb(0xb0b4ba,hx,hy2+.03,-.74,hx,hy2+.05,-1.02,.02,.016,{t:.05});P_.arm.limb(0x15110e,hx,hy2-.02,-.5,hx+.05,hy2-.3,-.1,.018,.018,{t:0});
 }
 const SS_PHASES=[
-  {at:.66,title:'DOSTAWA PALIWA!',sub:'Kierowca wjeżdża na stację',onEnter:e=>{summon(e,'kierowca',1)}},
-  {at:.33,title:'ZBIORNIK POD CIŚNIENIEM!',sub:'Szef nie żałuje benzyny',onEnter:e=>{summon(e,'kamikadze',2)}},
+  {at:.66,title:L('DOSTAWA PALIWA!','FUEL DELIVERY!'),sub:L('Kierowca wjeżdża na stację','A driver pulls into the station'),onEnter:e=>{summon(e,'kierowca',1)}},
+  {at:.33,title:L('ZBIORNIK POD CIŚNIENIEM!','TANK UNDER PRESSURE!'),sub:L('Szef nie żałuje benzyny','The boss isn\'t stingy with the petrol'),onEnter:e=>{summon(e,'kamikadze',2)}},
 ];
 const ssPick=e=>{
   const d=distP(e);
@@ -245,7 +246,7 @@ const SS_ACT={
       if((a.hissT-=dt)<=0){a.hissT=.35;sfx('e_hiss')}
       return T>=dur},
     end(e){if(e.beams)e.beams.forEach(b=>b.release());e.beams=null;if(!e.forceAct)e.forceAct='podpal'},cool:e=>rand(.4,.8)},
-  podpal:{start(e){e.ai.did=false;above(e,'ZAPAŁKA!','#ff8a3a',34)},
+  podpal:{start(e){e.ai.did=false;above(e,L('ZAPAŁKA!','MATCH STRUCK!'),'#ff8a3a',34)},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-.05;const thr=e.phase>=3?.7:1.1;
       if(a.st<thr)e.glow=.15+.1*Math.sin(a.st*30);
       else if(!a.did){a.did=true;e.glow=0;igniteFuel(.1)}
@@ -256,18 +257,18 @@ const SS_ACT={
         const n=e.phase>=2?3:2;for(let i=0;i<n;i++){const o=(i-(n-1)/2)*2.8;throwProj('jerry',H,P.pos.x+ctx.nz*o+P.vel.x*.3,P.pos.y+.6,P.pos.z-ctx.nx*o+P.vel.z*.3,{speed:14,dmg:e.dmg*.9,ignite:e.phase>=2,owner:e})}
         e.armT=.8;e.lean=.5}
       return a.st>=1.3},cool:e=>e.phase>=3?rand(1.1,1.8):rand(1.6,2.4)},
-  pump:{start(e){e.ai.did=false;sfx('e_sting');above(e,'UCIEKAJ!','#ff3b30',44)},
+  pump:{start(e){e.ai.did=false;sfx('e_sting');above(e,L('UCIEKAJ!','RUN!'),'#ff3b30',44)},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-2.7;e.lean=-.2;e.glow=.1+.3*Math.min(1,a.st/1.4)*(0.6+.4*Math.sin(a.st*40));
       if(a.st>=1.4&&!a.did){a.did=true;e.glow=0;explode(e.g.position.x,.6,e.g.position.z,{r:7,dmg:e.dmg*1.8,shake:1.4});shockwave(e.g.position.x,e.g.position.z,{speed:11,max:14,dmg:e.dmg*.9,color:0xff8a3a});igniteFuel(.1)}
       return a.st>=1.9},cool:e=>rand(2.5,3.5)},
   call:{start(e){e.ai.did=false},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-2.7;e.glow=.1;
-      if(a.st>.8&&!a.did){a.did=true;sfx('e_horn');above(e,'DOSTAWA!','#ffd34a');summon(e,'kierowca',1)}
+      if(a.st>.8&&!a.did){a.did=true;sfx('e_horn');above(e,L('DOSTAWA!','DELIVERY!'),'#ffd34a');summon(e,'kierowca',1)}
       return a.st>=1.4},cool:e=>rand(4,6)},
 };
-reg('boss_szef_stacji','Szef Stacji',(o={})=>{
+reg('boss_szef_stacji',L('Szef Stacji','Station Boss'),(o={})=>{
   const w=o.wave||0,si=1;
-  const e=makeHuman({key:'szefstacji',build:(P_,m)=>buildSzefStacji(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(700,60,w),dmg:wv(12,.9,w),radius:.8,scale:1.32,name:'Szef Stacji',xp:185,
+  const e=makeHuman({key:'szefstacji',build:(P_,m)=>buildSzefStacji(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(700,60,w),dmg:wv(12,.9,w),radius:.8,scale:1.32,name:L('Szef Stacji','Station Boss'),xp:185,
     cfg:{speed:wv(2.7,.04,w),turn:5,sight:70,fov:3.4,range:[3,26],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,SS_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,SS_ACT,ssPick,{dmin:6,dmax:14})},
@@ -275,4 +276,4 @@ reg('boss_szef_stacji','Szef Stacji',(o={})=>{
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0}});
   addBossBar(e,2.6,1.9);return e;
 },{drops:[{kind:'med',p:1},{kind:'vest',p:.8},{kind:'adrenaline',p:.6}],tableTags:['boss'],
-  onKill(e){announce('SZEF STACJI PADA!','Stacja zamknięta do odwołania')}});
+  onKill(e){announce(L('SZEF STACJI PADA!','THE STATION BOSS IS DOWN!'),L('Stacja zamknięta do odwołania','Station closed until further notice'))}});

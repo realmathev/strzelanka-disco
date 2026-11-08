@@ -13,6 +13,7 @@ import {CFG} from './config.js';
 import {healPlayer,healFloater} from './status.js';
 import {ensureArmor,emitArmor} from './armor.js';
 import {buildMachine} from './models.js';
+import {L} from '../core/i18n.js';
 
 // Akcja 'use' (E, rebindowalna) jest zarejestrowana w input/actions.js; tu tylko ją czytamy przez DS.input.
 
@@ -23,8 +24,8 @@ const near=()=>{let best=null,bd=CFG.useRange;
   return best};
 const at=m=>new THREE.Vector3(m.x,1.9,m.z);
 function label(m){
-  if(m.used)return 'PUSTO';
-  if(m.cd>0)return 'ZA '+Math.ceil(m.cd)+' s';
+  if(m.used)return L('PUSTO','EMPTY');
+  if(m.cd>0)return L('ZA ','IN ')+Math.ceil(m.cd)+' s';
   return CFG.machines[m.kind].price+' ZD  ['+DS.input.keyFor('use')+']';
 }
 
@@ -55,8 +56,8 @@ function useMachine(m){
   if(m.used||m.cd>0){sfx('error');return}
   ensureArmor(G);
   const needs=G.hp<G.maxHp||(cfg.armor&&G.armor<G.armorMax);
-  if(!needs){sfx('error');addFloater('NIE TRZEBA',{world:at(m),size:22,life:.9,color:'#f4e7c5',vy:-20});return}
-  if(save.coins<cfg.price){sfx('error');addFloater('BRAK ZD',{world:at(m),size:22,life:.9,color:'#ff3b30',vy:-20});return}
+  if(!needs){sfx('error');addFloater(L('NIE TRZEBA','NOT NEEDED'),{world:at(m),size:22,life:.9,color:'#f4e7c5',vy:-20});return}
+  if(save.coins<cfg.price){sfx('error');addFloater(L('BRAK ZD','NOT ENOUGH ZD'),{world:at(m),size:22,life:.9,color:'#ff3b30',vy:-20});return}
   save.coins-=cfg.price;persist();
   const got=healPlayer(cfg.heal);
   if(got>0)DS.bus.emit('heal',{amount:got,source:'pickup'});
@@ -65,7 +66,7 @@ function useMachine(m){
   if(m.kind==='vending')m.cd=cfg.cooldown;else m.used=true;
   if(DS.net.useObj)DS.net.useObj('m',machines.indexOf(m),1);   // co-op: stan automatu (cooldown / zużyta stacja) wspólny, u hosta
   sfx('machine');
-  addFloater(m.kind==='vending'?'APTECZKA!':'STACJA!',{world:at(m),size:30,life:1,color:'#7dff9a',vy:-30,burst:true});
+  addFloater(m.kind==='vending'?L('APTECZKA!','MEDKIT!'):L('STACJA!','HEALED UP!'),{world:at(m),size:30,life:1,color:'#7dff9a',vy:-30,burst:true});
 }
 
 DS.bus.on('update',dt=>{

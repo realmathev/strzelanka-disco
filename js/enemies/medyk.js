@@ -10,6 +10,7 @@ import * as nav from './nav.js';
 import {enter,moveToward,moveDir,stopMove,facePlayer,fireAt,noise,animateHuman} from './ai.js';
 import {beam} from './proj.js';
 import {makeHuman,reg,wv,aiOpts,variantOf,rand,pick,SKIN,clamp} from './common.js';
+import {L} from '../core/i18n.js';
 
 const MZ=new THREE.Vector3(),A_=new THREE.Vector3(),B_=new THREE.Vector3();
 // znacznik priorytetowego celu: zielony krzyż nad głową (osobna siatka, niehitowa, świeci własnym kolorem)
@@ -38,9 +39,9 @@ function woundedAlly(e){
   }
   return best;
 }
-reg('medyk','Medyk-bandyta',(o={})=>{
+reg('medyk',L('Medyk-bandyta','Bandit Medic'),(o={})=>{
   const w=o.wave||0,si=variantOf(o,2);
-  const e=makeHuman({key:'medyk'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(55,5,w),dmg:wv(4,.4,w),radius:.45,scale:rand(.97,1.03),name:'Medyk-bandyta',xp:14,
+  const e=makeHuman({key:'medyk'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(55,5,w),dmg:wv(4,.4,w),radius:.45,scale:rand(.97,1.03),name:L('Medyk-bandyta','Bandit Medic'),xp:14,
     cfg:{speed:wv(3.6,.05,w),turn:8,sight:40,fov:2.4,range:[9,17],melee:false,flank:0,cover:.35,fleeHp:.3,fleeTime:6,alertTime:7,holdGround:true,
       animate(e,dt){animateHuman(e,dt);e.marker.rotation.y+=dt*2.5;e.marker.position.y=e.markerY+Math.sin(e.ai.age*3)*.04},
       decide(e,ctx){

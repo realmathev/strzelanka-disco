@@ -40,6 +40,7 @@ import {sfx} from '../../audio/sfx.js';
 import {addBox} from '../build.js';
 import {addPart} from '../batch.js';
 import {world} from '../state.js';
+import {L} from '../../core/i18n.js';
 import {setEnv,slab,boxB,room,slidingDoor,placeCollectibles,placeBarrels,healMachines,buildNav,collectStats,mergeIntoZones,facade} from './common.js';
 
 const ID='kasyno',ARENA=75,PI=Math.PI,H=5,T=.8;
@@ -48,11 +49,11 @@ const COL={plum:0x34162e,wall:0x5b2038,wallB:0x4a2a1c,wallK:0xcfd4d0,wallS:0x777
   asphalt:0x2a2832,lot:0x34323c,red:0x8e1a2c,purple:0x3a2058,green:0x1a6040,wood:0x5a3a24,vip:0x5a2470,tile:0xbcc6c4,conc:0x6e6a60,steel:0x2e343a};
 const VAR=['zloty','wisnie','siodemki'];
 
-const L={
-  id:ID,name:'Kasyno Złoty Bandyta',arena:ARENA,
-  desc:'Noc w kasynie: parkiet z kulą disco, sala automatów, bar, loże VIP, kuchnia, zaplecze i skarbiec. Boss: Jednooki Bandyta na parkiecie.',
+const LV={
+  id:ID,name:L('Kasyno Złoty Bandyta','Golden Bandit Casino'),arena:ARENA,
+  desc:L('Noc w kasynie: parkiet z kulą disco, sala automatów, bar, loże VIP, kuchnia, zaplecze i skarbiec. Boss: Jednooki Bandyta na parkiecie.','A night at the casino: a dance floor with a mirror ball, a slot hall, a bar, VIP booths, a kitchen, back rooms and a vault. Boss: the One-Eyed Bandit on the dance floor.'),
   spawn:{x:0,z:66,yaw:0},
-  starts:[{x:0,z:66,yaw:0,name:'Parking'},{x:0,z:18,yaw:0,name:'Foyer'},{x:0,z:-4,yaw:0,name:'Hall'},{x:-46,z:-20,yaw:PI/2,name:'Bar'}],
+  starts:[{x:0,z:66,yaw:0,name:L('Parking','Car Park')},{x:0,z:18,yaw:0,name:'Foyer'},{x:0,z:-4,yaw:0,name:'Hall'},{x:-46,z:-20,yaw:PI/2,name:'Bar'}],
   menuCam:{r:78,y:36,look:[0,2,-10]},
   track:'C',
   enemies:{caps:{snajper:2},boss:{every:5,pool:['boss_jednooki','boss_dj']}},
@@ -66,17 +67,17 @@ const L={
   // Scenariusz fal: 1-2 gangsterzy z parkingu i sal; 3-4 dresy, bandyci z obrzynem; 5 BOSS Jednooki na parkiecie; 6-9 ochroniarze z tarczami, pijacy z baru;
   // 10 BOSS DJ; 11+ snajperzy z lóż VIP, kamikadze, medycy; 15 BOSS Jednooki.
   waves:{
-    intro:'Godzina 23:50. Kasyno „Złoty Bandyta”. Kula disco się kręci, a Jednooki czeka na parkiecie.',
+    intro:L('Godzina 23:50. Kasyno „Złoty Bandyta”. Kula disco się kręci, a Jednooki czeka na parkiecie.','11:50 PM. The "Golden Bandit" casino. The mirror ball is spinning, and One-Eye is waiting on the dance floor.'),
     plan:[{from:1,note:'gangsterzy z parkingu i sali automatów'},{from:3,note:'dresy, bandyci z obrzynem przy stołach'},
       {from:5,boss:'boss_jednooki',note:'Jednooki Bandyta wchodzi na parkiet; osłony: kolumny z lustrami, stoliki, scena'},{from:6,note:'ochroniarze z tarczami, pijacy z baru'},
       {from:10,boss:'boss_dj',note:'DJ na scenie'},{from:11,note:'snajperzy w lożach VIP, kamikadze, medycy'},{from:15,boss:'boss_jednooki'}],
     bossWave:5,bossArena:{x:0,z:-22,hw:18,hd:13,gates:[{x:-30,z:-32},{x:-30,z:-14},{x:30,z:-32},{x:30,z:-14},{x:-19,z:-40},{x:19,z:-40},{x:0,z:6}]},
   },
-  win:{kind:'boss',boss:'boss_jednooki',reward:{coins:400,keys:1},text:'KASYNO WYCZYSZCZONE!'},
-  secrets:[{id:'skarbiec',name:'Skarbiec'},{id:'chlodnia',name:'Chłodnia'},{id:'windy',name:'Windy A i B'}],
+  win:{kind:'boss',boss:'boss_jednooki',reward:{coins:400,keys:1},text:L('KASYNO WYCZYSZCZONE!','CASINO CLEARED!')},
+  secrets:[{id:'skarbiec',name:L('Skarbiec','The Vault')},{id:'chlodnia',name:L('Chłodnia','Cold Room')},{id:'windy',name:L('Windy A i B','Lifts A and B')}],
   build(){ buildKasyno(this) },
 };
-DS.levels.register(L);
+DS.levels.register(LV);
 
 /* ------------------------------------------------------------------ pomocnicy geometrii */
 /** Ściana wzdłuż X na z=`z` od a do b; gaps: [[od,do]] to otwory (nadproże + złote słupki); lintel = wysokość nadproża. */
@@ -198,7 +199,7 @@ function buildKasyno(level){
   // skarbiec: sekretne drzwi w ścianie korytarza
   wallZ(-8,-66,-46,{color:0x39434a,trim:false});wallZ(8,-66,-46,{color:0x39434a,trim:false});
   wallX(-46,-8,8,{color:0x39434a,gaps:[[-1.6,1.6]],lintel:3.4,trim:false});
-  slidingDoor('x',-46,0,3.2,3.4,{secret:true,label:'SKARBIEC',color:0x8a949a,dir:1,thick:T*.6});
+  slidingDoor('x',-46,0,3.2,3.4,{secret:true,label:L('SKARBIEC','VAULT'),color:0x8a949a,dir:1,thick:T*.6});
 
   /* ---- sufit: paski świetlne wg stref ---- */
   strips(-30,30,6,30,5,0xffd890);strips(-66,-30,-2,30,8,0xff4fd8,'z');strips(30,66,-2,30,8,0x59ff9c,'z');
@@ -298,7 +299,7 @@ function buildKasyno(level){
   put('parkiet',{x:0,y:.04,z:-22,w:12,d:12,seed:4});
   put('scenaDJ',{x:0,z:-38.4,rotY:0});
   bulbs([...Array(15).keys()].map(i=>[-7+i,3.2,-37.2]));
-  const ballP=DS.props.get('kulaDisco').make({drop:.6});ballP.position.set(0,3.0,-22);scene.add(ballP);L._ball=ballP;
+  const ballP=DS.props.get('kulaDisco').make({drop:.6});ballP.position.set(0,3.0,-22);scene.add(ballP);LV._ball=ballP;
   for(const [x,z] of [[-11,-31],[11,-31],[-11,-13],[11,-13],[-22,-4],[22,-4],[-5,-4],[5,-4]])put('kolumnaLustrzana',{x,z,seed:x+z});
   for(const [x,z] of [[-9,-24],[9,-24],[-15,-9],[15,-9],[-16,-33],[16,-33]])put('stolikKoktajlowy',{x,z,seed:x+z});
   for(const x of [-19,-15,-11,11,15,19])put('scianaLustra',{x,z:5.5,rotY:PI,seed:x});
@@ -312,7 +313,7 @@ function buildKasyno(level){
   const bg=new THREE.CylinderGeometry(.12,1.5,5,12,1,true);bg.translate(0,-2.5,0);
   const bm=new THREE.InstancedMesh(bg,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}),8);
   const bc=new THREE.Color();[0xff3b8b,0x59d4ff,0xffe14a,0xa855ff,0x3bff9c,0xff6a3b,0xff3b8b,0x59d4ff].forEach((c,i)=>bm.setColorAt(i,bc.set(c)));
-  bm.frustumCulled=false;bm.raycast=()=>{};scene.add(bm);L._beams=bm;
+  bm.frustumCulled=false;bm.raycast=()=>{};scene.add(bm);LV._beams=bm;
   healMachines([{kind:'vending',x:-29.2,z:-3.6,rotY:PI/2}]);
 
   /* ---- BAR (zachód, środek) ---- */
@@ -354,7 +355,7 @@ function buildKasyno(level){
   put('kameraCCTV',{x:-65.5,y:3.3,z:-50,rotY:PI/2});put('gasnica',{x:-65.5,z:-60,rotY:PI/2});
   // chłodnia (sekret 2): pokój w rogu, drzwi na E
   room({x0:-65.6,x1:-57.6,z0:-48,z1:-40.4,h:3.2,wall:0x8fa6ac,roof:0x2a3438,floor:0x9fb4ba,light:0xcfe8ff,
-    door:{side:'e',c:-44.2,w:2.4,h:2.5,secret:true,label:'CHŁODNIA',dir:1}});
+    door:{side:'e',c:-44.2,w:2.4,h:2.5,secret:true,label:L('CHŁODNIA','COLD ROOM'),dir:1}});
   for(const [x,z] of [[-64.2,-46.7],[-62.5,-46.7],[-64.2,-41.7]])put('skrzynkaAlkohol',{x,z,seed:x+z});
   put('regalMagazynowy',{x:-61,z:-47.1,rotY:0,seed:5});put('lodowka',{x:-64.9,z:-44,rotY:PI/2});
   placeBarrels([{x:-60.2,z:-41.9}]);
@@ -392,20 +393,20 @@ function buildKasyno(level){
 
   /* ---- znajdźki (id stabilne!) ---- */
   placeCollectibles(level,[
-    {id:'ks-kaseta-1',type:'kaseta',x:25.5,z:26.5,name:'Zenek: Szczęśliwa Siódemka',hint:'foyer, za automatami'},
-    {id:'ks-kaseta-2',type:'kaseta',x:-63.5,z:.6,name:'Akcent: Kasyno Miłości',hint:'sala automatów, narożnik'},
-    {id:'ks-kaseta-3',type:'kaseta',x:61.5,z:-27,name:'Weekend: Złote Karty',hint:'między lożami VIP'},
-    {id:'ks-kaseta-4',type:'kaseta',x:2,z:-52,name:'Boys: Skarbiec Disco',hint:'skarbiec',secret:true},
-    {id:'ks-lancuch-1',type:'lancuch',x:-33,z:26.5,name:'Złoty łańcuch spod automatu',value:80},
-    {id:'ks-lancuch-2',type:'lancuch',x:66.5,z:68,name:'Łańcuch spod limuzyny',value:80},
-    {id:'ks-lancuch-3',type:'lancuch',x:16,z:-43,name:'Łańcuch zza sceny',value:90},
-    {id:'ks-lancuch-4',type:'lancuch',x:-2,z:-62.5,name:'Łańcuch ze skarbca',value:150,secret:true},
-    {id:'ks-klucz-1',type:'klucz',x:-63.5,z:-43.5,name:'Klucz do skrzynki: chłodnia',secret:true},
-    {id:'ks-klucz-2',type:'klucz',x:62,z:-65.1,name:'Klucz do skrzynki: winda B',secret:true},
-    {id:'ks-plakat-1',type:'plakat',x:63.4,z:1.8,name:'Plakat: Wielki Turniej Pokera (wpisowe 5 zł)',hint:'sala stołów',value:30},
-    {id:'ks-plakat-2',type:'plakat',x:-70,z:-69.5,name:'Plakat: Sylwester z DJ Wojtkiem',hint:'podwórze za kuchnią',value:30},
-    {id:'ks-plakat-3',type:'plakat',x:-62.5,z:-6.5,name:'Plakat: Zakaz wnoszenia własnego alkoholu',hint:'zaplecze baru',value:30},
-    {id:'ks-plakat-4',type:'plakat',x:34,z:-64.2,name:'Plakat: Kontrola sanepidu, wszystko OK',hint:'magazyn',value:30},
+    {id:'ks-kaseta-1',type:'kaseta',x:25.5,z:26.5,name:L('Zenek: Szczęśliwa Siódemka','Mietek Boombox: Lucky Number Seven'),hint:L('foyer, za automatami','foyer, behind the slot machines')},
+    {id:'ks-kaseta-2',type:'kaseta',x:-63.5,z:.6,name:L('Akcent: Kasyno Miłości','Diesel Romeo: Casino of Love'),hint:L('sala automatów, narożnik','slot hall, in the corner')},
+    {id:'ks-kaseta-3',type:'kaseta',x:61.5,z:-27,name:L('Weekend: Złote Karty','Friday Pierogi: Golden Cards'),hint:L('między lożami VIP','between the VIP booths')},
+    {id:'ks-kaseta-4',type:'kaseta',x:2,z:-52,name:L('Boys: Skarbiec Disco','Tracksuit Five: Disco Vault'),hint:L('skarbiec','the vault'),secret:true},
+    {id:'ks-lancuch-1',type:'lancuch',x:-33,z:26.5,name:L('Złoty łańcuch spod automatu','Gold chain from under a slot machine'),value:80},
+    {id:'ks-lancuch-2',type:'lancuch',x:66.5,z:68,name:L('Łańcuch spod limuzyny','Chain from under the limo'),value:80},
+    {id:'ks-lancuch-3',type:'lancuch',x:16,z:-43,name:L('Łańcuch zza sceny','Backstage chain'),value:90},
+    {id:'ks-lancuch-4',type:'lancuch',x:-2,z:-62.5,name:L('Łańcuch ze skarbca','Vault chain'),value:150,secret:true},
+    {id:'ks-klucz-1',type:'klucz',x:-63.5,z:-43.5,name:L('Klucz do skrzynki: chłodnia','Crate key: cold room'),secret:true},
+    {id:'ks-klucz-2',type:'klucz',x:62,z:-65.1,name:L('Klucz do skrzynki: winda B','Crate key: lift B'),secret:true},
+    {id:'ks-plakat-1',type:'plakat',x:63.4,z:1.8,name:L('Plakat: Wielki Turniej Pokera (wpisowe 5 zł)','Poster: Grand Poker Tournament (buy-in 5 zł)'),hint:L('sala stołów','table hall'),value:30},
+    {id:'ks-plakat-2',type:'plakat',x:-70,z:-69.5,name:L('Plakat: Sylwester z DJ Wojtkiem','Poster: New Year\'s Eve with DJ Wojtek'),hint:L('podwórze za kuchnią','yard behind the kitchen'),value:30},
+    {id:'ks-plakat-3',type:'plakat',x:-62.5,z:-6.5,name:L('Plakat: Zakaz wnoszenia własnego alkoholu','Poster: No bringing your own booze'),hint:L('zaplecze baru','behind the bar'),value:30},
+    {id:'ks-plakat-4',type:'plakat',x:34,z:-64.2,name:L('Plakat: Kontrola sanepidu, wszystko OK','Poster: Health inspection passed, honest'),hint:L('magazyn','storeroom'),value:30},
   ]);
 
   /* ---- nawigacja AI: osłony z rekwizytów (bez ścian), siatka z colliderów ---- */
@@ -449,21 +450,21 @@ function startAmbient(){
 const here=()=>world.level&&world.level.id===ID;
 const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_p=new THREE.Vector3(),_s1=new THREE.Vector3(1,1,1);
 DS.bus.on('levelLoad',e=>{if(e&&e.level===ID)mergeIntoZones()});
-DS.bus.on('levelUnload',()=>{lifts.length=0;ride=null;L._ball=null;L._beams=null});
+DS.bus.on('levelUnload',()=>{lifts.length=0;ride=null;LV._ball=null;LV._beams=null});
 DS.bus.on('levelStart',()=>{
   if(!here())return;
   resetLifts();
-  if(L.track&&opt.track==='A')setTrack(L.track,false);
+  if(LV.track&&opt.track==='A')setTrack(LV.track,false);
   startAmbient();
-  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(L);announce('KASYNO ZŁOTY BANDYTA','Znajdźki '+st.found+'/'+st.total+'  |  3 sekrety')}},1800)}
+  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(LV);announce(L('KASYNO ZŁOTY BANDYTA','GOLDEN BANDIT CASINO'),L('Znajdźki ','Collectibles ')+st.found+'/'+st.total+L('  |  3 sekrety','  |  3 secrets'))}},1800)}
 });
 DS.bus.on('levelEnd',()=>{stopAmbient();resetLifts()});
 DS.bus.on('levelUnload',stopAmbient);
 DS.bus.on('update',dt=>{
   if(!here())return;
   // kula disco i reflektory
-  if(L._ball)L._ball.rotation.y+=dt*.9;
-  const bm=L._beams;
+  if(LV._ball)LV._ball.rotation.y+=dt*.9;
+  const bm=LV._beams;
   if(bm){
     tBeams+=dt;
     for(let i=0;i<bm.count;i++){
@@ -484,14 +485,14 @@ DS.bus.on('update',dt=>{
     P.vel.set(0,0,0);P.pos.x=ride.px;P.pos.z=ride.pz;ride.t-=dt;
     if(ride.t<=0){
       const o=ride.to;P.pos.x=o.x-.05*o.s;P.pos.z=o.z-.05*o.c;P.yaw=o.rotY+PI;P.pitch=0;P.vel.set(0,0,0);
-      o.target=1;liftSync(o);ride=null;sfx('key');addFloater('WINDA',{world:T0.set(P.pos.x,2.2,P.pos.z).clone(),size:22,life:1.2,color:'#ffe14a',vy:-18});
+      o.target=1;liftSync(o);ride=null;sfx('key');addFloater(L('WINDA','LIFT'),{world:T0.set(P.pos.x,2.2,P.pos.z).clone(),size:22,life:1.2,color:'#ffe14a',vy:-18});
     }
     return;
   }
   hintT-=dt;
   if(G&&!G.dead&&hintT<=0){
     for(const lf of lifts){const l=loc(lf,P,_lo);
-      if(inCab(l)||atDoor(l)){hintT=1.6;addFloater((inCab(l)&&lf.t>.8?'JAZDA':'WINDA')+'  ['+DS.input.keyFor('use')+']',{world:T0.set(lf.x+ZD*lf.s,1.7,lf.z+ZD*lf.c).clone(),size:20,life:1.3,color:'#ffe14a',vy:-18});break}}
+      if(inCab(l)||atDoor(l)){hintT=1.6;addFloater((inCab(l)&&lf.t>.8?L('JAZDA','GO'):L('WINDA','LIFT'))+'  ['+DS.input.keyFor('use')+']',{world:T0.set(lf.x+ZD*lf.s,1.7,lf.z+ZD*lf.c).clone(),size:20,life:1.3,color:'#ffe14a',vy:-18});break}}
   }
 });
 addEventListener('keydown',e=>{
@@ -509,11 +510,11 @@ addEventListener('keydown',e=>{
   }
 });
 const winOnKill=({enemy:e})=>{
-  const G=S.G;if(!G||!here()||!e||e.type!==L.win.boss||G.levelWon)return;
+  const G=S.G;if(!G||!here()||!e||e.type!==LV.win.boss||G.levelWon)return;
   G.levelWon=true;
-  save.coins+=L.win.reward.coins;save.keys+=L.win.reward.keys;G.earned+=L.win.reward.coins;G.keysFound+=L.win.reward.keys;
+  save.coins+=LV.win.reward.coins;save.keys+=LV.win.reward.keys;G.earned+=LV.win.reward.coins;G.keysFound+=LV.win.reward.keys;
   save.levelsDone=save.levelsDone||{};save.levelsDone[ID]=true;persist();
-  setTimeout(()=>{if(S.G===G)announce(L.win.text,'+'+L.win.reward.coins+' ZD i klucz. Gra toczy się dalej.')},1500);
+  setTimeout(()=>{if(S.G===G)announce(LV.win.text,'+'+LV.win.reward.coins+L(' ZD i klucz. Gra toczy się dalej.',' ZD and a key. The party goes on.'))},1500);
   DS.bus.emit('levelComplete',{level:ID,wave:G.wave});
 };
 DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)

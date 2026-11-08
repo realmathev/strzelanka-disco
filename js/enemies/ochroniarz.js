@@ -6,6 +6,7 @@ import {sfx} from '../audio/sfx.js';
 import {P} from '../player/player.js';
 import {humanBase} from './kit.js';
 import {makeHuman,reg,wv,aiOpts,meleeAttack,variantOf,rand,pick,SKIN} from './common.js';
+import {L} from '../core/i18n.js';
 
 let blockMsgT=0;
 export function shieldHit(e,ev,{front=.5,block=.85,back=.3}={}){
@@ -13,7 +14,7 @@ export function shieldHit(e,ev,{front=.5,block=.85,back=.3}={}){
   const p=e.g.position,fx=-Math.sin(e.g.rotation.y),fz=-Math.cos(e.g.rotation.y),dx=P.pos.x-p.x,dz=P.pos.z-p.z,d=Math.hypot(dx,dz)||1;
   const dot=(dx*fx+dz*fz)/d;
   if(dot>front){ev.dmg*=1-block;e.shieldT=.12;sfx('e_block');
-    const now=performance.now();if(now-blockMsgT>350){blockMsgT=now;addFloater(pick(['BLOK!','TARCZA!','PUK!']),{world:new THREE.Vector3(p.x,p.y+1.5,p.z),size:26,life:.5,color:'#9fd3ea',vy:-30})}}
+    const now=performance.now();if(now-blockMsgT>350){blockMsgT=now;addFloater(pick(L(['BLOK!','TARCZA!','PUK!'],['BLOCKED!','SHIELD!','TONK!'])),{world:new THREE.Vector3(p.x,p.y+1.5,p.z),size:26,life:.5,color:'#9fd3ea',vy:-30})}}
   else if(dot<-.35){ev.dmg*=1+back}                              // od tyłu: bez ochrony i z premią
 }
 
@@ -34,9 +35,9 @@ function build(P_,meta,v){
   P_.body.box(0xffffff,.5,.09,.012,-.02,1.28,-.49,{t:0});
 }
 const SKINS=SKIN;
-reg('ochroniarz','Ochroniarz z tarczą',(o={})=>{
+reg('ochroniarz',L('Ochroniarz z tarczą','Riot-Shield Bouncer'),(o={})=>{
   const w=o.wave||0,si=variantOf(o,2);
-  return makeHuman({key:'ochroniarz'+si,build:(P_,m)=>build(P_,m,{skin:SKINS[si]}),hp:wv(110,10,w),dmg:wv(8,.5,w),radius:.6,scale:rand(1.03,1.08),name:'Ochroniarz',xp:15,
+  return makeHuman({key:'ochroniarz'+si,build:(P_,m)=>build(P_,m,{skin:SKINS[si]}),hp:wv(110,10,w),dmg:wv(8,.5,w),radius:.6,scale:rand(1.03,1.08),name:L('Ochroniarz','Bouncer'),xp:15,
     cfg:{speed:wv(2.3,.04,w),turn:2.4,sight:36,fov:2.3,range:[1.5,2.3],melee:true,flank:0,cover:0,fleeHp:0,alertTime:8,accel:6,
       attack(e,dt,ctx){meleeAttack(e,dt,ctx,{reach:2.1,windup:.6,cool:1.1,dmg:e.dmg,knock:10,snd:'e_shove',hitSnd:'hurt'})},
       beforeHit(e,ev){shieldHit(e,ev)}},

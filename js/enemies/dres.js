@@ -10,6 +10,7 @@ import {collide} from '../player/collision.js';
 import {humanBase} from './kit.js';
 import {enter,moveDir,moveToward,stopMove,hitPlayer,facePlayer,noise} from './ai.js';
 import {makeHuman,reg,wv,aiOpts,meleeAttack,variantOf,rand,pick,SKIN,clamp} from './common.js';
+import {L} from '../core/i18n.js';
 
 const VARIANTS=[{jacket:0x1d3f8a,stripe:0xffffff},{jacket:0xb3262c,stripe:0xffffff},{jacket:0x1c1c1f,stripe:0xf4efe4}];
 function build(P_,meta,v){
@@ -26,10 +27,10 @@ function build(P_,meta,v){
   P_.head.box(0x15110e,.05,.012,.02,-.04,hy+.045,-.122,{t:0});P_.head.box(0x15110e,.05,.012,.02,.04,hy+.045,-.122,{t:0}); // brwi
 }
 
-reg('dres','Dres',(o={})=>{
+reg('dres',L('Dres','Tracksuit Thug'),(o={})=>{
   const w=o.wave||0,vi=variantOf(o,VARIANTS.length);
   const v=Object.assign({skin:SKIN[vi]},VARIANTS[vi]);
-  const e=makeHuman({key:'dres'+vi,build:(P_,m)=>build(P_,m,v),hp:wv(55,6,w),dmg:wv(9,.6,w),radius:.45,scale:rand(.97,1.05),name:'Dres',xp:9,
+  const e=makeHuman({key:'dres'+vi,build:(P_,m)=>build(P_,m,v),hp:wv(55,6,w),dmg:wv(9,.6,w),radius:.45,scale:rand(.97,1.05),name:L('Dres','Tracksuit Thug'),xp:9,
     cfg:{speed:wv(4.9,.07,w),turn:11,sight:38,fov:2.4,range:[1.1,1.9],melee:true,flank:.6,cover:0,fleeHp:0,alertTime:6,accel:12,
       decide(e,ctx){
         const a=e.ai;a.cd2-=.18;
@@ -38,7 +39,7 @@ reg('dres','Dres',(o={})=>{
       },
       attack(e,dt,ctx){meleeAttack(e,dt,ctx,{reach:1.55,windup:.28,cool:.55,dmg:e.dmg*.8,knock:4,snd:null,hitSnd:'hurt'})},
       states:{
-        wind:{enter(e){sfx('e_yell');e.ai.st=0;noise(e,28);if(opt.onoma)addFloater('ŁOOOO!',{world:e.g.localToWorld(new THREE.Vector3(0,2.3,0)),size:34,life:.6,color:'#ffe14a',vy:-30})},
+        wind:{enter(e){sfx('e_yell');e.ai.st=0;noise(e,28);if(opt.onoma)addFloater(L('ŁOOOO!','OOOOI!'),{world:e.g.localToWorld(new THREE.Vector3(0,2.3,0)),size:34,life:.6,color:'#ffe14a',vy:-30})},
           update(e,dt,ctx){const a=e.ai;a.st+=dt;stopMove(e,dt);facePlayer(e);e.crouch=Math.min(.8,a.st*3);e.lean=.5;e.glow=.18+.1*Math.sin(a.st*30);
             if(a.st>=.5){e.glow=0;e.crouch=0;a.dx=ctx.nx;a.dz=ctx.nz;enter(e,'charge')}}},
         charge:{enter(e){e.ai.st=0;e.ai.px=e.g.position.x;e.ai.pz=e.g.position.z;e.ai.hitDone=false},

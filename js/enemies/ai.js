@@ -13,6 +13,7 @@ import {P} from '../player/player.js';
 import {collide,los} from '../player/collision.js';
 import {hurt} from '../game/combat.js';
 import * as nav from './nav.js';
+import {L} from '../core/i18n.js';
 
 const DEF_CFG={
   speed:3.4,turn:9,sight:42,fov:2.2,near:3,hear:50,shoutR:22,think:.18,range:[6,14],melee:false,
@@ -70,7 +71,7 @@ export function enter(e,state,arg){
       if(cv&&Math.hypot(cv.x-P.pos.x,cv.z-P.pos.z)<Math.max(d-1,10))cv=null;            // osłona nie może być bliżej gracza niż jest teraz
       if(cv){a.gx=cv.x;a.gz=cv.z}
       else{const f=nav.nearestFree(e.g.position.x+dx/d*20,e.g.position.z+dz/d*20,c.cls,8);if(f){a.gx=f.x;a.gz=f.z}else{a.gx=e.g.position.x+dx/d*10;a.gz=e.g.position.z+dz/d*10}}
-      a.t=0;if(opt.onoma)addFloater(pick(['NIE BIJ!','MAMUSIU!','WYCOFKA!']),{world:T1.set(e.g.position.x,2.3,e.g.position.z).clone(),size:24,life:.8,color:'#f4e7c5',vy:-30});
+      a.t=0;if(opt.onoma)addFloater(pick(L(['NIE BIJ!','MAMUSIU!','WYCOFKA!'],['DON\'T HIT ME!','MOMMY!','FALL BACK!'])),{world:T1.set(e.g.position.x,2.3,e.g.position.z).clone(),size:24,life:.8,color:'#f4e7c5',vy:-30});
       break}
   }
   const st=c.states&&c.states[state];if(st&&st.enter)st.enter(e,arg);
@@ -190,7 +191,7 @@ function perceive(e,eye,dtThink){
   if(sees){a.lx=P.pos.x;a.lz=P.pos.z;a.lt=0}else a.lt+=dtThink;
   if(sees&&!prev&&!a.reactDone&&(a.state==='patrol'||a.state==='alert')){
     a.reactDone=true;a.react=rand(c.react[0],c.react[1]);
-    if(opt.onoma)addFloater(pick(['HEJ!','TO ON!','ŁAPAĆ GO!','O, FRAJER!']),{world:T1.set(p.x,2.4,p.z).clone(),size:26,life:.8,color:'#ffe14a',vy:-30});
+    if(opt.onoma)addFloater(pick(L(['HEJ!','TO ON!','ŁAPAĆ GO!','O, FRAJER!'],['OI!','THAT\'S HIM!','GET HIM!','OI, DICKHEAD!'])),{world:T1.set(p.x,2.4,p.z).clone(),size:26,life:.8,color:'#ffe14a',vy:-30});
     wakeAround(p.x,p.z,c.shoutR,P.pos.x,P.pos.z,e);
   }
   return sees;

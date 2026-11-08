@@ -11,6 +11,7 @@ import * as nav from './nav.js';
 import {enter,stopMove,moveToward,hitPlayer,noise,facePlayer} from './ai.js';
 import {beam} from './proj.js';
 import {makeHuman,reg,wv,aiOpts,variantOf,rand,pick,SKIN,clamp} from './common.js';
+import {L} from '../core/i18n.js';
 
 const MZ=new THREE.Vector3(),AIM=new THREE.Vector3(),END=new THREE.Vector3(),TP=new THREE.Vector3();
 const AIM_T=1.6,LOCK_T=.45;
@@ -27,9 +28,9 @@ function build(P_,meta,v){
   P_.body.cyl(0x15110e,.028,.028,.3,.07,1.47,-.38,{rx:Math.PI/2},8);                              // luneta
   P_.body.box(0xff2222,.02,.02,.04,.07,1.41,-1.18,{t:0});                                         // laser
 }
-reg('snajper','Snajper z laserem',(o={})=>{
+reg('snajper',L('Snajper z laserem','Laser Sniper'),(o={})=>{
   const w=o.wave||0,si=variantOf(o,2);
-  const e=makeHuman({key:'snajper'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(45,4,w),dmg:wv(28,1.6,w),radius:.45,scale:rand(.98,1.04),name:'Snajper',xp:16,
+  const e=makeHuman({key:'snajper'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(45,4,w),dmg:wv(28,1.6,w),radius:.45,scale:rand(.98,1.04),name:L('Snajper','Sniper'),xp:16,
     cfg:{speed:wv(2.7,.04,w),turn:5,sight:90,fov:1.9,range:[24,60],melee:false,flank:0,cover:.55,fleeHp:.3,fleeTime:5,alertTime:9,hear:70,holdGround:true,lose:5,
       attack(e,dt,ctx){
         const a=e.ai;a.face=1;a.cd-=dt;
@@ -89,5 +90,5 @@ function fire(e,from,aim,ctx){
   const cx=from.x+ux*t-P.pos.x,cy=from.y+uy*t-(P.pos.y+1.0),cz=from.z+uz*t-P.pos.z,miss=Math.hypot(cx,cy,cz);
   if(t>0&&miss<.75){
     if(los(from,TP.set(P.pos.x,P.pos.y+1.5,P.pos.z))||los(from,TP.set(P.pos.x,P.pos.y+.9,P.pos.z)))hitPlayer(e,e.dmg);
-  }else addFloater('MINĄŁ!',{world:new THREE.Vector3(P.pos.x,1.9,P.pos.z),size:26,life:.6,color:'#f4e7c5',vy:-30});
+  }else addFloater(L('MINĄŁ!','MISSED!'),{world:new THREE.Vector3(P.pos.x,1.9,P.pos.z),size:26,life:.6,color:'#f4e7c5',vy:-30});
 }

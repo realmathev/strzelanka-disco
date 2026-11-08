@@ -32,18 +32,19 @@ import {A as AU} from '../../audio/context.js';
 import {addBox} from '../build.js';
 import {addPart} from '../batch.js';
 import {world} from '../state.js';
+import {L} from '../../core/i18n.js';
 import {setEnv,slab,facade,fence,room,slidingDoor,placeCollectibles,placeBarrels,healMachines,buildNav,collectStats,mergeIntoZones} from './common.js';
 
 const ID='dworzec',ARENA=78,PI=Math.PI;
 const put=(id,o)=>DS.props.get(id).place(o);
 const C={asph:0x3f3d46,road:0x37353d,pav:0x9a9488,conc:0x8c887e,grav:0x6a665c,yard:0x77726a,steel:0x4b5058,deck:0x58524a,brick:0x9a4a36,dark:0x2a2832};
 
-const L={
-  id:ID,name:'Dworzec i Bocznica',arena:ARENA,
-  desc:'Zmierzch na stacji czołowej: poczekalnia, perony, składy jako labirynt, bocznica z magazynami, nastawnia, tunel i wiadukt. Boss na placu przed nastawnią.',
+const LV={
+  id:ID,name:L('Dworzec i Bocznica','Railway Station & Sidings'),arena:ARENA,
+  desc:L('Zmierzch na stacji czołowej: poczekalnia, perony, składy jako labirynt, bocznica z magazynami, nastawnia, tunel i wiadukt. Boss na placu przed nastawnią.','Dusk at a dead-end terminus: waiting room, platforms, a maze of parked trains, sidings with warehouses, a signal box, a tunnel and a viaduct. Boss on the yard in front of the signal box.'),
   spawn:{x:0,z:70,yaw:0},
-  starts:[{x:0,z:70,yaw:0,name:'Plac dworcowy'},{x:0,z:31,yaw:0,name:'Poczekalnia'},{x:-22,z:-14,yaw:-PI/2,name:'Przejście przez peron'},
-    {x:0,z:-22,yaw:0,name:'Plac manewrowy'},{x:33,z:-6,yaw:PI/2,name:'Bocznica'}],
+  starts:[{x:0,z:70,yaw:0,name:L('Plac dworcowy','Station Square')},{x:0,z:31,yaw:0,name:L('Poczekalnia','Waiting Room')},{x:-22,z:-14,yaw:-PI/2,name:L('Przejście przez peron','Platform Crossing')},
+    {x:0,z:-22,yaw:0,name:L('Plac manewrowy','Shunting Yard')},{x:33,z:-6,yaw:PI/2,name:L('Bocznica','Sidings')}],
   menuCam:{r:84,y:42,look:[0,2,-8]},
   track:'A',
   spawnZones:[
@@ -56,17 +57,17 @@ const L={
   // Scenariusz fal: 1-2 gangsterzy z placu i alei; 3-4 dresy i bandyci na torach; 5 BOSS na placu przed nastawnią; 6-9 ochroniarze, kamikadze z bocznicy;
   // 10 BOSS (kolejny z puli); 11+ snajperzy na wiadukcie/wieży, medycy, kierowcy.
   waves:{
-    intro:'Godzina 20:15. Dworzec „Strzelnica Główna”. Ostatni pociąg stoi na torze, a Dyżurny wie, kto go zatrzymał.',
+    intro:L('Godzina 20:15. Dworzec „Strzelnica Główna”. Ostatni pociąg stoi na torze, a Dyżurny wie, kto go zatrzymał.','8:15 PM. "Strzelnica Główna" station (Shooting Range Central). The last train is stuck on the track, and the Dispatcher knows who stopped it.'),
     plan:[{from:1,note:'gangsterzy z placu dworcowego i alei'},{from:3,note:'dresy i bandyci między wagonami'},
       {from:5,boss:'pula',note:'boss wchodzi na plac przed nastawnią; osłony: skrzynki SRK, lokomotywa SM42 na torze 5, skrzynie, beczki'},
       {from:6,note:'ochroniarze, kamikadze z bocznicy'},{from:10,boss:'pula'},{from:11,note:'snajperzy, medycy, kierowcy z placu'}],
     bossWave:5,bossArena:{x:0,z:-30,hw:11,hd:13,gates:[{x:-15,z:-14},{x:15,z:-14},{x:-15,z:-37},{x:15,z:-37},{x:-4,z:-50},{x:10,z:-56}]},
   },
-  win:{kind:'boss',boss:'boss_jednooki',reward:{coins:450,keys:1},text:'DWORZEC OCZYSZCZONY!'},
-  secrets:[{id:'zejscie',name:'Zejście służbowe'},{id:'przekaznikownia',name:'Przekaźkownia'},{id:'magazyn',name:'Zaplecze magazynu'}],
+  win:{kind:'boss',boss:'boss_jednooki',reward:{coins:450,keys:1},text:L('DWORZEC OCZYSZCZONY!','STATION CLEARED!')},
+  secrets:[{id:'zejscie',name:L('Zejście służbowe','Staff Stairs')},{id:'przekaznikownia',name:L('Przekaźkownia','Relay Room')},{id:'magazyn',name:L('Zaplecze magazynu','Warehouse Back Room')}],
   build(){ buildDworzec(this) },
 };
-DS.levels.register(L);
+DS.levels.register(LV);
 
 /* ------------------------------------------------------------------ pomocnicy */
 const sign=(text,color,bg,w,h,x,y,z,rotY=0)=>put('neonSign',{text,color,bg,w,h,x,y,z,rotY});
@@ -223,7 +224,7 @@ function buildDworzec(level){
   /* ---- nastawnia (punkt orientacyjny) i przekaźkownia (sekret 2) ---- */
   put('nastawnia',{x:0,z:-60,rotY:0,seed:3});
   sign('NASTAWNIA','#ff4a2a','#10060a',5,1.2,0,6.3,-57.0);
-  const pr=room({x0:-18,x1:-8,z0:-68,z1:-58,h:3.2,wall:0x7a5a4a,roof:0x3a3836,floor:0x3a3632,light:0xffd080,door:{side:'e',c:-62,w:2.2,h:2.4,secret:true,label:'PRZEKAŹNIKOWNIA'}});
+  const pr=room({x0:-18,x1:-8,z0:-68,z1:-58,h:3.2,wall:0x7a5a4a,roof:0x3a3836,floor:0x3a3632,light:0xffd080,door:{side:'e',c:-62,w:2.2,h:2.4,secret:true,label:L('PRZEKAŹNIKOWNIA','RELAY ROOM')}});
   sign('SRK','#ff7a3a','#240a06',2.6,1.1,-8.45,3.6,-62,PI/2);
   put('skrzynkaPrzekaznikowa',{x:-16,z:-60,variant:'szara'});put('skrzynkaPrzekaznikowa',{x:-14.4,z:-60,variant:'zielona'});put('skrzynkaPrzekaznikowa',{x:-16,z:-66,variant:'szara'});
   put('crate',{x:-10,z:-66.5,s:1.6});put('crate',{x:-11.7,z:-66.5,s:1.6});
@@ -247,7 +248,7 @@ function buildDworzec(level){
   /* ---- zachód: zejście do przejścia (sekret 1), wieża ciśnień, garaże, wiadukt, złomowisko ---- */
   put('przejscieZejscie',{x:-40.3,z:8,rotY:PI/2,seed:2});
   sign('PRZEJŚCIE PODZIEMNE','#43f0ff','#06202a',5.4,1.1,-38.2,3.6,8,PI/2);
-  room({x0:-56,x1:-42.8,z0:1,z1:15,h:3.2,wall:0x6e6a62,roof:0x3a3836,floor:0x44403a,light:0xa0d8ff,door:{side:'e',c:8,w:2.2,h:2.4,secret:true,label:'ZEJŚCIE SŁUŻBOWE'}});
+  room({x0:-56,x1:-42.8,z0:1,z1:15,h:3.2,wall:0x6e6a62,roof:0x3a3836,floor:0x44403a,light:0xa0d8ff,door:{side:'e',c:8,w:2.2,h:2.4,secret:true,label:L('ZEJŚCIE SŁUŻBOWE','STAFF STAIRS')}});
   sign('PRZEJŚCIE ZAMKNIĘTE','#ff4a2a','#10060a',5,1,-42.55,3.6,12,-PI/2);
   stack(-54,2.5);put('crate',{x:-53,z:12.8,s:1.6});put('crate',{x:-51.3,z:12.8,s:1.6});
   healMachines([{kind:'station',x:-54.6,z:8,rotY:PI/2}]);
@@ -287,7 +288,7 @@ function buildDworzec(level){
   put('smietnik',{x:73,z:-5,variant:'kontener'});put('smietnik',{x:60,z:2,variant:'pojemnik'});put('skrzynkaPrzekaznikowa',{x:76,z:-22,variant:'szara'});
   put('wozekBagazowy',{x:60,z:-33,rotY:-.5});put('wozekBagazowy',{x:62,z:-60,rotY:.9});
   car('zukA06',66,-40,PI/2,0x4f8a5b);car('polonez',72,-66,0,0xb5534f);car('fiat126p',60,-20,PI/2,0xe0c040);
-  room({x0:63,x1:73,z0:-30,z1:-20,h:3.2,wall:0x8a5a42,roof:0x3d3a38,floor:0x3a3632,light:0xffc070,door:{side:'w',c:-25,w:2.2,h:2.4,secret:true,label:'ZAPLECZE MAGAZYNU',dir:-1}});
+  room({x0:63,x1:73,z0:-30,z1:-20,h:3.2,wall:0x8a5a42,roof:0x3d3a38,floor:0x3a3632,light:0xffc070,door:{side:'w',c:-25,w:2.2,h:2.4,secret:true,label:L('ZAPLECZE MAGAZYNU','WAREHOUSE BACK ROOM'),dir:-1}});
   sign('MAGAZYN 3','#ff7a3a','#240a06',4.4,1.1,62.55,3.6,-25,-PI/2);
   stack(69,-28.3);put('crate',{x:71.4,z:-21.5,s:1.6});put('crate',{x:65,z:-21.5,s:1.6});
   placeBarrels([{x:70,z:-38.4},{x:71.1,z:-38.8},{x:69.8,z:-39.6}]);                            // skupisko 3: plac za magazynem
@@ -295,19 +296,19 @@ function buildDworzec(level){
 
   /* ---- znajdźki (id stabilne!) ---- */
   placeCollectibles(level,[
-    {id:'dw-kaseta-1',type:'kaseta',x:-41.5,z:46,name:'Zenek: Pociąg do Szczęścia',hint:'za wiatą przystankową'},
-    {id:'dw-kaseta-2',type:'kaseta',x:-26,z:-74.5,name:'Weekend: Tunel Miłości',hint:'ślepy koniec tunelu'},
-    {id:'dw-kaseta-3',type:'kaseta',x:-56,z:-36,name:'Akcent: Pod Wiaduktem',hint:'środkowy łuk wiaduktu'},
-    {id:'dw-kaseta-4',type:'kaseta',x:-51,z:8,name:'Boys: Ostatni Peron',hint:'zejście służbowe',secret:true},
-    {id:'dw-lancuch-1',type:'lancuch',x:-22,z:-14,name:'Złoty łańcuch z przejścia przez peron',value:70},
-    {id:'dw-lancuch-2',type:'lancuch',x:68,z:2,name:'Łańcuch spod rampy',value:80},
-    {id:'dw-lancuch-3',type:'lancuch',x:-12.6,z:-42,name:'Łańcuch zza skrzyń na placu',value:90},
-    {id:'dw-lancuch-4',type:'lancuch',x:-52,z:4,name:'Łańcuch z przejścia podziemnego',value:140,secret:true},
-    {id:'dw-klucz-1',type:'klucz',x:-15,z:-64,name:'Klucz do skrzynki: przekaźkownia',secret:true},
-    {id:'dw-klucz-2',type:'klucz',x:68,z:-26,name:'Klucz do skrzynki: zaplecze magazynu',secret:true},
-    {id:'dw-plakat-1',type:'plakat',x:3.8,z:27,name:'Plakat: Odjazdy, wszystko opóźnione',hint:'poczekalnia',value:30},
-    {id:'dw-plakat-2',type:'plakat',x:-36,z:-57,name:'Plakat: Zenek na Dniach Kolejarza',hint:'aleja zachodnia',value:30},
-    {id:'dw-plakat-3',type:'plakat',x:74,z:-3,name:'Plakat: Przetarg na złom, wpisowe 5 zł',hint:'zaplecze bocznicy',value:30},
+    {id:'dw-kaseta-1',type:'kaseta',x:-41.5,z:46,name:L('Zenek: Pociąg do Szczęścia','Mietek Boombox: Love Train to Nowhere'),hint:L('za wiatą przystankową','behind the bus shelter')},
+    {id:'dw-kaseta-2',type:'kaseta',x:-26,z:-74.5,name:L('Weekend: Tunel Miłości','Friday Pierogi: Tunnel of Love'),hint:L('ślepy koniec tunelu','dead end of the tunnel')},
+    {id:'dw-kaseta-3',type:'kaseta',x:-56,z:-36,name:L('Akcent: Pod Wiaduktem','Diesel Romeo: Under the Viaduct'),hint:L('środkowy łuk wiaduktu','middle arch of the viaduct')},
+    {id:'dw-kaseta-4',type:'kaseta',x:-51,z:8,name:L('Boys: Ostatni Peron','Tracksuit Five: Last Platform'),hint:L('zejście służbowe','staff stairs'),secret:true},
+    {id:'dw-lancuch-1',type:'lancuch',x:-22,z:-14,name:L('Złoty łańcuch z przejścia przez peron','Gold chain from the platform crossing'),value:70},
+    {id:'dw-lancuch-2',type:'lancuch',x:68,z:2,name:L('Łańcuch spod rampy','Chain from under the loading ramp'),value:80},
+    {id:'dw-lancuch-3',type:'lancuch',x:-12.6,z:-42,name:L('Łańcuch zza skrzyń na placu','Chain behind the yard crates'),value:90},
+    {id:'dw-lancuch-4',type:'lancuch',x:-52,z:4,name:L('Łańcuch z przejścia podziemnego','Underpass chain'),value:140,secret:true},
+    {id:'dw-klucz-1',type:'klucz',x:-15,z:-64,name:L('Klucz do skrzynki: przekaźkownia','Crate key: relay room'),secret:true},
+    {id:'dw-klucz-2',type:'klucz',x:68,z:-26,name:L('Klucz do skrzynki: zaplecze magazynu','Crate key: warehouse back room'),secret:true},
+    {id:'dw-plakat-1',type:'plakat',x:3.8,z:27,name:L('Plakat: Odjazdy, wszystko opóźnione','Poster: Departures, everything delayed'),hint:L('poczekalnia','waiting room'),value:30},
+    {id:'dw-plakat-2',type:'plakat',x:-36,z:-57,name:L('Plakat: Zenek na Dniach Kolejarza','Poster: Mietek Boombox at Railwaymen\'s Day'),hint:L('aleja zachodnia','west alley'),value:30},
+    {id:'dw-plakat-3',type:'plakat',x:74,z:-3,name:L('Plakat: Przetarg na złom, wpisowe 5 zł','Poster: Scrap metal auction, entry 5 zł'),hint:L('zaplecze bocznicy','behind the sidings'),value:30},
   ]);
 
   /* ---- nawigacja AI: osłony z rekwizytów (bez ścian), siatka z colliderów ---- */
@@ -345,7 +346,7 @@ DS.bus.on('levelLoad',e=>{if(e&&e.level===ID)mergeIntoZones()});
 DS.bus.on('levelStart',()=>{
   if(!here())return;
   startAmbient();
-  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(L);announce('DWORZEC I BOCZNICA','Znajdźki '+st.found+'/'+st.total+'  |  3 sekrety')}},1800)}
+  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(LV);announce(L('DWORZEC I BOCZNICA','RAILWAY STATION & SIDINGS'),L('Znajdźki ','Collectibles ')+st.found+'/'+st.total+L('  |  3 sekrety','  |  3 secrets'))}},1800)}
 });
 DS.bus.on('levelEnd',stopAmbient);
 DS.bus.on('levelUnload',stopAmbient);
@@ -356,9 +357,9 @@ DS.bus.on('update',dt=>{
 const winOnKill=({enemy:e})=>{
   const G=S.G;if(!G||!here()||!e||!e.boss||G.levelWon)return;       // boss z puli tabeli (Dyżurny Ruchu, Jednooki, DJ...) kończy poziom
   G.levelWon=true;
-  save.coins+=L.win.reward.coins;save.keys+=L.win.reward.keys;G.earned+=L.win.reward.coins;G.keysFound+=L.win.reward.keys;
+  save.coins+=LV.win.reward.coins;save.keys+=LV.win.reward.keys;G.earned+=LV.win.reward.coins;G.keysFound+=LV.win.reward.keys;
   save.levelsDone=save.levelsDone||{};save.levelsDone[ID]=true;persist();
-  setTimeout(()=>{if(S.G===G)announce(L.win.text,'+'+L.win.reward.coins+' ZD i klucz. Gra toczy się dalej.')},1500);
+  setTimeout(()=>{if(S.G===G)announce(LV.win.text,'+'+LV.win.reward.coins+L(' ZD i klucz. Gra toczy się dalej.',' ZD and a key. The party goes on.'))},1500);
   DS.bus.emit('levelComplete',{level:ID,wave:G.wave});
 };
 DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)

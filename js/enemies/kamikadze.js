@@ -10,6 +10,7 @@ import {enter,moveDir,moveToward,stopMove,facePlayer,noise,dyingHuman} from './a
 import {throwProj,explode} from './proj.js';
 import {makeHuman,reg,wv,aiOpts,variantOf,rand,pick,SKIN,clamp} from './common.js';
 import {DS} from '../core/ds.js';
+import {L} from '../core/i18n.js';
 
 const V=new THREE.Vector3(),H=new THREE.Vector3();
 function build(P_,meta,v){
@@ -28,9 +29,9 @@ function blast(e,dmgMul){
   if(e.exploded)return;e.exploded=true;
   explode(e.g.position.x,.9,e.g.position.z,{r:e.blastR,dmg:e.dmg*dmgMul,shake:1.2});
 }
-reg('kamikadze','Kamikadze z petardami',(o={})=>{
+reg('kamikadze',L('Kamikadze z petardami','Firecracker Kamikaze'),(o={})=>{
   const w=o.wave||0,si=variantOf(o,2);
-  const e=makeHuman({key:'kamikadze'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(40,4,w),dmg:wv(42,2.2,w),radius:.42,scale:rand(.96,1.0),name:'Kamikadze',xp:9,
+  const e=makeHuman({key:'kamikadze'+si,build:(P_,m)=>build(P_,m,{skin:SKIN[si]}),hp:wv(40,4,w),dmg:wv(42,2.2,w),radius:.42,scale:rand(.96,1.0),name:L('Kamikadze','Kamikaze'),xp:9,
     cfg:{speed:wv(5.6,.08,w),turn:11,sight:46,fov:2.5,range:[.5,3.4],melee:true,flank:.3,cover:0,fleeHp:0,alertTime:6,accel:12,
       decide(e,ctx){
         const a=e.ai;a.cd2-=.18;
@@ -46,7 +47,7 @@ reg('kamikadze','Kamikadze z petardami',(o={})=>{
             if(a.st>=.45&&!a.thrown){a.thrown=true;e.lean=.6;e.torso.localToWorld(H.set(.2,.5,-.35));
               const T=Math.max(.4,ctx.dist/12);throwProj('petard',H,P.pos.x+P.vel.x*T*.5,P.pos.y+.2,P.pos.z+P.vel.z*T*.5,{speed:12,fuse:1.5,r:3.4,dmg:e.dmg*.4});sfx('e_throw');noise(e,24)}
             if(a.st>=.8){a.cd2=rand(4,6);e.lean=0;enter(e,'chase')}}},
-        fuse:{enter(e){const a=e.ai;a.st=0;a.blink=0;sfx('e_fuse',0);addFloater('TIK TIK TIK',{world:e.g.localToWorld(new THREE.Vector3(0,2.3,0)),size:30,life:.8,color:'#ff5a3a',vy:-20})},locked:e=>true,
+        fuse:{enter(e){const a=e.ai;a.st=0;a.blink=0;sfx('e_fuse',0);addFloater(L('TIK TIK TIK','TICK TICK TICK'),{world:e.g.localToWorld(new THREE.Vector3(0,2.3,0)),size:30,life:.8,color:'#ff5a3a',vy:-20})},locked:e=>true,
           update(e,dt,ctx){const a=e.ai;a.st+=dt;a.face=1;
             moveToward(e,dt,P.pos.x,P.pos.z,e.cfg.speed*1.25,.8);e.lean=.4;
             const p=Math.sin(a.st*(18+a.st*16))>0;e.glow=p?.9:.15;

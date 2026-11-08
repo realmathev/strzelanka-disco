@@ -32,6 +32,7 @@ import {A as AU} from '../../audio/context.js';
 import {addBox} from '../build.js';
 import {addPart} from '../batch.js';
 import {world} from '../state.js';
+import {L} from '../../core/i18n.js';
 import {setEnv,slab,fence,room,slidingDoor,placeCollectibles,placeBarrels,healMachines,buildNav,collectStats,mergeIntoZones} from './common.js';
 
 const ID='stacja',ARENA=78,PI=Math.PI;
@@ -46,12 +47,12 @@ const C={grass:0x7d7440,dry:0x8a7c48,asph:0x3f4044,apron:0x77746d,lot:0x36373b,c
 function rng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 
 /* ------------------------------------------------------------------ definicja poziomu */
-const L={
-  id:ID,name:'Stacja paliw i autostrada',arena:ARENA,
-  desc:'Późny wieczór nad A4: stacja PALIWEX z wiatą i sklepem, MOP z parkingiem TIR-ów (labirynt naczep), warsztat, myjnia, Bar u Zdzicha, wiadukt i pole przy drodze. Boss pod wiatą stacji.',
+const LV={
+  id:ID,name:L('Stacja paliw i autostrada','Gas Station & Motorway'),arena:ARENA,
+  desc:L('Późny wieczór nad A4: stacja PALIWEX z wiatą i sklepem, MOP z parkingiem TIR-ów (labirynt naczep), warsztat, myjnia, Bar u Zdzicha, wiadukt i pole przy drodze. Boss pod wiatą stacji.','Late evening on the A4 motorway: the PALIWEX gas station with its canopy and shop, a truck stop full of lorries (a maze of trailers), a garage, a car wash, the "Bar u Zdzicha" snack shack, a viaduct and a roadside field. Boss under the station canopy.'),
   spawn:{x:0,z:72,yaw:0},
-  starts:[{x:0,z:72,yaw:0,name:'Dojazd'},{x:0,z:9,yaw:0,name:'Plac przed wiatą'},{x:31.9,z:55.5,yaw:PI/2,name:'Parking TIR'},{x:-34,z:8,yaw:0,name:'Podwórko warsztatu'},
-    {x:62,z:3,yaw:0,name:'Autostrada'},{x:-40,z:-52,yaw:-PI/2,name:'Pole przy drodze'},{x:38,z:22,yaw:PI/2,name:'MOP'}],
+  starts:[{x:0,z:72,yaw:0,name:L('Dojazd','Access Road')},{x:0,z:9,yaw:0,name:L('Plac przed wiatą','Forecourt')},{x:31.9,z:55.5,yaw:PI/2,name:L('Parking TIR','Lorry Park')},{x:-34,z:8,yaw:0,name:L('Podwórko warsztatu','Garage Yard')},
+    {x:62,z:3,yaw:0,name:L('Autostrada','Motorway')},{x:-40,z:-52,yaw:-PI/2,name:L('Pole przy drodze','Roadside Field')},{x:38,z:22,yaw:PI/2,name:L('MOP','Truck Stop')}],
   menuCam:{r:96,y:48,look:[0,2,6]},
   track:'B',
   spawnZones:[
@@ -65,17 +66,17 @@ const L={
   // Scenariusz fal: 1-2 gangsterzy i dresy z dojazdu i parkingu TIR; 3-4 bandyci z autostrady i pola, pijacy z MOP-u; 5 BOSS Szef Stacji pod wiatą (osłony: auta przy pompach, kompresor,
   // opony, donice, beczki); 6-9 kierowcy Maluchów i kamikadze z autostrady; 10 BOSS (kolejny z puli); 11+ snajperzy z wiaduktu i pola, medycy.
   waves:{
-    intro:'Godzina 5:40, świt nad A4. Stacja PALIWEX nigdy nie zamyka, a Szef Stacji nie lubi gości, którzy nie tankują.',
+    intro:L('Godzina 5:40, świt nad A4. Stacja PALIWEX nigdy nie zamyka, a Szef Stacji nie lubi gości, którzy nie tankują.','5:40 AM, dawn over the A4. PALIWEX never closes, and the Station Boss hates customers who don\'t fill up.'),
     plan:[{from:1,note:'gangsterzy i dresy z dojazdu, parkingu TIR i autostrady'},{from:3,note:'bandyci z pola, pijacy z MOP-u'},
       {from:5,boss:'pula',note:'Szef Stacji pod wiatą; osłony: auta przy pompach, kompresor, opony, donice, beczki; uważaj na kałuże paliwa'},
       {from:6,note:'kierowcy Maluchów i kamikadze z autostrady'},{from:10,boss:'pula'},{from:11,note:'snajperzy z wiaduktu i pola, medycy'}],
     bossWave:5,bossArena:{x:0,z:12,hw:15,hd:10,gates:[{x:-22,z:10},{x:22,z:10},{x:-18,z:28},{x:18,z:28},{x:0,z:-8},{x:-8,z:36},{x:8,z:36}]},
   },
-  win:{kind:'boss',boss:'boss_szef_stacji',reward:{coins:800,keys:2},text:'STACJA ZDOBYTA!'},
-  secrets:[{id:'zaplecze-sklepu',name:'Zaplecze sklepu'},{id:'kanal',name:'Kanał w warsztacie'},{id:'bunkier',name:'Bunkier na polu'}],
+  win:{kind:'boss',boss:'boss_szef_stacji',reward:{coins:800,keys:2},text:L('STACJA ZDOBYTA!','STATION CONQUERED!')},
+  secrets:[{id:'zaplecze-sklepu',name:L('Zaplecze sklepu','Shop Back Room')},{id:'kanal',name:L('Kanał w warsztacie','Garage Inspection Pit')},{id:'bunkier',name:L('Bunkier na polu','Bunker in the Field')}],
   build(){ buildStacja(this) },
 };
-DS.levels.register(L);
+DS.levels.register(LV);
 
 /* ------------------------------------------------------------------ pomocnicy */
 const sign=(text,color,bg,w,h,x,y,z,rotY=0)=>put('neonSign',{text,color,bg,w,h,x,y,z,rotY});
@@ -205,7 +206,7 @@ function buildStacja(level){
   placeBarrels([{x:-10.2,z:11},{x:-9.3,z:11.9},{x:12.2,z:20}]);                                // grupa 2: plac bossa
   healMachines([{kind:'station',x:-5.5,z:-4.9,rotY:PI}]);
   // zaplecze sklepu (sekret 1)
-  room({x0:0,x1:8,z0:-14,z1:-7,h:3.2,wall:0xcfd6d2,roof:0x4a4640,floor:0x4a4a44,light:0xfff0b0,door:{side:'s',c:4,w:2,h:2.4,secret:true,label:'ZAPLECZE SKLEPU',color:0xcfd6d2}});
+  room({x0:0,x1:8,z0:-14,z1:-7,h:3.2,wall:0xcfd6d2,roof:0x4a4640,floor:0x4a4a44,light:0xfff0b0,door:{side:'s',c:4,w:2,h:2.4,secret:true,label:L('ZAPLECZE SKLEPU','SHOP BACK ROOM'),color:0xcfd6d2}});
   put('regalMagazynowy',{x:1.9,z:-13.1,rotY:0});put('lodowka',{x:6.2,z:-13.1,rotY:0});crate(7,-9.4,1.3);put('skrzynkaAlkohol',{x:3.4,z:-8.6,rotY:.4});put('skrzynkaAlkohol',{x:4.4,z:-8.6,rotY:-.2});
   glow(4,3.08,-10.5,.5,.06,.5,0xfff0b0);
   inst('lampaUliczna',[[-18,6],[18,6],[-18,30],[18,30],[-24,46],[24,50],[0,-18],[-8,-30],[16,-30],[-26,-28],[30,-42]].map(([x,z])=>({x,z,rotY:x<0?-PI/2:PI/2})),{seed:5,noCast:true,opts:{variant:'kobra'}});
@@ -217,7 +218,7 @@ function buildStacja(level){
   car('fiat126p',-42,6,.4,0xd3242a);car('polonez',-30,9.6,-.15,0xe8c030);car('zukA06',-46,-8,PI/2,0x4f8a5b);stack(-47,10);
   placeBarrels([{x:-44.5,z:-10.6},{x:-43.6,z:-9.8}]);                                          // grupa 3: za warsztatem
   healMachines([{kind:'station',x:-18.4,z:-1,rotY:PI/2}]);
-  room({x0:-40,x1:-32,z0:-17,z1:-10.5,h:3.2,wall:0x9aa4a8,roof:0x4a4640,floor:0x2e2d2a,light:0xffc070,door:{side:'s',c:-36,w:2.2,h:2.4,secret:true,label:'KANAŁ',color:0x9aa4a8}});
+  room({x0:-40,x1:-32,z0:-17,z1:-10.5,h:3.2,wall:0x9aa4a8,roof:0x4a4640,floor:0x2e2d2a,light:0xffc070,door:{side:'s',c:-36,w:2.2,h:2.4,secret:true,label:L('KANAŁ','INSPECTION PIT'),color:0x9aa4a8}});
   put('regalMagazynowy',{x:-38.8,z:-16.1,rotY:0});put('stosOpon',{x:-33.3,z:-15.6,rotY:.2,seed:6});crate(-39,-12.2,1.2);put('skrzynkaAlkohol',{x:-34.6,z:-11.8,rotY:.5});
   glow(-36,3.08,-13.7,.5,.06,.5,0xffc070);
   sign('MYJNIA  I  WULKANIZACJA','#3ad0ff','#061018',6.4,1.2,-37,6.8,-8.6);
@@ -254,7 +255,7 @@ function buildStacja(level){
   car('polonez',-64,18,.7,0x9aa0a8);car('fiat126p',-60,26,-.5,0xb5534f);car('zukA06',-70,34,1.4,0xd3c9a8);car('passatB5',-62,46,.2,0x2a2a30);car('fiat126p',-70,6,-1.1,0x4f8a5b);
   put('stosOpon',{x:-58,z:12,rotY:.2,seed:9});put('stosOpon',{x:-72,z:20,rotY:.9,seed:10});stack(-60,36);stack(-72,48);crate(-56,28,1.8);
   placeBarrels([{x:-66,z:30},{x:-65,z:30.9}]);healMachines([{kind:'station',x:-54.5,z:19,rotY:PI/2}]);
-  room({x0:-72,x1:-64,z0:-68,z1:-61,h:3.2,wall:0x5a5a4a,roof:0x2e2a22,floor:0x3a3a30,light:0xffd080,door:{side:'s',c:-68,w:2,h:2.4,secret:true,label:'BUNKIER',color:0x5a5a4a}});
+  room({x0:-72,x1:-64,z0:-68,z1:-61,h:3.2,wall:0x5a5a4a,roof:0x2e2a22,floor:0x3a3a30,light:0xffd080,door:{side:'s',c:-68,w:2,h:2.4,secret:true,label:L('BUNKIER','BUNKER'),color:0x5a5a4a}});
   crate(-70.4,-67,1.4);put('regalMagazynowy',{x:-65.5,z:-67,rotY:0});put('skrzynkaAlkohol',{x:-69,z:-62.8,rotY:.2});glow(-68,3.08,-64.5,.5,.06,.5,0xffd080);
   sign('SKŁAD  ROLNY','#ffe14a','#2a1a06',4.4,.9,-68,3.8,-60.7);
   put('billboard',{x:-44,z:-46,rotY:0,seed:1});put('billboard',{x:6,z:-50,rotY:0,seed:0});
@@ -281,19 +282,19 @@ function buildStacja(level){
 
   /* ---- znajdźki (id stabilne!) ---- */
   placeCollectibles(level,[
-    {id:'st-kaseta-1',type:'kaseta',x:40.2,z:12.6,name:'Skaner: Tankuj na Gaz',hint:'przed budką Bar u Zdzicha'},
-    {id:'st-kaseta-2',type:'kaseta',x:34.3,z:49,name:'Sweet Noise Dance: Kierowca TIR-a',hint:'alejka w labiryncie naczep'},
-    {id:'st-kaseta-3',type:'kaseta',x:4,z:-11.2,name:'Pectus: Zaplecze Nocą',hint:'zaplecze sklepu',secret:true},
-    {id:'st-kaseta-4',type:'kaseta',x:-31,z:-55,name:'Weekend: Droga w Pole',hint:'przy beli na polu'},
-    {id:'st-lancuch-1',type:'lancuch',x:6.2,z:-.2,name:'Złoty łańcuch spod lady',hint:'sklep PALIWEX',value:70},
-    {id:'st-lancuch-2',type:'lancuch',x:21.3,z:41,name:'Łańcuch między naczepami',value:80},
-    {id:'st-lancuch-3',type:'lancuch',x:68.6,z:-31,name:'Łańcuch pod wiaduktem',value:100},
-    {id:'st-lancuch-4',type:'lancuch',x:-34.8,z:-12.9,name:'Łańcuch z kanału',value:140,secret:true},
-    {id:'st-klucz-1',type:'klucz',x:-38.4,z:-14.3,name:'Klucz do skrzynki: kanał',secret:true},
-    {id:'st-klucz-2',type:'klucz',x:-68.6,z:-66,name:'Klucz do skrzynki: bunkier',secret:true},
-    {id:'st-plakat-1',type:'plakat',x:.8,z:2.4,name:'Plakat: Hot-dog 2 zł do północy',hint:'wejście do sklepu',value:30},
-    {id:'st-plakat-2',type:'plakat',x:46,z:-11.5,name:'Plakat: Żółte Kanapki na żywo',hint:'billboard przy A4',value:30},
-    {id:'st-plakat-3',type:'plakat',x:-46,z:-48.5,name:'Plakat: Zaginął kogut Zdzisiek',hint:'billboard na polu',value:30},
+    {id:'st-kaseta-1',type:'kaseta',x:40.2,z:12.6,name:L('Skaner: Tankuj na Gaz','Barcode Brothers: Fill Me Up with LPG'),hint:L('przed budką Bar u Zdzicha','in front of the "Bar u Zdzicha" shack')},
+    {id:'st-kaseta-2',type:'kaseta',x:34.3,z:49,name:L('Sweet Noise Dance: Kierowca TIR-a','Turbo Tadeusz: My Trucker Boyfriend'),hint:L('alejka w labiryncie naczep','alley in the trailer maze')},
+    {id:'st-kaseta-3',type:'kaseta',x:4,z:-11.2,name:L('Pectus: Zaplecze Nocą','Mullet Choir: Back Room by Night'),hint:L('zaplecze sklepu','shop back room'),secret:true},
+    {id:'st-kaseta-4',type:'kaseta',x:-31,z:-55,name:L('Weekend: Droga w Pole','Friday Pierogi: Road to the Fields'),hint:L('przy beli na polu','by the hay bale in the field')},
+    {id:'st-lancuch-1',type:'lancuch',x:6.2,z:-.2,name:L('Złoty łańcuch spod lady','Under-the-counter gold chain'),hint:L('sklep PALIWEX','PALIWEX shop'),value:70},
+    {id:'st-lancuch-2',type:'lancuch',x:21.3,z:41,name:L('Łańcuch między naczepami','Chain between the trailers'),value:80},
+    {id:'st-lancuch-3',type:'lancuch',x:68.6,z:-31,name:L('Łańcuch pod wiaduktem','Chain under the viaduct'),value:100},
+    {id:'st-lancuch-4',type:'lancuch',x:-34.8,z:-12.9,name:L('Łańcuch z kanału','Inspection-pit chain'),value:140,secret:true},
+    {id:'st-klucz-1',type:'klucz',x:-38.4,z:-14.3,name:L('Klucz do skrzynki: kanał','Crate key: inspection pit'),secret:true},
+    {id:'st-klucz-2',type:'klucz',x:-68.6,z:-66,name:L('Klucz do skrzynki: bunkier','Crate key: bunker'),secret:true},
+    {id:'st-plakat-1',type:'plakat',x:.8,z:2.4,name:L('Plakat: Hot-dog 2 zł do północy','Poster: Hot dog 2 zł till midnight'),hint:L('wejście do sklepu','shop entrance'),value:30},
+    {id:'st-plakat-2',type:'plakat',x:46,z:-11.5,name:L('Plakat: Żółte Kanapki na żywo','Poster: The Yellow Sandwiches, live'),hint:L('billboard przy A4','billboard by the A4'),value:30},
+    {id:'st-plakat-3',type:'plakat',x:-46,z:-48.5,name:L('Plakat: Zaginął kogut Zdzisiek','Poster: Missing rooster, answers to Zdzisiek'),hint:L('billboard na polu','billboard in the field'),value:30},
   ]);
 
   /* ---- nawigacja AI: osłony z rekwizytów ---- */
@@ -333,7 +334,7 @@ DS.bus.on('levelUnload',()=>{stopAmbient();skyG=null});
 DS.bus.on('levelStart',()=>{
   if(!here())return;
   startAmbient();
-  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(L);announce('STACJA PALIW I AUTOSTRADA','Znajdźki '+st.found+'/'+st.total+'  |  3 sekrety  |  ostatni poziom')}},1800)}
+  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(LV);announce(L('STACJA PALIW I AUTOSTRADA','GAS STATION & MOTORWAY'),L('Znajdźki ','Collectibles ')+st.found+'/'+st.total+L('  |  3 sekrety  |  ostatni poziom','  |  3 secrets  |  final level'))}},1800)}
 });
 DS.bus.on('levelEnd',stopAmbient);
 DS.bus.on('update',dt=>{
@@ -345,9 +346,9 @@ DS.bus.on('update',dt=>{
 const winOnKill=({enemy:e})=>{
   const G=S.G;if(!G||!here()||!e||!e.boss||G.levelWon)return;       // boss z puli tabeli (Szef Stacji, Jednooki) kończy poziom
   G.levelWon=true;
-  save.coins+=L.win.reward.coins;save.keys+=L.win.reward.keys;G.earned+=L.win.reward.coins;G.keysFound+=L.win.reward.keys;
+  save.coins+=LV.win.reward.coins;save.keys+=LV.win.reward.keys;G.earned+=LV.win.reward.coins;G.keysFound+=LV.win.reward.keys;
   save.levelsDone=save.levelsDone||{};save.levelsDone[ID]=true;persist();
-  setTimeout(()=>{if(S.G===G)announce(L.win.text,'+'+L.win.reward.coins+' ZD i '+L.win.reward.keys+' klucze. To był ostatni poziom, gra toczy się dalej.')},1500);
+  setTimeout(()=>{if(S.G===G)announce(LV.win.text,'+'+LV.win.reward.coins+L(' ZD i ',' ZD and ')+LV.win.reward.keys+L(' klucze. To był ostatni poziom, gra toczy się dalej.',' keys. That was the final level, but the party goes on.'))},1500);
   DS.bus.emit('levelComplete',{level:ID,wave:G.wave});
 };
 DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)

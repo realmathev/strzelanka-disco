@@ -11,6 +11,7 @@ import {sfx} from '../audio/sfx.js';
 import {P} from '../player/player.js';
 import {collide,los} from '../player/collision.js';
 import {hurt} from '../game/combat.js';
+import {L} from '../core/i18n.js';
 
 const SKINTONES=[0xf0c09a,0xe0a77d,0xc98b62,0xf5cfae];
 // Geometrie współdzielone między wszystkimi gangsterami (flaga `shared`: disposeObject ich nie zwalnia).
@@ -28,7 +29,7 @@ function bake(list,ox,oy,oz,hullOnly){
 }
 
 DS.enemies.register({
-  id:'gangster',name:'Bandyta',
+  id:'gangster',name:L('Bandyta','Bandit'),
   /** Buduje model i statystyki. Zwraca obiekt wroga (manager ustawia pozycję i dodaje do sceny). */
   create({boss=false,wave=0}={}){
     const g=new THREE.Group();const meshes=[];
@@ -64,7 +65,7 @@ DS.enemies.register({
       hp:boss?520+w*45:62+w*7,maxHp:0,speed:boss?2.6:rand(2.8,3.4)+Math.min(w*.12,1.6),dmg:boss?14+w:5+w*.55,acc:boss?.55:.4+Math.min(w*.02,.25),
       shootT:rand(1.2,2.6),walk:rand(0,6),strafe:rand(-1,1),stepT:0,flashT:0,radius:boss?.8:.5,
       headY:1.94}; // wysokość środka głowy w układzie modelu (kadry komiksu)
-    e.maxHp=e.hp;e.name=boss?'Baron Jackpot':'Bandyta';
+    e.maxHp=e.hp;e.name=boss?'Baron Jackpot':L('Bandyta','Bandit');
     return e;
   },
   /** AI żywego wroga: dystans, krążenie, chód, błysk trafienia, strzał. eye = oczy gracza. */
@@ -82,7 +83,7 @@ DS.enemies.register({
     e.g.position.x+=vx*e.speed*dt;e.g.position.z+=vz*e.speed*dt;collide(e.g.position,e.radius);
     for(const o of G.enemies){if(o===e||!o.alive)continue;const ox=e.g.position.x-o.g.position.x,oz=e.g.position.z-o.g.position.z,od=Math.hypot(ox,oz),min=e.radius+o.radius;if(od<min&&od>.001){e.g.position.x+=ox/od*(min-od)*.5;e.g.position.z+=oz/od*(min-od)*.5}}
     if(moving){e.walk+=dt*9;e.hipL.rotation.x=Math.sin(e.walk)*.6;e.hipR.rotation.x=-Math.sin(e.walk)*.6;
-      e.stepT-=dt;if(e.stepT<=0&&dist<24&&opt.onoma){e.stepT=.75;addFloater(pick(['tap','tap tap','tup']),{world:new THREE.Vector3(e.g.position.x,.3,e.g.position.z),size:18,life:.7,color:'#f4e7c5',vy:-10})}}
+      e.stepT-=dt;if(e.stepT<=0&&dist<24&&opt.onoma){e.stepT=.75;addFloater(pick(L(['tap','tap tap','tup'],['tap','tap tap','thud'])),{world:new THREE.Vector3(e.g.position.x,.3,e.g.position.z),size:18,life:.7,color:'#f4e7c5',vy:-10})}}
     if(e.flashT>0){e.flashT-=dt;const v=Math.max(e.flashT/.12,0);e.mats.forEach(m=>m.emissive.setRGB(v*.9,v*.15,v*.1))}
     e.shootT-=dt;
     if(e.shootT<=0&&!G.dead){

@@ -13,6 +13,7 @@ import {sfx} from '../../audio/sfx.js';
 import {addPart} from '../batch.js';
 import {addBox} from '../build.js';
 import {world} from '../state.js';
+import {L} from '../../core/i18n.js';
 
 /* ------------------------------------------------------------------ pory dnia, mgła, światło */
 const _bg=new THREE.Color();
@@ -90,7 +91,7 @@ export function slidingDoor(axis,fixed,center,w,h,o={}){
   const px=axis==='x'?center:fixed,pz=axis==='x'?fixed:center;m.position.set(px,h/2,pz);scene.add(m);hull(m,.03);world.meshes.push(m);
   const col=axis==='x'?{x0:center-w/2,x1:center+w/2,z0:fixed-th/2,z1:fixed+th/2,h}:{x0:fixed-th/2,x1:fixed+th/2,z0:center-w/2,z1:center+w/2,h};
   world.colliders.push(col);
-  const d={mesh:m,col,col0:Object.assign({},col),px,pz,axis,w,dir,t:0,target:0,secret:!!o.secret,auto:!!o.auto,label:o.label||'OTWÓRZ',range:o.range||2.8};
+  const d={mesh:m,col,col0:Object.assign({},col),px,pz,axis,w,dir,t:0,target:0,secret:!!o.secret,auto:!!o.auto,label:o.label||L('OTWÓRZ','OPEN'),range:o.range||2.8};
   doors.push(d);return d;
 }
 /**
@@ -128,10 +129,10 @@ export function room(r){
 
 /* ------------------------------------------------------------------ znajdźki poziomu */
 const KINDS={
-  kaseta:{color:0xff4fd8,label:'KASETA',once:true,geo:()=>new THREE.BoxGeometry(.36,.06,.24),reward(){}},
-  lancuch:{color:0xffd23a,label:'ZŁOTY ŁAŃCUCH',once:false,geo:()=>new THREE.TorusGeometry(.17,.045,6,14),reward(it){grantCoins(it.value||60)}},
-  klucz:{color:0x43c7ff,label:'KLUCZ',once:true,geo:()=>new THREE.BoxGeometry(.14,.4,.06),reward(){save.keys++;if(S.G)S.G.keysFound++;persist()}},
-  plakat:{color:0xfff0c8,label:'PLAKAT',once:true,geo:()=>new THREE.PlaneGeometry(.34,.46),reward(it){grantCoins(it.value||25)}},
+  kaseta:{color:0xff4fd8,label:L('KASETA','CASSETTE'),once:true,geo:()=>new THREE.BoxGeometry(.36,.06,.24),reward(){}},
+  lancuch:{color:0xffd23a,label:L('ZŁOTY ŁAŃCUCH','GOLD CHAIN'),once:false,geo:()=>new THREE.TorusGeometry(.17,.045,6,14),reward(it){grantCoins(it.value||60)}},
+  klucz:{color:0x43c7ff,label:L('KLUCZ','KEY'),once:true,geo:()=>new THREE.BoxGeometry(.14,.4,.06),reward(){save.keys++;if(S.G)S.G.keysFound++;persist()}},
+  plakat:{color:0xfff0c8,label:L('PLAKAT','POSTER'),once:true,geo:()=>new THREE.PlaneGeometry(.34,.46),reward(it){grantCoins(it.value||25)}},
 };
 function grantCoins(v){const G=S.G;if(!G)return;save.coins+=v;G.earned+=v;persist()}
 let col=null;

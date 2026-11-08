@@ -7,6 +7,7 @@ import {addFloater} from '../render/comicfx.js';
 import {sfx} from '../audio/sfx.js';
 import {CFG} from './config.js';
 import {modelVest} from './models.js';
+import {L} from '../core/i18n.js';
 
 /** Upewnia pola pancerza w bieżącym runie (S.G tworzony na nowo przy każdym runie). */
 export function ensureArmor(G){
@@ -30,7 +31,7 @@ DS.pickups.register({id:'vest',magnet:3,
   mesh(){return modelVest()},
   collect(p){const G=S.G;ensureArmor(G);
     G.armor=Math.min(G.armorMax,G.armor+p.val);sfx('vest');
-    addFloater('KAMIZELKA!',{x:200,y:innerHeight-160,size:28,life:.9,color:'#7fb2ff',vy:-30,burst:true});
+    addFloater(L('KAMIZELKA!','VEST!'),{x:200,y:innerHeight-160,size:28,life:.9,color:'#7fb2ff',vy:-30,burst:true});
     emitArmor()}});
 
 DS.bus.on('update',dt=>{

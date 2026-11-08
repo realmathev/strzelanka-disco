@@ -12,6 +12,7 @@ import { CFG } from './config.js';
 import { RARITY_NAME, describeTotals } from './catalog.js';
 import { rollRarity, pickPerk, layoutFor } from './roll.js';
 import { ensure, grantPerk } from './state.js';
+import { L } from '../core/i18n.js';
 
 const SYM = {
   DIA: { cls: 'kDIA', t: '♦' }, HEART: { cls: 'kHEART', t: '♥' }, BAR: { cls: 'kBAR', t: 'BAR' },
@@ -22,10 +23,10 @@ const rpick = a => a[Math.floor(Math.random() * a.length)];
 const symHTML = k => `<div class="lv-sym ${SYM[k].cls}"><span>${SYM[k].t}</span></div>`;
 
 const MSG = {
-  common: ['Zwykły, ale szczery.', 'Lepszy rydz niż nic.', 'Gang daje, co ma.', 'Zawsze coś wpada.'],
-  rare: ['TRZY! RZADKI PERK!'],
-  epic: ['DISCO BONUS! EPICKI PERK!'],
-  legend: ['JACKPOT! LEGENDARNY PERK!'],
+  common: [L('Zwykły, ale szczery.', 'Common, but honest.'), L('Lepszy rydz niż nic.', 'Better than a kick in the nuts.'), L('Gang daje, co ma.', 'The gang gives what it\'s got.'), L('Zawsze coś wpada.', 'Something always drops.')],
+  rare: [L('TRZY! RZADKI PERK!', 'THREE! RARE PERK!')],
+  epic: [L('DISCO BONUS! EPICKI PERK!', 'DISCO BONUS! EPIC PERK!')],
+  legend: [L('JACKPOT! LEGENDARNY PERK!', 'JACKPOT! LEGENDARY PERK!')],
 };
 
 const CSS = `
@@ -131,27 +132,27 @@ function build() {
   root.innerHTML = `
     <div class="lv-rays"></div>
     <div class="lv-card">
-      <div class="lv-banner"><h2 id="lvTitle">POZIOM 2!</h2><div class="lv-cap">Jednoręki Bandyta płaci zawsze. Pociągnij za wajchę.</div></div>
+      <div class="lv-banner"><h2 id="lvTitle">${L('POZIOM 2!', 'LEVEL 2!')}</h2><div class="lv-cap">${L('Jednoręki Bandyta płaci zawsze. Pociągnij za wajchę.', 'The one-armed bandit always pays out. Yank the lever.')}</div></div>
       <div class="lv-machine">
         <div class="lv-cab">
           <div class="lv-bulbs">${'<i></i>'.repeat(18)}</div>
-          <div class="lv-marquee">JEDNORĘKI DISCO</div>
+          <div class="lv-marquee">${L('JEDNORĘKI DISCO', 'ONE-ARMED DISCO')}</div>
           <div class="lv-reels"><div class="lv-reel"><div class="lv-strip"></div></div><div class="lv-reel"><div class="lv-strip"></div></div><div class="lv-reel"><div class="lv-strip"></div></div><div class="lv-payline"></div></div>
           <div class="lv-msg" aria-live="polite"></div>
         </div>
-        <button class="lv-lever" type="button" aria-label="Pociągnij za wajchę"><span class="lv-arm"></span><span class="lv-base"></span></button>
+        <button class="lv-lever" type="button" aria-label="${L('Pociągnij za wajchę', 'Pull the lever')}"><span class="lv-arm"></span><span class="lv-base"></span></button>
       </div>
       <div class="lv-side">
-        <div class="lv-pays" aria-label="Tabela rzadkości">
-          <span class="r-common"><b>Zwykła</b> mieszanka</span>
-          <span class="r-rare"><b>Rzadka</b> ♦♦♦ ♥♥♥ BAR×3</span>
-          <span class="r-epic"><b>Epicka</b> ★★★ DISCO×3</span>
-          <span class="r-legend"><b>Legenda</b> 7 7 7</span>
+        <div class="lv-pays" aria-label="${L('Tabela rzadkości', 'Rarity table')}">
+          <span class="r-common"><b>${L('Zwykła', 'Common')}</b> ${L('mieszanka', 'mixed')}</span>
+          <span class="r-rare"><b>${L('Rzadka', 'Rare')}</b> ♦♦♦ ♥♥♥ BAR×3</span>
+          <span class="r-epic"><b>${L('Epicka', 'Epic')}</b> ★★★ DISCO×3</span>
+          <span class="r-legend"><b>${L('Legenda', 'Legend')}</b> 7 7 7</span>
         </div>
         <div class="lv-pity"></div>
         <div class="lv-result" hidden></div>
-        <div class="lv-actions"><button class="lv-btn red" type="button" id="lvSpin">Zakręć!</button><button class="lv-btn teal" type="button" id="lvTake" hidden>Biorę!</button></div>
-        <div class="lv-owned" aria-label="Twoje perki"></div>
+        <div class="lv-actions"><button class="lv-btn red" type="button" id="lvSpin">${L('Zakręć!', 'Spin!')}</button><button class="lv-btn teal" type="button" id="lvTake" hidden>${L('Biorę!', 'I\'ll take it!')}</button></div>
+        <div class="lv-owned" aria-label="${L('Twoje perki', 'Your perks')}"></div>
       </div>
     </div>`;
   (document.getElementById('app') || document.body).appendChild(root);
@@ -182,9 +183,9 @@ function pityText() {
   const part = (every, since, name) => {
     if (!(every > 0)) return '';
     const left = every - (since + 1);
-    return left <= 0 ? `${name}: gwarantowana w tym zakręcie!` : `${name}: gwarancja za ${left} ${left === 1 ? 'poziom' : left < 5 ? 'poziomy' : 'poziomów'}`;
+    return left <= 0 ? L(`${name}: gwarantowana w tym zakręcie!`, `${name}: guaranteed this spin!`) : L(`${name}: gwarancja za ${left} ${left === 1 ? 'poziom' : left < 5 ? 'poziomy' : 'poziomów'}`, `${name}: guaranteed in ${left} ${left === 1 ? 'level' : 'levels'}`);
   };
-  return [part(Y.rareEvery, p.sinceRare, 'Rzadka+'), part(Y.epicEvery, p.sinceEpic, 'Epicka+')].filter(Boolean).join(' · ');
+  return [part(Y.rareEvery, p.sinceRare, L('Rzadka+', 'Rare+')), part(Y.epicEvery, p.sinceEpic, L('Epicka+', 'Epic+'))].filter(Boolean).join(' · ');
 }
 
 function ownedChips() {
@@ -206,7 +207,7 @@ export function open(level) {
   try { document.exitPointerLock(); } catch (e) {}
   DS.bus.emit('pause', true);
   st = { G, level, spinning: false, done: false };
-  el.title.textContent = 'POZIOM ' + level + '!';
+  el.title.textContent = L('POZIOM ', 'LEVEL ') + level + '!';
   el.msg.textContent = '';
   el.result.hidden = true; el.result.innerHTML = '';
   el.strips.forEach(s => { s.style.transition = 'none'; s.style.transform = 'translateY(0)'; s.innerHTML = [rpick(FILLER), rpick(FILLER), rpick(FILLER)].map(symHTML).join(''); });
@@ -272,9 +273,9 @@ function spin() {
   const res = decide(); s.res = res;
   const ms = reduced ? CFG.slot.reducedMs : CFG.slot.spinMs;
   el.strips.forEach((strip, i) => {
-    const L = 22 + i * 6;
+    const len = 22 + i * 6;
     const arr = [];
-    for (let k = 0; k < L - 3; k++) arr.push(rpick(FILLER));
+    for (let k = 0; k < len - 3; k++) arr.push(rpick(FILLER));
     arr.push(rpick(FILLER), res.layout[i], rpick(FILLER));
     strip.innerHTML = arr.map(symHTML).join('');
     strip.style.transition = 'none'; strip.style.transform = 'translateY(0)'; void strip.offsetWidth;
@@ -298,7 +299,7 @@ function reveal(s) {
   if (res.fallback) {
     const bonus = 150 + 25 * s.level;
     save.coins += bonus; if (s.G.earned != null) s.G.earned += bonus; persist();
-    name = 'Worek ZD od Bandyty'; desc = `Masz już wszystkie perki, więc automat sypie złotem: +${bonus} ZD.`; tot = '';
+    name = L('Worek ZD od Bandyty', 'Bandit\'s Bag of ZD'); desc = L(`Masz już wszystkie perki, więc automat sypie złotem: +${bonus} ZD.`, `You already own every perk, so the machine coughs up cash: +${bonus} ZD.`); tot = '';
   } else {
     const def = res.perk;
     stacks = grantPerk(def.id);
@@ -314,11 +315,11 @@ function reveal(s) {
   sfx(rarity === 'legend' ? 'jackpot' : 'win');
   if (rarity === 'epic' || rarity === 'legend') later(() => sfx('reveal', rarity === 'legend' ? 5 : 2), 250);
   el.result.className = 'lv-result r-' + rarity;
-  const pips = res.fallback ? '' : `<div class="lv-pips" aria-label="Stack ${stacks} z ${max}">${Array.from({ length: max }, (_, i) => `<i class="${i < stacks ? 'on' : ''}"></i>`).join('')}<span>${stacks > 1 ? 'stack ×' + stacks : 'nowy perk'}${max > 1 ? ' (maks. ' + max + ')' : ''}</span></div>`;
-  el.result.innerHTML = `<span class="lv-rl">${RARITY_NAME[rarity]}${res.why === 'jackpot' ? ' · jackpot' : res.why.startsWith('pity') ? ' · gwarancja' : ''}</span><h3></h3><p></p>${tot ? '<div class="lv-tot"></div>' : ''}${pips}`;
+  const pips = res.fallback ? '' : `<div class="lv-pips" aria-label="${L('Stack ' + stacks + ' z ' + max, 'Stack ' + stacks + ' of ' + max)}">${Array.from({ length: max }, (_, i) => `<i class="${i < stacks ? 'on' : ''}"></i>`).join('')}<span>${stacks > 1 ? 'stack ×' + stacks : L('nowy perk', 'new perk')}${max > 1 ? L(' (maks. ', ' (max ') + max + ')' : ''}</span></div>`;
+  el.result.innerHTML = `<span class="lv-rl">${RARITY_NAME[rarity]}${res.why === 'jackpot' ? ' · jackpot' : res.why.startsWith('pity') ? L(' · gwarancja', ' · guaranteed') : ''}</span><h3></h3><p></p>${tot ? '<div class="lv-tot"></div>' : ''}${pips}`;
   el.result.querySelector('h3').textContent = name;
   el.result.querySelector('p').textContent = desc;
-  if (tot) el.result.querySelector('.lv-tot').textContent = 'Razem: ' + tot;
+  if (tot) el.result.querySelector('.lv-tot').textContent = L('Razem: ', 'Total: ') + tot;
   el.result.hidden = false;
   el.owned.innerHTML = ownedChips();
   el.spin.hidden = true; el.take.hidden = false;

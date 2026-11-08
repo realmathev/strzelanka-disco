@@ -14,6 +14,7 @@ import {explode} from './proj.js';
 import {wv,aiOpts,variantOf} from './common.js';
 import {DS} from '../core/ds.js';
 import {eachPlayer,isDone,hitOnce,isLocal} from './players.js';
+import {L} from '../core/i18n.js';
 
 const COLORS=[0xd3242a,0xe0c040,0x2d5fa8];
 const PX=new THREE.Vector3();
@@ -49,7 +50,7 @@ function build(P_,v){
 }
 
 DS.enemies.register({
-  id:'kierowca',name:'Kierowca Malucha',xp:17,drops:[{kind:'adrenaline',p:.3},{kind:'med',p:.15}],tableTags:['vehicle','charge'],
+  id:'kierowca',name:L('Kierowca Malucha','Maluch Driver'),xp:17,drops:[{kind:'adrenaline',p:.3},{kind:'med',p:.15}],tableTags:['vehicle','charge'],
   create(o={}){
     const w=o.wave||0,ci=variantOf(o,COLORS.length),si=ci;
     const v={color:COLORS[ci],skin:SKIN[si],shirt:[0x6b7a8f,0xb5534f,0x8a8f6b][ci]};
@@ -87,7 +88,7 @@ DS.enemies.register({
               if(isDone(a,'hitDone',k)||S.G.dead)return;
               // elipsa pojazdu ~ (0,7 × 1,5 m): kolizja z graczem
               const rx=P.pos.x-p.x,rz=P.pos.z-p.z,fwd=rx*a.dx+rz*a.dz,side=Math.abs(rx*a.dz-rz*a.dx);
-              if(P.pos.y<1.1&&Math.abs(fwd)<1.9&&side<1.15){hitOnce(a,'hitDone',k);if(hitPlayer(e,e.dmg)){DS.player.knock({x:(a.dx*15)*.7,z:(a.dz*15)*.7});if(isLocal(k))S.G.shake+=1.2;sfx('e_crash');addFloater('BUM!',{world:new THREE.Vector3(P.pos.x,1.6,P.pos.z),size:50,life:.7,color:'#ff6a3a',vy:-30,burst:true})}}
+              if(P.pos.y<1.1&&Math.abs(fwd)<1.9&&side<1.15){hitOnce(a,'hitDone',k);if(hitPlayer(e,e.dmg)){DS.player.knock({x:(a.dx*15)*.7,z:(a.dz*15)*.7});if(isLocal(k))S.G.shake+=1.2;sfx('e_crash');addFloater(L('BUM!','BOOM!'),{world:new THREE.Vector3(P.pos.x,1.6,P.pos.z),size:50,life:.7,color:'#ff6a3a',vy:-30,burst:true})}}
             });
             if(a.st>.3&&moved<a.csp*dt*.35){e.stun=2.2;sfx('e_crash');S.G.shake+=.8;noise(e,35);enter(e,'crash');return}   // wjechał w ścianę
             if(a.st>2.3||Math.hypot(p.x-a.px,p.z-a.pz)>40){enter(e,'brake')}}},

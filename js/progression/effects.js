@@ -16,6 +16,7 @@ import { fire } from '../weapons/fire.js';
 import { damageEnemy } from '../game/combat.js';
 import { CFG } from './config.js';
 import { ensure, applyPatches, restorePatches } from './state.js';
+import { L } from '../core/i18n.js';
 
 let inRico = false;   // trwa rykoszet/granat: te obrażenia nie dostają bonusów 'hit' (żadnej reakcji łańcuchowej)
 let inEcho = false;   // trwa darmowy drugi strzał: jego 'shot' nie losuje kolejnego
@@ -82,7 +83,7 @@ function ricochet(from, total, point) {
       rA.copy(rB); cur = t;
     }
   } finally { inRico = false; }
-  if (opt.onoma) addFloater('RYKOSZET!', { world: rA.clone(), size: 26, life: 0.55, color: '#43c7ff', vy: -40, rot: -0.15 });
+  if (opt.onoma) addFloater(L('RYKOSZET!', 'RICOCHET!'), { world: rA.clone(), size: 26, life: 0.55, color: '#43c7ff', vy: -40, rot: -0.15 });
 }
 
 /* ---------- 'shot': darmowy drugi strzał ---------- */
@@ -127,10 +128,10 @@ function onDamage(ev) {
   if (eff < amount) {
     if (G.dead) {                                       // cios był śmiertelny, ale po redukcji gracz by przeżył
       const left = pr.lastHp - eff;
-      if (left > 0) { undoDeath(left, dodged ? 'UNIK!' : 'NIE TYM RAZEM!', dodged ? 'Pijak ma refleks' : 'Kamizelka wujka zadziałała'); }
+      if (left > 0) { undoDeath(left, dodged ? L('UNIK!', 'DODGE!') : L('NIE TYM RAZEM!', 'NOT TODAY!'), dodged ? L('Pijak ma refleks', 'Drunk reflexes, baby') : L('Kamizelka wujka zadziałała', 'Uncle\'s vest actually worked')); }
     } else {
       G.hp = Math.min(G.maxHp, G.hp + (amount - eff));
-      if (dodged && opt.onoma) addFloater('UNIK!', { x: innerWidth * 0.5, y: innerHeight * 0.55, size: 34, life: 0.6, color: '#7dff9a', vy: -40, rot: 0.1 });
+      if (dodged && opt.onoma) addFloater(L('UNIK!', 'DODGE!'), { x: innerWidth * 0.5, y: innerHeight * 0.55, size: 34, life: 0.6, color: '#7dff9a', vy: -40, rot: 0.1 });
     }
   }
   if (G.dead && m.revives > pr.revivesUsed && pr.reviveT <= 0) pr.reviveT = 0.9;
@@ -141,7 +142,7 @@ function doRevive() {
   const G = S.G, pr = G.prog;
   pr.revivesUsed++;
   const hp = Math.round(G.maxHp * CFG.fx.reviveHpFrac);
-  undoDeath(hp, 'WSKRZESZENIE!', 'Siostra Halina trzyma kroplówkę');
+  undoDeath(hp, L('WSKRZESZENIE!', 'RESURRECTION!'), L('Siostra Halina trzyma kroplówkę', 'Sister Halina is holding your IV drip'));
   sfx('heal');
   DS.bus.emit('heal', { amount: G.hp, source: 'revive' });
   relock();
@@ -201,7 +202,7 @@ function explosionFx(p, R) {
   }
   G.shake += 0.35;
   sfx('shotgun');
-  addFloater('BUM!', { world: p.clone().setY(p.y + 1.6), size: 52, life: 0.8, color: '#ff8a1e', vy: -40, rot: -0.2, burst: true });
+  addFloater(L('BUM!', 'BOOM!'), { world: p.clone().setY(p.y + 1.6), size: 52, life: 0.8, color: '#ff8a1e', vy: -40, rot: -0.2, burst: true });
 }
 
 function onUpdate(dt) {

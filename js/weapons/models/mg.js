@@ -8,6 +8,7 @@
 //   belt (taśma, podrzut przy strzale), handle (uchwyt lufy: rotation.z ujemnie = w górę), bipod (rotation.x dodatnio = rozkładanie), trigger.
 //   userData.toggles = [{label,set(on)}] (dwójnóg, uchwyt) – przełączniki w przeglądarce modeli; userData.setBipod(k 0..1) dla gry.
 import {Asm,blueprint,box,cyl,prof,sect,quad,profH,lathe,sin01,cl01,at,nh,notchSight,reg} from './marksman-kit.js';
+import {L} from '../../core/i18n.js';
 
 const BP={};
 const STOCK=[[16,22],[46,22],[200,16],[354,6],[366,2],[366,-128],[358,-136],[230,-152],[130,-165],[92,-170],[50,-168],[30,-112],[16,-62]];
@@ -90,8 +91,8 @@ for(const id of Object.keys(BP)){
   reg(id,bp,(g,p)=>{
     g.userData.setBipod=k=>{p.bipod.rotation.x=1.75*cl01(k)};
     g.userData.toggles=[
-      {label:'dwójnóg',set:on=>g.userData.setBipod(on?1:0)},
-      {label:'uchwyt lufy',set:on=>{p.handle.rotation.z=on?-1.57:0}},
+      {label:L('dwójnóg','bipod'),set:on=>g.userData.setBipod(on?1:0)},
+      {label:L('uchwyt lufy','barrel handle'),set:on=>{p.handle.rotation.z=on?-1.57:0}},
     ];
   });
 }

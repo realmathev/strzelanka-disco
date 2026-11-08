@@ -14,6 +14,9 @@ import {shieldHit} from './ochroniarz.js';
 import {makeHuman,reg,wv,aiOpts,SKIN} from './common.js';
 
 import {eachPlayer,isDone,hitOnce,isLocal} from './players.js';
+import {L} from '../core/i18n.js';
+// Nazwy bębnów do wyświetlenia (klucze w a.reels/doReel zostają polskie)
+const REEL_NAME={'SIÓDEMKA':L('SIÓDEMKA','SEVEN'),'DZWONEK':L('DZWONEK','BELL'),'WIŚNIE':L('WIŚNIE','CHERRIES'),'GWIAZDA':L('GWIAZDA','STAR')};
 
 const MZ=new THREE.Vector3(),H=new THREE.Vector3();
 const distP=e=>Math.hypot(P.pos.x-e.g.position.x,P.pos.z-e.g.position.z);
@@ -35,9 +38,9 @@ function buildDJ(P_,meta,v){
   const hx=meta.shoulder.x+.04;
   P_.arm.cyl(0x15110e,.012,.012,.18,hx,.94+.1,-.07,null,6);P_.arm.sph(0x8a8a90,.04,hx,.94+.2,-.07,{t:.05});
 }
-reg('boss_dj','DJ',(o={})=>{
+reg('boss_dj',L('DJ','DJ'),(o={})=>{
   const w=o.wave||0,si=1;
-  const e=makeHuman({key:'dj',build:(P_,m)=>buildDJ(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(640,55,w),dmg:wv(13,1,w),radius:.7,scale:1.3,name:'DJ',xp:170,
+  const e=makeHuman({key:'dj',build:(P_,m)=>buildDJ(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(640,55,w),dmg:wv(13,1,w),radius:.7,scale:1.3,name:L('DJ','DJ'),xp:170,
     cfg:{speed:wv(2.9,.04,w),turn:6,sight:70,fov:3.6,range:[3,30],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,DJ_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,DJ_ACT,djPick,{dmin:10,dmax:17})},
@@ -45,10 +48,10 @@ reg('boss_dj','DJ',(o={})=>{
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0}});
   addBossBar(e,2.55,1.9);return e;
 },{drops:[{kind:'med',p:1},{kind:'vest',p:.6},{kind:'adrenaline',p:.5}],tableTags:['boss'],
-  onKill(e){announce('DJ ZAMILKŁ!','Cisza po basie');}});
+  onKill(e){announce(L('DJ ZAMILKŁ!','THE DJ SHUT UP!'),L('Cisza po basie','Silence after the bass drop'));}});
 const DJ_PHASES=[
-  {at:.66,title:'REMIX!',sub:'DJ dokłada bitu i wzywa dresów',onEnter:e=>summon(e,'dres',2)},
-  {at:.33,title:'DROP!',sub:'Lasery, bas i sanitariusz na backstage',onEnter:e=>{summon(e,'medyk',1);summon(e,'bandyta',1)}},
+  {at:.66,title:'REMIX!',sub:L('DJ dokłada bitu i wzywa dresów','The DJ cranks the beat and calls in the tracksuits'),onEnter:e=>summon(e,'dres',2)},
+  {at:.33,title:'DROP!',sub:L('Lasery, bas i sanitariusz na backstage','Lasers, bass and a medic backstage'),onEnter:e=>{summon(e,'medyk',1);summon(e,'bandyta',1)}},
 ];
 const djPick=e=>e.phase===1?pick(['bass','burst','burst']):e.phase===2?pick(['bass2','burst','bass']):pick(['laser','bass2','burst','laser']);
 const wave1=(e,ctx)=>{shockwave(e.g.position.x,e.g.position.z,{speed:e.phase>=2?11:9,max:30,dmg:e.dmg*1.3,color:0xff4fd8})};
@@ -92,9 +95,9 @@ function buildJednooki(P_,meta,v){
   const hx=meta.shoulder.x-.1,hy2=1.46-.1;
   P_.arm.limb(0x2b2b2e,hx,hy2+.02,-.5,hx,hy2+.06,-1.12,.026,.022,{t:.05});P_.arm.cyl(0x2b2b2e,.055,.055,.12,hx,hy2+.02,-.55,{rx:Math.PI/2,t:.05},10);P_.arm.box(0x6b4a2a,.05,.12,.07,hx,hy2-.07,-.44,{rx:.3,t:.05});
 }
-reg('boss_jednooki','Jednooki Bandyta',(o={})=>{
+reg('boss_jednooki',L('Jednooki Bandyta','One-Eyed Bandit'),(o={})=>{
   const w=o.wave||0,si=2;
-  const e=makeHuman({key:'jednooki',build:(P_,m)=>buildJednooki(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(560,52,w),dmg:wv(11,.9,w),radius:.75,scale:1.38,name:'Jednooki Bandyta',xp:180,
+  const e=makeHuman({key:'jednooki',build:(P_,m)=>buildJednooki(P_,m,{skin:SKIN[si]}),meta:{arm:true},boss:true,hp:wv(560,52,w),dmg:wv(11,.9,w),radius:.75,scale:1.38,name:L('Jednooki Bandyta','One-Eyed Bandit'),xp:180,
     cfg:{speed:wv(3.1,.04,w),turn:7,sight:70,fov:3.4,range:[3,26],melee:false,flank:0,cover:0,fleeHp:0,holdGround:true,hear:80,lose:8,
       decide(e){return bossThink(e,JO_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,JO_ACT,joPick,{dmin:7,dmax:13})},
@@ -102,10 +105,10 @@ reg('boss_jednooki','Jednooki Bandyta',(o={})=>{
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0}});
   addBossBar(e,2.5,1.9);return e;
 },{drops:[{kind:'med',p:1},{kind:'vest',p:.6},{kind:'kebab',p:.5}],tableTags:['boss'],
-  onKill(e){announce('JEDNOOKI PADA!','Wszystkie trzy siódemki na raz')}});
+  onKill(e){announce(L('JEDNOOKI PADA!','ONE-EYE IS DOWN!'),L('Wszystkie trzy siódemki na raz','All three sevens at once'))}});
 const JO_PHASES=[
-  {at:.66,title:'ŻETONY!',sub:'Jednooki rzuca kasyno w ruch',onEnter:e=>{}},
-  {at:.33,title:'JACKPOT!',sub:'Losuje trzy ataki naraz',onEnter:e=>summon(e,'bandyta',2)},
+  {at:.66,title:L('ŻETONY!','CHIPS!'),sub:L('Jednooki rzuca kasyno w ruch','One-Eye sets the whole casino spinning'),onEnter:e=>{}},
+  {at:.33,title:'JACKPOT!',sub:L('Losuje trzy ataki naraz','Rolls three attacks at once'),onEnter:e=>summon(e,'bandyta',2)},
 ];
 const joPick=e=>e.phase===1?pick(['sixgun','sixgun','sixgun']):e.phase===2?pick(['sixgun','chips','dash','chips']):pick(['jackpot','sixgun','jackpot','chips']);
 const gunMuzzle=e=>e.armR.localToWorld(MZ.set(-.1,-.04,-1.12));
@@ -130,8 +133,8 @@ const JO_ACT={
       return a.st>=1.2||a.hitDone&&a.st>.7},cool:e=>rand(1.2,2)},
   jackpot:{start(e){const a=e.ai;const K=['SIÓDEMKA','DZWONEK','WIŚNIE','GWIAZDA'];a.reels=[pick(K),pick(K),pick(K)];if(Math.random()<.2)a.reels=[a.reels[0],a.reels[0],a.reels[0]];
       a.q=a.reels.slice();if(a.reels[0]===a.reels[1]&&a.reels[1]===a.reels[2])a.q=[a.reels[0],a.reels[0],a.reels[0],a.reels[0]];a.qi=0;
-      addFloater(a.reels.join(' | '),{world:e.g.localToWorld(new THREE.Vector3(0,3.1,0)),size:34,life:1.6,color:'#ffe14a',vy:-10});
-      if(a.q.length>3)announce('TRZY '+a.reels[0]+'!','Ataki x4');sfx('jackpot')},
+      addFloater(a.reels.map(r=>REEL_NAME[r]||r).join(' | '),{world:e.g.localToWorld(new THREE.Vector3(0,3.1,0)),size:34,life:1.6,color:'#ffe14a',vy:-10});
+      if(a.q.length>3)announce(L('TRZY '+a.reels[0]+'!','TRIPLE '+(REEL_NAME[a.reels[0]]||a.reels[0])+'!'),L('Ataki x4','Attacks x4'));sfx('jackpot')},
     run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=-2.4;e.glow=.2+.15*Math.sin(a.st*25);
       if(a.salvo>0&&(a.salvoT-=dt)<=0){a.salvo--;a.salvoT=.13;gunMuzzle(e);fireAt(e,MZ,ctx.eye,{dmg:e.dmg*.8,acc:.8,color:0xffd34a,tracers:1})}
       if(a.st<1.0)return false;
@@ -162,19 +165,19 @@ function buildSzef(P_,meta,v){
   P_.body.box(0x2b3540,.05,1.2,.06,-.47,1.12,-.5,{t:0});P_.body.box(0x2b3540,.05,1.2,.06,.43,1.12,-.5,{t:0});
   P_.body.box(0xffffff,.6,.11,.012,-.02,1.3,-.525,{t:0});
 }
-reg('boss_szef_ochrony','Szef Ochrony',(o={})=>{
+reg('boss_szef_ochrony',L('Szef Ochrony','Head of Security'),(o={})=>{
   const w=o.wave||0,si=0;
-  const e=makeHuman({key:'szef',build:(P_,m)=>buildSzef(P_,m,{skin:SKIN[si]}),boss:true,hp:wv(720,62,w),dmg:wv(15,1.1,w),radius:.8,scale:1.33,name:'Szef Ochrony',xp:190,
+  const e=makeHuman({key:'szef',build:(P_,m)=>buildSzef(P_,m,{skin:SKIN[si]}),boss:true,hp:wv(720,62,w),dmg:wv(15,1.1,w),radius:.8,scale:1.33,name:L('Szef Ochrony','Head of Security'),xp:190,
     cfg:{speed:wv(2.7,.04,w),turn:3.2,sight:60,fov:3,range:[2,22],melee:true,flank:0,cover:0,fleeHp:0,holdGround:true,hear:70,lose:8,
       decide(e){return bossThink(e,SZ_PHASES)},
       attack(e,dt,ctx){bossAttack(e,dt,ctx,SZ_ACT,szPick,{dmin:3,dmax:9})},
       animate:animateBoss,beforeHit(e,ev){if(e.invulT>0){ev.dmg=0;return}shieldHit(e,ev,{front:.4,block:.9,back:.35})},onHit:bossOnHit},
     opts:aiOpts(o),setup(e){e.phase=1;e.invulT=0}});
   addBossBar(e,2.6,2);return e;
-},{drops:[{kind:'vest',p:1},{kind:'med',p:1}],tableTags:['boss'],onKill(e){announce('SZEF OCHRONY PADA!','Tarcza pęka')}});
+},{drops:[{kind:'vest',p:1},{kind:'med',p:1}],tableTags:['boss'],onKill(e){announce(L('SZEF OCHRONY PADA!','THE HEAD OF SECURITY IS DOWN!'),L('Tarcza pęka','The shield cracks'))}});
 const SZ_PHASES=[
-  {at:.66,title:'WZYWAM POSIŁKI!',sub:'Ochroniarze wchodzą na salę',onEnter:e=>summon(e,'ochroniarz',2)},
-  {at:.33,title:'TRYB SZTURMOWY!',sub:'Szef nie hamuje',onEnter:e=>summon(e,'bandyta',2)},
+  {at:.66,title:L('WZYWAM POSIŁKI!','CALLING BACKUP!'),sub:L('Ochroniarze wchodzą na salę','Bouncers storm the room'),onEnter:e=>summon(e,'ochroniarz',2)},
+  {at:.33,title:L('TRYB SZTURMOWY!','ASSAULT MODE!'),sub:L('Szef nie hamuje','The boss has no brakes'),onEnter:e=>summon(e,'bandyta',2)},
 ];
 const szPick=e=>e.phase===1?pick(['rush','bash','bash']):e.phase===2?pick(['rush','bash','guards']):pick(['rush','rush','bash','guards']);
 const SZ_ACT={
@@ -190,7 +193,7 @@ const SZ_ACT={
       eachPlayer((k,tgt)=>{if(isDone(a,'hitDone',k)||S.G.dead||!((tgt?ctx.dist:distP(e))<2.1))return;hitOnce(a,'hitDone',k);if(hitPlayer(e,e.dmg*1.5)){DS.player.knock({x:(a.dx*14)*.7,z:(a.dz*14)*.7});sfx('e_shove');if(isLocal(k))S.G.shake+=.8}});
       return a.st>=1.9||a.hitDone&&a.st>1.1},cool:e=>rand(1.8,2.8)},
   guards:{start(e){e.ai.did=false},run(e,dt,ctx){const a=e.ai;stopMove(e,dt);e.armT=0;e.lean=-.1;e.glow=.12;
-      if(a.st>.8&&!a.did){a.did=true;summon(e,'ochroniarz',1);sfx('e_sting');addFloater('POMOCY!',{world:e.g.localToWorld(new THREE.Vector3(0,3.2,0)),size:36,life:.8,color:'#c8f000',vy:-20})}
+      if(a.st>.8&&!a.did){a.did=true;summon(e,'ochroniarz',1);sfx('e_sting');addFloater(L('POMOCY!','HELP!'),{world:e.g.localToWorld(new THREE.Vector3(0,3.2,0)),size:36,life:.8,color:'#c8f000',vy:-20})}
       return a.st>=1.4},cool:e=>rand(3,4.5)},
 };
 

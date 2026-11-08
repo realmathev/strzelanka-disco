@@ -8,6 +8,7 @@ import {toon,hull,disposeObject} from '../render/materials.js';
 import {addFloater,announce} from '../render/comicfx.js';
 import {sfx} from '../audio/sfx.js';
 import {P} from '../player/player.js';
+import {L} from '../core/i18n.js';
 
 /** Czas życia znajdźki [s]; przez ostatnie BLINK_T sekund pulsuje skalą (nigdy visible=false). */
 const LIFE=25,BLINK_T=4;
@@ -27,7 +28,7 @@ DS.pickups.register({id:'coin',magnet:6,
   collect(p){const G=S.G;save.coins+=p.val;G.earned+=p.val;sfx('coin');addFloater('+'+p.val,{x:innerWidth-110+rand(-20,20),y:120,size:24,life:.6,color:'#ffcc33',vy:-40})}});
 DS.pickups.register({id:'key',magnet:3,
   mesh(){return new THREE.Mesh(keyGeo,keyMat)},
-  collect(p){const G=S.G;save.keys+=p.val;G.keysFound+=p.val;sfx('key');announce('KLUCZ!','+'+p.val+' do skrzynek')}});
+  collect(p){const G=S.G;save.keys+=p.val;G.keysFound+=p.val;sfx('key');announce(L('KLUCZ!','KEY!'),'+'+p.val+L(' do skrzynek',' crate '+(p.val===1?'key':'keys')))}});
 DS.pickups.register({id:'med',magnet:3,
   mesh(){const m=new THREE.Mesh(medGeo,medMat);const c=new THREE.Mesh(medC1,medRed);m.add(c);const c2=new THREE.Mesh(medC2,medRed);m.add(c2);return m},
   collect(p){const G=S.G;const before=G.hp;G.hp=Math.min(G.maxHp,G.hp+p.val);sfx('heal');addFloater('+'+p.val+' HP',{x:200,y:innerHeight-120,size:26,life:.8,color:'#7dff9a',vy:-40});

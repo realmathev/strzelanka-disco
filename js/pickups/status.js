@@ -4,6 +4,7 @@ import {S} from '../core/state.js';
 import {DS} from '../core/ds.js';
 import {addFloater} from '../render/comicfx.js';
 import {CFG} from './config.js';
+import {L} from '../core/i18n.js';
 
 const HP_POS=()=>({x:200,y:innerHeight-120});
 
@@ -40,6 +41,6 @@ DS.bus.on('damage',()=>{
   const b=G.bandage;
   if(CFG.bandage.breakOnHit&&b&&b.left>0){
     b.left=0;if(b.acc>0)DS.bus.emit('heal',{amount:b.acc,source:'pickup'});b.acc=0;
-    addFloater('PRZERWANE!',Object.assign(HP_POS(),{size:28,life:.9,color:'#ff3b30',vy:-30,burst:true}));
+    addFloater(L('PRZERWANE!','INTERRUPTED!'),Object.assign(HP_POS(),{size:28,life:.9,color:'#ff3b30',vy:-30,burst:true}));
   }
 });

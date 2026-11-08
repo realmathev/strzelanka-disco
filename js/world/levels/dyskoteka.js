@@ -34,6 +34,7 @@ import {A as AU} from '../../audio/context.js';
 import {addBox} from '../build.js';
 import {addPart} from '../batch.js';
 import {world} from '../state.js';
+import {L} from '../../core/i18n.js';
 import {setEnv,slab,facade,room,slidingDoor,placeCollectibles,placeBarrels,healMachines,buildNav,collectStats,mergeIntoZones} from './common.js';
 
 const ID='dyskoteka',ARENA=78,PI=Math.PI;
@@ -48,12 +49,12 @@ const C={grass:0x56703f,gravel:0x6e685a,park:0x5d5e64,road:0x4a4b52,dirt:0x7c6a4
 function rng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 
 /* ------------------------------------------------------------------ definicja poziomu */
-const L={
-  id:ID,name:'Wiejska dyskoteka w lesie',arena:ARENA,
-  desc:'Noc na wsi: sala wiejska z parkietem, sceną DJ-a i barem, parking z traktorami i Maluchami, zagroda ze stodołą, labirynt z kukurydzy i gęsty las. Boss na parkingu przed salą.',
+const LV={
+  id:ID,name:L('Wiejska dyskoteka w lesie','Village Disco in the Woods'),arena:ARENA,
+  desc:L('Noc na wsi: sala wiejska z parkietem, sceną DJ-a i barem, parking z traktorami i Maluchami, zagroda ze stodołą, labirynt z kukurydzy i gęsty las. Boss na parkingu przed salą.','Night in the sticks: a village hall with a dance floor, DJ stage and bar, a car park full of tractors and Maluchs (Fiat 126p), a farmyard with a barn, a corn maze and thick forest. Boss in the car park outside the hall.'),
   spawn:{x:0,z:72,yaw:0},
-  starts:[{x:0,z:72,yaw:0,name:'Przystanek PKS'},{x:0,z:36,yaw:0,name:'Parking'},{x:0,z:-4,yaw:0,name:'Plac przed salą'},{x:0,z:-17,yaw:0,name:'Parkiet'},
-    {x:-52,z:-34,yaw:PI/2,name:'Zagroda'},{x:51,z:-40,yaw:PI/2,name:'Polana w kukurydzy'},{x:-16,z:-40,yaw:0,name:'Ognisko'}],
+  starts:[{x:0,z:72,yaw:0,name:L('Przystanek PKS','Bus Stop')},{x:0,z:36,yaw:0,name:L('Parking','Car Park')},{x:0,z:-4,yaw:0,name:L('Plac przed salą','Square by the Hall')},{x:0,z:-17,yaw:0,name:L('Parkiet','Dance Floor')},
+    {x:-52,z:-34,yaw:PI/2,name:L('Zagroda','Farmyard')},{x:51,z:-40,yaw:PI/2,name:L('Polana w kukurydzy','Corn Clearing')},{x:-16,z:-40,yaw:0,name:L('Ognisko','Bonfire')}],
   menuCam:{r:92,y:46,look:[0,2,-4]},
   track:'C',
   spawnZones:[
@@ -67,17 +68,17 @@ const L={
   // Scenariusz fal: 1-2 gangsterzy i dresy z parkingu i lasu; 3-4 pijacy z namiotu, bandyci z pola; 5 BOSS na parkingu przed salą (osłony: traktory, przyczepa z sianem, bele);
   // 6-9 kierowcy Maluchów szarżują po parkingu, kamikadze z labiryntu; 10 BOSS (kolejny z puli); 11+ snajperzy z lasu i dachów, medycy.
   waves:{
-    intro:'Godzina 22:40. Wiejska dyskoteka w lesie. Z sali bije bas, w namiocie leje się piwo, a Sołtys już czeka na parkingu.',
+    intro:L('Godzina 22:40. Wiejska dyskoteka w lesie. Z sali bije bas, w namiocie leje się piwo, a Sołtys już czeka na parkingu.','10:40 PM. A village disco in the woods. Bass pounds from the hall, beer flows in the tent, and the Village Head (Sołtys) is already waiting in the car park.'),
     plan:[{from:1,note:'gangsterzy i dresy z parkingu, lasu i szosy'},{from:3,note:'pijacy z namiotu piwnego, bandyci z pola'},
       {from:5,boss:'pula',note:'boss wchodzi na parking przed salą; osłony: traktory z kabiną, przyczepa z sianem, bele, Żuk, beczki'},
       {from:6,note:'kierowcy Maluchów, kamikadze z labiryntu'},{from:10,boss:'pula'},{from:11,note:'snajperzy z lasu, medycy'}],
     bossWave:5,bossArena:{x:0,z:24,hw:16,hd:14,gates:[{x:-20,z:8},{x:20,z:8},{x:-32,z:30},{x:32,z:30},{x:0,z:46},{x:-14,z:44},{x:14,z:44}]},
   },
-  win:{kind:'boss',boss:'boss_soltys',reward:{coins:500,keys:1},text:'DYSKOTEKA ZDOBYTA!'},
-  secrets:[{id:'zaplecze-dj',name:'Zaplecze DJ-a'},{id:'bimbrownia',name:'Bimbrownia w stodole'},{id:'lesniczowka',name:'Leśniczówka'}],
+  win:{kind:'boss',boss:'boss_soltys',reward:{coins:500,keys:1},text:L('DYSKOTEKA ZDOBYTA!','DISCO CONQUERED!')},
+  secrets:[{id:'zaplecze-dj',name:L('Zaplecze DJ-a','DJ\'s Back Room')},{id:'bimbrownia',name:L('Bimbrownia w stodole','Moonshine Still in the Barn')},{id:'lesniczowka',name:L('Leśniczówka','Forester\'s Hut')}],
   build(){ buildDyskoteka(this) },
 };
-DS.levels.register(L);
+DS.levels.register(LV);
 
 /* ------------------------------------------------------------------ pomocnicy */
 const sign=(text,color,bg,w,h,x,y,z,rotY=0)=>put('neonSign',{text,color,bg,w,h,x,y,z,rotY});
@@ -237,7 +238,7 @@ function buildDyskoteka(level){
   addBox(20.8,.4,18.8,0,HH,-17,{color:0x4a3a40},{collide:false});
   gableRoof(0,-17,20.8,18.8,HH+.4,2.8,C.roof,HW,'z',.9);
   slab(HX0+HT,HX1-HT,HZ0+HT,HZ1-HT,.03,.03,0x2c2230);
-  const dj=room({x0:-10,x1:-3.5,z0:-32,z1:-25.5,h:3.4,wall:HW,roof:0x4a3a40,floor:0x2c2230,light:0xff70d8,door:{side:'s',c:-6.8,w:2,h:2.4,secret:true,label:'ZAPLECZE DJ-A',color:HW}});
+  const dj=room({x0:-10,x1:-3.5,z0:-32,z1:-25.5,h:3.4,wall:HW,roof:0x4a3a40,floor:0x2c2230,light:0xff70d8,door:{side:'s',c:-6.8,w:2,h:2.4,secret:true,label:L('ZAPLECZE DJ-A','DJ\'S BACK ROOM'),color:HW}});
   void dj;
   // kolorowe światło w oknach (emisja), lampiony pod sufitem
   for(const [c,x] of [[0x4adfff,-4.2],[0xffe04a,4.2],[0xff4ad8,6.6],[0x6aff7a,8.6]])glow(x,2.1,HZ1+.05,1.1,1.4,.06,c);
@@ -322,7 +323,7 @@ function buildDyskoteka(level){
   shell(BX0,BX1,BZ0,BZ1,BH,.5,C.wood,{s:[[-60,-54,3.4]],n:[[-62,-54,BH]]},true);
   addBox(14.8,.4,10.8,-57,BH,-47,{color:0x4a3626},{collide:false});
   gableRoof(-57,-47,10.8,14.8,BH+.4,2.6,0x6a6e72,C.wood,'x',.6);
-  room({x0:-62,x1:-54,z0:-59.5,z1:-51.5,h:3.2,wall:C.wood,roof:0x3a2a1c,floor:0x2e2418,light:0xffc070,door:{side:'s',c:-58,w:2.2,h:2.4,secret:true,label:'BIMBROWNIA',color:C.wood}});
+  room({x0:-62,x1:-54,z0:-59.5,z1:-51.5,h:3.2,wall:C.wood,roof:0x3a2a1c,floor:0x2e2418,light:0xffc070,door:{side:'s',c:-58,w:2.2,h:2.4,secret:true,label:L('BIMBROWNIA','MOONSHINE STILL'),color:C.wood}});
   put('kuchenka',{x:-60.4,z:-58.6,rotY:0,wide:true});put('beczkaDeszczowa',{x:-55.4,z:-58.4,variant:'metal'});put('beczkaDeszczowa',{x:-55.4,z:-57.2,variant:'plastik'});
   put('skrzynkaAlkohol',{x:-58.5,z:-58.8,rotY:0});put('skrzynkaAlkohol',{x:-57.6,z:-58.8,rotY:.3});put('regalMagazynowy',{x:-61.1,z:-55.6,rotY:PI/2});
   glow(-58,3.05,-55.5,.5,.06,.5,0xffc070);
@@ -356,7 +357,7 @@ function buildDyskoteka(level){
   put('slawojka',{x:-28,z:-55});car('fiat126p',14,-42,PI/2,0x4f8a5b);put('rampaMleczna',{x:12,z:-30});put('rampaMleczna',{x:8,z:-28.6});
   stack(14,-36);put('belaKostka',{x:20,z:-52,variant:'stos',rotY:PI/2});
   // leśniczówka (sekret 3)
-  room({x0:-34,x1:-25,z0:-73,z1:-65,h:3.2,wall:0x5a4028,roof:0x2e2a22,floor:0x3a2e22,light:0xffd080,door:{side:'s',c:-29.5,w:2,h:2.4,secret:true,label:'LEŚNICZÓWKA',color:0x5a4028}});
+  room({x0:-34,x1:-25,z0:-73,z1:-65,h:3.2,wall:0x5a4028,roof:0x2e2a22,floor:0x3a2e22,light:0xffd080,door:{side:'s',c:-29.5,w:2,h:2.4,secret:true,label:L('LEŚNICZÓWKA','FORESTER\'S HUT'),color:0x5a4028}});
   sign('NADLEŚNICTWO','#7aff9a','#06140a',4.6,.9,-29.5,3.7,-64.8);
   put('kuchenka',{x:-32,z:-72,rotY:0});put('regalMagazynowy',{x:-27.2,z:-72.2,rotY:0});put('lodowka',{x:-33.2,z:-69,rotY:PI/2});crate(-26.4,-67.2,1.3);
   put('stosDrewna',{x:-26,z:-61.5,rotY:0});
@@ -423,19 +424,19 @@ function buildDyskoteka(level){
 
   /* ---- znajdźki (id stabilne!) ---- */
   placeCollectibles(level,[
-    {id:'dk-kaseta-1',type:'kaseta',x:-35,z:22,name:'Zenek: Wesele w Remizie',hint:'za namiotem z piwem'},
-    {id:'dk-kaseta-2',type:'kaseta',x:47.5,z:-39.4,name:'Akcent: Kukurydza i Ty',hint:'polana w labiryncie z kukurydzy'},
-    {id:'dk-kaseta-3',type:'kaseta',x:-52.2,z:-50,name:'Boys: Stodoła Tonie w Basach',hint:'w stodole za belami'},
-    {id:'dk-kaseta-4',type:'kaseta',x:-6.5,z:-28.4,name:'DJ Wiesiek: Dyskoteka do Rana',hint:'zaplecze DJ-a',secret:true},
-    {id:'dk-lancuch-1',type:'lancuch',x:6.2,z:-24.2,name:'Złoty łańcuch spod sceny',value:70},
-    {id:'dk-lancuch-2',type:'lancuch',x:-19.5,z:-43,name:'Łańcuch przy ognisku',value:80},
-    {id:'dk-lancuch-3',type:'lancuch',x:-72.6,z:-12,name:'Łańcuch z polanki w lesie',value:110,secret:true},
-    {id:'dk-lancuch-4',type:'lancuch',x:-58,z:-56,name:'Łańcuch z bimbrowni',value:140,secret:true},
-    {id:'dk-klucz-1',type:'klucz',x:-29.5,z:-69.5,name:'Klucz do skrzynki: leśniczówka',secret:true},
-    {id:'dk-klucz-2',type:'klucz',x:19,z:-71,name:'Klucz do skrzynki: ambona',secret:true},
-    {id:'dk-plakat-1',type:'plakat',x:-8.6,z:-23.2,name:'Plakat: Dziś gra DJ Wiesiek, wstęp 5 zł',hint:'sala, przy scenie',value:30},
-    {id:'dk-plakat-2',type:'plakat',x:17,z:67.5,name:'Plakat: Odjazdy PKS, kursuje w święta',hint:'przystanek PKS',value:30},
-    {id:'dk-plakat-3',type:'plakat',x:71,z:51,name:'Plakat: Zaginął kogut Zdzisiek',hint:'kapliczka w lesie',value:30,secret:true},
+    {id:'dk-kaseta-1',type:'kaseta',x:-35,z:22,name:L('Zenek: Wesele w Remizie','Mietek Boombox: Wedding at the Fire Station'),hint:L('za namiotem z piwem','behind the beer tent')},
+    {id:'dk-kaseta-2',type:'kaseta',x:47.5,z:-39.4,name:L('Akcent: Kukurydza i Ty','Diesel Romeo: Corn on the Cob and You'),hint:L('polana w labiryncie z kukurydzy','clearing in the corn maze')},
+    {id:'dk-kaseta-3',type:'kaseta',x:-52.2,z:-50,name:L('Boys: Stodoła Tonie w Basach','Tracksuit Five: The Barn Is Drowning in Bass'),hint:L('w stodole za belami','in the barn behind the bales')},
+    {id:'dk-kaseta-4',type:'kaseta',x:-6.5,z:-28.4,name:L('DJ Wiesiek: Dyskoteka do Rana','DJ Wiesiek: Disco Till Dawn'),hint:L('zaplecze DJ-a','DJ\'s back room'),secret:true},
+    {id:'dk-lancuch-1',type:'lancuch',x:6.2,z:-24.2,name:L('Złoty łańcuch spod sceny','Gold chain from under the stage'),value:70},
+    {id:'dk-lancuch-2',type:'lancuch',x:-19.5,z:-43,name:L('Łańcuch przy ognisku','Bonfire chain'),value:80},
+    {id:'dk-lancuch-3',type:'lancuch',x:-72.6,z:-12,name:L('Łańcuch z polanki w lesie','Chain from the forest glade'),value:110,secret:true},
+    {id:'dk-lancuch-4',type:'lancuch',x:-58,z:-56,name:L('Łańcuch z bimbrowni','Moonshine-still chain'),value:140,secret:true},
+    {id:'dk-klucz-1',type:'klucz',x:-29.5,z:-69.5,name:L('Klucz do skrzynki: leśniczówka','Crate key: forester\'s hut'),secret:true},
+    {id:'dk-klucz-2',type:'klucz',x:19,z:-71,name:L('Klucz do skrzynki: ambona','Crate key: hunting stand'),secret:true},
+    {id:'dk-plakat-1',type:'plakat',x:-8.6,z:-23.2,name:L('Plakat: Dziś gra DJ Wiesiek, wstęp 5 zł','Poster: DJ Wiesiek tonight, entry 5 zł'),hint:L('sala, przy scenie','the hall, by the stage'),value:30},
+    {id:'dk-plakat-2',type:'plakat',x:17,z:67.5,name:L('Plakat: Odjazdy PKS, kursuje w święta','Poster: Bus timetable, runs on holidays only'),hint:L('przystanek PKS','bus stop'),value:30},
+    {id:'dk-plakat-3',type:'plakat',x:71,z:51,name:L('Plakat: Zaginął kogut Zdzisiek','Poster: Missing rooster, answers to Zdzisiek'),hint:L('kapliczka w lesie','wayside shrine in the woods'),value:30,secret:true},
   ]);
 
   /* ---- nawigacja AI: osłony z rekwizytów (kolejność kolizji: budynki i parking pierwsze, las ostatni) ---- */
@@ -487,7 +488,7 @@ DS.bus.on('levelUnload',()=>{stopAmbient();cells=[];moonSky=null});
 DS.bus.on('levelStart',()=>{
   if(!here())return;
   startAmbient();
-  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(L);announce('WIEJSKA DYSKOTEKA W LESIE','Znajdźki '+st.found+'/'+st.total+'  |  3 sekrety')}},1800)}
+  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(LV);announce(L('WIEJSKA DYSKOTEKA W LESIE','VILLAGE DISCO IN THE WOODS'),L('Znajdźki ','Collectibles ')+st.found+'/'+st.total+L('  |  3 sekrety','  |  3 secrets'))}},1800)}
 });
 DS.bus.on('levelEnd',stopAmbient);
 DS.bus.on('update',dt=>{
@@ -502,9 +503,9 @@ DS.bus.on('update',dt=>{
 const winOnKill=({enemy:e})=>{
   const G=S.G;if(!G||!here()||!e||!e.boss||G.levelWon)return;       // boss z puli tabeli (Sołtys, DJ...) kończy poziom
   G.levelWon=true;
-  save.coins+=L.win.reward.coins;save.keys+=L.win.reward.keys;G.earned+=L.win.reward.coins;G.keysFound+=L.win.reward.keys;
+  save.coins+=LV.win.reward.coins;save.keys+=LV.win.reward.keys;G.earned+=LV.win.reward.coins;G.keysFound+=LV.win.reward.keys;
   save.levelsDone=save.levelsDone||{};save.levelsDone[ID]=true;persist();
-  setTimeout(()=>{if(S.G===G)announce(L.win.text,'+'+L.win.reward.coins+' ZD i klucz. Gra toczy się dalej.')},1500);
+  setTimeout(()=>{if(S.G===G)announce(LV.win.text,'+'+LV.win.reward.coins+L(' ZD i klucz. Gra toczy się dalej.',' ZD and a key. The party goes on.'))},1500);
   DS.bus.emit('levelComplete',{level:ID,wave:G.wave});
 };
 DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)

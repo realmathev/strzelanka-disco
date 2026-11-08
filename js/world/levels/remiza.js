@@ -8,13 +8,14 @@ import {toon} from '../../render/materials.js';
 import {groundTex} from '../../render/textures.js';
 import {addBox} from '../build.js';
 import {world} from '../state.js';
+import {L} from '../../core/i18n.js';
 
 DS.levels.register({
   id:'remiza',
-  name:'Remiza i rynek',
-  desc:'Rynek pod remizą: kamienice, Maluchy, kiosk z automatami i lombard. Boss: Baron Jackpot.',
+  name:L('Remiza i rynek','Fire Station & Market Square'),
+  desc:L('Rynek pod remizą: kamienice, Maluchy, kiosk z automatami i lombard. Boss: Baron Jackpot.','The square outside the village fire station: tenements, Maluchs (Fiat 126p), a slot-machine kiosk and a pawnshop. Boss: Baron Jackpot.'),
   // nagroda tylko w ZD: klucze za Barona daje już killEnemy (combat.js)
-  win:{kind:'boss',reward:{coins:200,keys:0},text:'REMIZA WYCZYSZCZONA!'},
+  win:{kind:'boss',reward:{coins:200,keys:0},text:L('REMIZA WYCZYSZCZONA!','FIRE STATION CLEARED!')},
   arena:42,                              // połowa boku grywalnego kwadratu [m]
   spawn:{x:0,z:30,yaw:0},                // start gracza
   menuCam:{r:26,y:7,look:[0,4,0]},       // orbita kamery w menu
@@ -52,9 +53,9 @@ DS.levels.register({
 // Ukończenie: pokonanie Barona Jackpota (boss gangster) zapisuje poziom i otwiera ekran „Poziom ukończony” (jak na pozostałych mapach).
 DS.bus.on('levelStart',()=>{const G=S.G;if(G)G.levelWon=false});
 const winOnKill=({enemy:e})=>{
-  const G=S.G,L=DS.levels.get('remiza');if(!G||!e||!e.boss||G.levelWon||!world.level||world.level.id!=='remiza')return;
+  const G=S.G,LV=DS.levels.get('remiza');if(!G||!e||!e.boss||G.levelWon||!world.level||world.level.id!=='remiza')return;
   G.levelWon=true;
-  save.coins+=L.win.reward.coins;G.earned+=L.win.reward.coins;
+  save.coins+=LV.win.reward.coins;G.earned+=LV.win.reward.coins;
   save.levelsDone=save.levelsDone||{};save.levelsDone.remiza=true;persist();
   DS.bus.emit('levelComplete',{level:'remiza',wave:G.wave});
 };

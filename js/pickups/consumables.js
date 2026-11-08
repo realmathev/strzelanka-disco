@@ -6,6 +6,7 @@ import {DS} from '../core/ds.js';
 import {addFloater} from '../render/comicfx.js';
 import {sfx,sfxBank} from '../audio/sfx.js';
 import {CFG} from './config.js';
+import {L} from '../core/i18n.js';
 import {healPlayer,healFloater,startBandage,startAdrenaline} from './status.js';
 import {modelBandage,modelAdrenaline,modelZapiekanka,modelKebab,modelZubr} from './models.js';
 
@@ -23,24 +24,24 @@ const healFx=n=>{const got=healPlayer(n);if(got>0)DS.bus.emit('heal',{amount:got
 DS.pickups.register({id:'bandage',magnet:3,
   mesh(){return modelBandage()},
   spin(m,dt){m.rotation.y+=dt},
-  collect(p){startBandage(p.val);sfx('bandage');big('ZAWIĄZANE!','#f4efe4')}});
+  collect(p){startBandage(p.val);sfx('bandage');big(L('ZAWIĄZANE!','PATCHED UP!'),'#f4efe4')}});
 
 DS.pickups.register({id:'adrenaline',magnet:3,
   mesh(){return modelAdrenaline()},
-  collect(p){healFx(p.val);startAdrenaline();sfx('inject');big('ADRENALINA!','#43c7ff')}});
+  collect(p){healFx(p.val);startAdrenaline();sfx('inject');big(L('ADRENALINA!','ADRENALINE!'),'#43c7ff')}});
 
 DS.pickups.register({id:'zapiekanka',magnet:3,
   mesh(){return modelZapiekanka()},
-  collect(p){healFx(p.val);sfx('chomp');big('MLASK!','#ffd84a')}});
+  collect(p){healFx(p.val);sfx('chomp');big(L('MLASK!','NOM NOM!'),'#ffd84a')}});
 
 DS.pickups.register({id:'kebab',magnet:3,
   mesh(){return modelKebab()},
-  collect(p){healFx(p.val);sfx('chomp');big('CHRUP!','#6dbb4a')}});
+  collect(p){healFx(p.val);sfx('chomp');big(L('CHRUP!','CRUNCH!'),'#6dbb4a')}});
 
 // Żubr: leczy słabo, a butelka zwraca kaucję (ZD trafiają od razu do portfela i do runu).
 DS.pickups.register({id:'zubr',magnet:3,
   mesh(){return modelZubr()},
   collect(p){const G=S.G;healFx(p.val);
     const dep=CFG.food.zubr.deposit;save.coins+=dep;G.earned+=dep;persist();
-    sfx('burp');big('BEKNĘŁO!','#ffcc33',{y:innerHeight-200});
-    addFloater('kaucja +'+dep,{x:innerWidth-110,y:120,size:22,life:.8,color:'#ffcc33',vy:-40})}});
+    sfx('burp');big(L('BEKNĘŁO!','BUUURP!'),'#ffcc33',{y:innerHeight-200});
+    addFloater(L('kaucja +','bottle deposit +')+dep,{x:innerWidth-110,y:120,size:22,life:.8,color:'#ffcc33',vy:-40})}});

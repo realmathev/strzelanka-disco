@@ -16,6 +16,7 @@ import {world} from '../world/state.js';
 import {hurt} from '../game/combat.js';
 import * as nav from './nav.js';
 import {eachPlayer,isLocal,hitOnce} from './players.js';
+import {L} from '../core/i18n.js';
 
 const sh=o=>(o.userData.shared=true,o);
 const GEO={bottle:sh(new THREE.CylinderGeometry(.04,.05,.28,6)),chip:sh(new THREE.CylinderGeometry(.15,.15,.04,10)),petard:sh(new THREE.CylinderGeometry(.035,.035,.24,6)),
@@ -64,22 +65,22 @@ function impact(p,direct){
   if(p.replay){if(p.kind==='petard'){p.rest=true;p.vx=p.vy=p.vz=0;p.mesh.position.y=Math.max(p.mesh.position.y,.1);return false}return true}   // klient: efekty uderzenia przysyła host
   switch(p.kind){
     case 'bottle':{
-      sfx('e_glass');addFloater('KRASZ!',{world:V.set(x,.8,z).clone(),size:30,life:.6,color:'#cfe9d6',vy:-30,rot:rand(-.2,.2)});
+      sfx('e_glass');addFloater(L('KRASZ!','CRASH!'),{world:V.set(x,.8,z).clone(),size:30,life:.6,color:'#cfe9d6',vy:-30,rot:rand(-.2,.2)});
       puddle(x,z,{r:rand(1.1,1.5),life:7,dmg:p.dmg*.25});
       if(direct)hurt(p.dmg);else splash(x,z,p.splash,p.dmg*.5);
       break}
     case 'milk':case 'bimber':{
-      sfx('e_splash');addFloater(p.kind==='milk'?'PLUM!':'BIMBER!',{world:V.set(x,.8,z).clone(),size:30,life:.6,color:p.kind==='milk'?'#f4f0e6':'#ffd34a',vy:-30,rot:rand(-.2,.2)});
+      sfx('e_splash');addFloater(p.kind==='milk'?L('PLUM!','SPLOSH!'):L('BIMBER!','MOONSHINE!'),{world:V.set(x,.8,z).clone(),size:30,life:.6,color:p.kind==='milk'?'#f4f0e6':'#ffd34a',vy:-30,rot:rand(-.2,.2)});
       puddle(x,z,{r:rand(1.2,1.6),life:6,dmg:p.dmg*.22,kind:p.kind});
       if(direct)hurt(p.dmg);else splash(x,z,p.splash,p.dmg*.5);
       break}
     case 'jerry':{
-      sfx('e_glass');addFloater('KANISTER!',{world:V.set(x,.8,z).clone(),size:30,life:.6,color:'#ff8a3a',vy:-30,rot:rand(-.2,.2)});
+      sfx('e_glass');addFloater(L('KANISTER!','JERRY CAN!'),{world:V.set(x,.8,z).clone(),size:30,life:.6,color:'#ff8a3a',vy:-30,rot:rand(-.2,.2)});
       puddle(x,z,{r:rand(1.9,2.3),life:10,dmg:0,kind:'fuel',fdmg:p.dmg*.3});
       if(direct)hurt(p.dmg*.5);
       if(p.ignite){explode(x,.4,z,{r:3.4,dmg:p.dmg*.6,shake:.6});igniteFuel(.25)}
       break}
-    case 'chip':if(direct)hurt(p.dmg);addFloater('ŻETON!',{world:V.set(x,1,z).clone(),size:22,life:.5,color:'#ffe14a',vy:-30});break;
+    case 'chip':if(direct)hurt(p.dmg);addFloater(L('ŻETON!','CHIP!'),{world:V.set(x,1,z).clone(),size:22,life:.5,color:'#ffe14a',vy:-30});break;
     case 'petard':p.rest=true;p.vx=p.vy=p.vz=0;p.mesh.position.y=Math.max(p.mesh.position.y,.1);return false;   // leży i syczy do końca lontu
   }
   return true;
@@ -124,7 +125,7 @@ export function explode(x,y,z,{r=4.5,dmg=30,color=0xff9a2a,shake=1.1}={}){
     const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false});
     const m=new THREE.Mesh(GEO.ball,mat);m.position.set(x,Math.max(y,.4),z);m.scale.setScalar(.3);scene.add(m);fx.push({mesh:m,mat,t:0,life:.38,r});
     for(let i=0;i<4;i++)puff(V.set(x+rand(-1,1),Math.max(y,.4)+rand(0,1),z+rand(-1,1)));
-    addFloater('BUUM!',{world:V.set(x,2,z).clone(),size:56,life:.8,color:'#ffb12a',vy:-40,rot:rand(-.3,.3),burst:true});
+    addFloater(L('BUUM!','BOOOM!'),{world:V.set(x,2,z).clone(),size:56,life:.8,color:'#ffb12a',vy:-40,rot:rand(-.3,.3),burst:true});
   });
   if(client()){const d=Math.hypot(P.pos.x-x,P.pos.y+.9-y,P.pos.z-z);if(!G.dead&&d<r*2)G.shake+=shake*(d<r?1-(d/r)*.7:.3);return}   // klient: tylko wstrząs
   eachPlayer(k=>{
@@ -224,7 +225,7 @@ export function updateProj(dt){
     if(q.dmg>0&&!cl)eachPlayer(pk=>{
       if(G.dead||!(P.pos.y<(q.kind==='fire'?.9:.4))||!(Math.hypot(P.pos.x-q.x,P.pos.z-q.z)<q.r*.9))return;
       const tk=q.tk||(q.tk={});if(tk[pk]===undefined)tk[pk]=q.tick;
-      tk[pk]-=dt;if(tk[pk]<=0){tk[pk]=.5;hurt(q.dmg);const wn=q.wn||(q.wn={});if(!wn[pk]){wn[pk]=true;const W={fire:['PŁOMIENIE!','#ff8a3a'],milk:['MLEKO!','#f4f0e6'],bimber:['BIMBER!','#ffd34a']}[q.kind]||['SZKŁO!','#cfe9d6'];addFloater(W[0],{world:V.set(P.pos.x,1.6,P.pos.z).clone(),size:26,life:.6,color:W[1],vy:-30})}}
+      tk[pk]-=dt;if(tk[pk]<=0){tk[pk]=.5;hurt(q.dmg);const wn=q.wn||(q.wn={});if(!wn[pk]){wn[pk]=true;const W={fire:[L('PŁOMIENIE!','FLAMES!'),'#ff8a3a'],milk:[L('MLEKO!','MILK!'),'#f4f0e6'],bimber:[L('BIMBER!','MOONSHINE!'),'#ffd34a']}[q.kind]||[L('SZKŁO!','GLASS!'),'#cfe9d6'];addFloater(W[0],{world:V.set(P.pos.x,1.6,P.pos.z).clone(),size:26,life:.6,color:W[1],vy:-30})}}
     });
     if(q.t>=q.life){killPuddle(q);q.dead=true}
   }

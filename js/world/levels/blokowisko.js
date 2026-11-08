@@ -31,17 +31,18 @@ import {A as AU} from '../../audio/context.js';
 import {addBox} from '../build.js';
 import {addPart} from '../batch.js';
 import {world} from '../state.js';
+import {L} from '../../core/i18n.js';
 import {setEnv,slab,boxB,facade,fence,lowCol,room,placeCollectibles,placeBarrels,healMachines,buildNav,collectStats,mergeIntoZones} from './common.js';
 
 const ID='blokowisko',ARENA=78,PI=Math.PI;
 const put=(id,o)=>DS.props.get(id).place(o);
 const ROAD=0x46424e,PAV=0xb4ab9a,GRASS=0x587a42,YARD=0x4e4a54,LOT=0x403d48,SAND=0xcdb784,CONC=0x9b958a;
 
-const L={
-  id:ID,name:'Blokowisko',arena:ARENA,
-  desc:'Osiedle z wielkiej płyty: trzepaki, garaże, śmietniki, Maluchy i ukryte piwnice. Boss: Szef Ochrony na Orliku.',
+const LV={
+  id:ID,name:L('Blokowisko','Commie-Block Estate'),arena:ARENA,
+  desc:L('Osiedle z wielkiej płyty: trzepaki, garaże, śmietniki, Maluchy i ukryte piwnice. Boss: Szef Ochrony na Orliku.','A concrete-slab commie estate: carpet-beating racks, garages, dumpsters, Maluchs (Fiat 126p) and hidden basements. Boss: the Head of Security on the five-a-side pitch.'),
   spawn:{x:0,z:70,yaw:0},
-  starts:[{x:0,z:70,yaw:0,name:'Wjazd'},{x:-22,z:-8,yaw:PI/2,name:'Dziedziniec'},{x:50,z:-44,yaw:PI,name:'Przy Orliku'}],
+  starts:[{x:0,z:70,yaw:0,name:L('Wjazd','Entrance')},{x:-22,z:-8,yaw:PI/2,name:L('Dziedziniec','Courtyard')},{x:50,z:-44,yaw:PI,name:L('Przy Orliku','By the Pitch')}],
   menuCam:{r:62,y:30,look:[0,6,0]},
   track:'B',
   // Wrogowie: tabela klimatu 'blokowisko' (js/enemies/table.js) + pula bossów poziomu. Boss co 5 fal: Szef Ochrony -> Jednooki -> DJ.
@@ -55,18 +56,18 @@ const L={
   // Scenariusz fal: 1-2 gangsterzy z dziedzińca; 3-4 dresy spod trzepaków, bandyci z obrzynem; 5 BOSS Szef Ochrony (Orlik);
   // 6-9 pijacy i kamikadze z garaży; 10 BOSS Jednooki; 11+ snajperzy na dachach, kierowcy Maluchów, medyk; 15 BOSS DJ.
   waves:{
-    intro:'Godzina 22:40. Osiedle Słoneczne. Dresy pod trzepakiem, a Szef Ochrony pilnuje Orlika.',
+    intro:L('Godzina 22:40. Osiedle Słoneczne. Dresy pod trzepakiem, a Szef Ochrony pilnuje Orlika.','10:40 PM. Sunny Estate. Tracksuit thugs loiter by the carpet rack, and the Head of Security guards the pitch.'),
     plan:[{from:1,note:'gangsterzy z dziedzińca, bez limitu'},{from:3,note:'dresy spod trzepaków, bandyci z obrzynem'},
       {from:5,boss:'boss_szef_ochrony',note:'Szef Ochrony wchodzi od Orlika; osłony: płyty betonowe, beczki'},{from:6,note:'pijacy z garaży, kamikadze'},
       {from:10,boss:'boss_jednooki'},{from:11,note:'kierowcy Maluchów (parking), snajperzy, medycy'},{from:15,boss:'boss_dj'}],
     bossWave:5,bossArena:{x:49,z:-63,hw:22,hd:12,gates:[{x:26,z:-64},{x:38,z:-52},{x:72,z:-57}]},
   },
   // Ukończenie poziomu: pokonanie Szefa Ochrony (fala 5). Gra toczy się dalej (tryb bez końca), a nagroda jest raz na run.
-  win:{kind:'boss',boss:'boss_szef_ochrony',reward:{coins:300,keys:1},text:'BLOKOWISKO WYCZYSZCZONE!'},
-  secrets:[{id:'piwnica',name:'Piwnica Ziomka'},{id:'garaz13',name:'Garaż nr 13'},{id:'kotlownia',name:'Kotłownia'}],
+  win:{kind:'boss',boss:'boss_szef_ochrony',reward:{coins:300,keys:1},text:L('BLOKOWISKO WYCZYSZCZONE!','ESTATE CLEARED!')},
+  secrets:[{id:'piwnica',name:L('Piwnica Ziomka','Homie\'s Basement')},{id:'garaz13',name:L('Garaż nr 13','Garage No. 13')},{id:'kotlownia',name:L('Kotłownia','Boiler Room')}],
   build(){ buildBlokowisko(this) },
 };
-DS.levels.register(L);
+DS.levels.register(LV);
 
 function buildBlokowisko(level){
   /* ---- niebo, mgła, światło: wieczór ---- */
@@ -164,14 +165,14 @@ function buildBlokowisko(level){
   put('wiataSmietnikowa',{x:-53,z:74.8,rotY:PI,variant:'ceglana'});
   placeBarrels([{x:-76.2,z:62},{x:-76.2,z:63.1},{x:-75,z:62.5}]);          // skupisko 1: ślepa uliczka (ostrzał z daleka)
   // garaż 13 (sekret 2): za garażami, roleta E
-  const g13=room({x0:-77,x1:-67,z0:26,z1:35,h:3.1,wall:0x8a7d68,roof:0x4a4a48,light:0xffd9a0,door:{side:'s',c:-72,w:2.6,h:2.4,secret:true,label:'GARAŻ NR 13'}});
+  const g13=room({x0:-77,x1:-67,z0:26,z1:35,h:3.1,wall:0x8a7d68,roof:0x4a4a48,light:0xffd9a0,door:{side:'s',c:-72,w:2.6,h:2.4,secret:true,label:L('GARAŻ NR 13','GARAGE NO. 13')}});
   put('polonez',{x:-74.2,z:30,rotY:0,color:0x6a1a1a});
   put('crate',{x:-69,z:28.5,s:1.6});put('crate',{x:-70.7,z:28.5,s:1.6});put('crate',{x:-69.8,z:28.5,s:1.6,y:1.6});
   neon.place({text:'13',color:'#ff2a2a',bg:'#1a0606',w:2.2,h:1.6,x:-69,y:2.1,z:34.7,rotY:PI});
   put('crate',{x:-60,z:37.4,s:1.6});put('crate',{x:-61.7,z:37.4,s:1.6});put('barrier',{x:-62,z:30,w:4,d:.9});
 
   /* ---- błonia i piwnica (sekret 1) ---- */
-  const cel=room({x0:-58,x1:-45.6,z0:-9,z1:5,h:3.2,wall:0x8d8a80,roof:0x55524c,light:0xff9a6a,door:{side:'s',c:-52,w:2.2,h:2.3,secret:true,label:'WEJŚCIE DO PIWNICY'}});
+  const cel=room({x0:-58,x1:-45.6,z0:-9,z1:5,h:3.2,wall:0x8d8a80,roof:0x55524c,light:0xff9a6a,door:{side:'s',c:-52,w:2.2,h:2.3,secret:true,label:L('WEJŚCIE DO PIWNICY','BASEMENT ENTRANCE')}});
   neon.place({text:'PIWNICA',color:'#43f0ff',bg:'#06202a',w:3.2,h:1,x:-52,y:2.6,z:-8.4,rotY:0});
   put('crate',{x:-47.6,z:-7.5,s:1.6});put('crate',{x:-47.6,z:-5.8,s:1.6});put('crate',{x:-55,z:-6.5,s:1.6});
   healMachines([{kind:'station',x:-56.4,z:-1,rotY:PI/2}]);
@@ -223,7 +224,7 @@ function buildBlokowisko(level){
   car('zukA06',33,-47,PI/2,0x4f8a5b);car('passatB5',66,-47,PI/2,0x9aa0a8);
 
   /* ---- skwer wschodni, kotłownia z kominem (sekret 3) ---- */
-  const bo=room({x0:58,x1:72,z0:-16,z1:-4,h:6.4,wall:0x9c4a3a,roof:0x3d3a38,floor:0x3a3632,light:0xffb070,door:{side:'w',c:-10,w:2.2,h:2.8,secret:true,label:'WEJDŹ DO KOTŁOWNI',dir:-1}});
+  const bo=room({x0:58,x1:72,z0:-16,z1:-4,h:6.4,wall:0x9c4a3a,roof:0x3d3a38,floor:0x3a3632,light:0xffb070,door:{side:'w',c:-10,w:2.2,h:2.8,secret:true,label:L('WEJDŹ DO KOTŁOWNI','ENTER THE BOILER ROOM'),dir:-1}});
   addBox(3.2,3.6,3.2,67,0,-10,{color:0x6d7276},{hull:.03});addBox(5,.8,2,64,0,-7,{color:0x4a4e52});
   addBox(.5,3,.5,63,0,-5.5,{color:0x8a8e92},{collide:false});
   for(let i=0;i<6;i++){                                                                // komin 38 m, czerwono-białe pasy
@@ -253,19 +254,19 @@ function buildBlokowisko(level){
 
   /* ---- znajdźki (id stabilne!) ---- */
   placeCollectibles(level,[
-    {id:'bl-kaseta-1',type:'kaseta',x:21,z:-35,name:'Zenek: Biesiada na Blokowisku',hint:'zaułek za blokiem 12'},
-    {id:'bl-kaseta-2',type:'kaseta',x:-62,z:-54,name:'Bayer Full: Śpiewały Dzieci z Klatki',hint:'zaułek między wieżami'},
-    {id:'bl-kaseta-3',type:'kaseta',x:-50,z:-6.5,name:'Piękni i Młodzi: Piwnica Imprezowa',hint:'ukryta piwnica',secret:true},
-    {id:'bl-kaseta-4',type:'kaseta',x:68.5,z:-72.5,name:'Boys: Orlik Tonight',hint:'bramka Orlika'},
-    {id:'bl-lancuch-1',type:'lancuch',x:-76.8,z:59.2,name:'Złoty łańcuch z Garaży',value:80},
-    {id:'bl-lancuch-2',type:'lancuch',x:56,z:58,name:'Łańcuch spod Poloneza',value:80},
-    {id:'bl-lancuch-3',type:'lancuch',x:-23,z:-24.5,name:'Łańcuch z piaskownicy',value:60},
-    {id:'bl-lancuch-4',type:'lancuch',x:70,z:-7,name:'Łańcuch z kotłowni',value:120,secret:true},
-    {id:'bl-klucz-1',type:'klucz',x:-70.5,z:31.5,name:'Klucz do skrzynki: garaż 13',secret:true},
-    {id:'bl-klucz-2',type:'klucz',x:61,z:-12,name:'Klucz do skrzynki: kotłownia',secret:true},
-    {id:'bl-plakat-1',type:'plakat',x:-1,z:-75.2,name:'Plakat: Zenek Live (bilet 5 zł)',hint:'tyły pawilonu',value:30},
-    {id:'bl-plakat-2',type:'plakat',x:31.6,z:70,name:'Plakat: Maluch, mały ale wariat',hint:'parking',value:30},
-    {id:'bl-plakat-3',type:'plakat',x:-58,z:-20,name:'Plakat: Wybory 4 czerwca 1989',hint:'pod wieżą 2',value:30},
+    {id:'bl-kaseta-1',type:'kaseta',x:21,z:-35,name:L('Zenek: Biesiada na Blokowisku','Mietek Boombox: Banquet on the Block'),hint:L('zaułek za blokiem 12','alley behind block 12')},
+    {id:'bl-kaseta-2',type:'kaseta',x:-62,z:-54,name:L('Bayer Full: Śpiewały Dzieci z Klatki','Disco Kiełbasa: The Stairwell Kids Were Singing'),hint:L('zaułek między wieżami','alley between the towers')},
+    {id:'bl-kaseta-3',type:'kaseta',x:-50,z:-6.5,name:L('Piękni i Młodzi: Piwnica Imprezowa','Young & Greasy: Basement Rave'),hint:L('ukryta piwnica','hidden basement'),secret:true},
+    {id:'bl-kaseta-4',type:'kaseta',x:68.5,z:-72.5,name:L('Boys: Orlik Tonight','Tracksuit Five: Pitch Party Tonight'),hint:L('bramka Orlika','the pitch goalpost')},
+    {id:'bl-lancuch-1',type:'lancuch',x:-76.8,z:59.2,name:L('Złoty łańcuch z Garaży','Gold chain from the garages'),value:80},
+    {id:'bl-lancuch-2',type:'lancuch',x:56,z:58,name:L('Łańcuch spod Poloneza','Chain from under the Polonez'),value:80},
+    {id:'bl-lancuch-3',type:'lancuch',x:-23,z:-24.5,name:L('Łańcuch z piaskownicy','Sandbox chain'),value:60},
+    {id:'bl-lancuch-4',type:'lancuch',x:70,z:-7,name:L('Łańcuch z kotłowni','Boiler-room chain'),value:120,secret:true},
+    {id:'bl-klucz-1',type:'klucz',x:-70.5,z:31.5,name:L('Klucz do skrzynki: garaż 13','Crate key: garage 13'),secret:true},
+    {id:'bl-klucz-2',type:'klucz',x:61,z:-12,name:L('Klucz do skrzynki: kotłownia','Crate key: boiler room'),secret:true},
+    {id:'bl-plakat-1',type:'plakat',x:-1,z:-75.2,name:L('Plakat: Zenek Live (bilet 5 zł)','Poster: Mietek Boombox Live (tickets 5 zł)'),hint:L('tyły pawilonu','behind the corner shop'),value:30},
+    {id:'bl-plakat-2',type:'plakat',x:31.6,z:70,name:L('Plakat: Maluch, mały ale wariat','Poster: Maluch, small but psycho'),hint:L('parking','car park'),value:30},
+    {id:'bl-plakat-3',type:'plakat',x:-58,z:-20,name:L('Plakat: Wybory 4 czerwca 1989','Poster: Elections, 4 June 1989'),hint:L('pod wieżą 2','under tower 2'),value:30},
   ]);
 
   /* ---- nawigacja AI (graf waypointów + osłony) ---- */
@@ -289,18 +290,18 @@ const here=()=>world.level&&world.level.id===ID;
 DS.bus.on('levelLoad',e=>{if(e&&e.level===ID)mergeIntoZones()});         // kafelki 16 m -> strefy (budżet draw calli)
 DS.bus.on('levelStart',()=>{
   if(!here())return;
-  if(L.track&&opt.track==='A')setTrack(L.track,false);                               // domyślny utwór -> "Ołowiane Wesele" (nie nadpisuje wyboru gracza)
+  if(LV.track&&opt.track==='A')setTrack(LV.track,false);                               // domyślny utwór -> "Ołowiane Wesele" (nie nadpisuje wyboru gracza)
   startAmbient();
-  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(L);announce('BLOKOWISKO','Znajdźki '+st.found+'/'+st.total+'  |  3 sekrety')}},1800)}
+  const G=S.G;if(G){G.levelWon=false;setTimeout(()=>{if(S.G===G&&here()){const st=collectStats(LV);announce(L('BLOKOWISKO','COMMIE-BLOCK ESTATE'),L('Znajdźki ','Collectibles ')+st.found+'/'+st.total+L('  |  3 sekrety','  |  3 secrets'))}},1800)}
 });
 DS.bus.on('levelEnd',stopAmbient);
 DS.bus.on('levelUnload',stopAmbient);
 const winOnKill=({enemy:e})=>{
-  const G=S.G;if(!G||!here()||!e||e.type!==L.win.boss||G.levelWon)return;
+  const G=S.G;if(!G||!here()||!e||e.type!==LV.win.boss||G.levelWon)return;
   G.levelWon=true;
-  save.coins+=L.win.reward.coins;save.keys+=L.win.reward.keys;G.earned+=L.win.reward.coins;G.keysFound+=L.win.reward.keys;
+  save.coins+=LV.win.reward.coins;save.keys+=LV.win.reward.keys;G.earned+=LV.win.reward.coins;G.keysFound+=LV.win.reward.keys;
   save.levelsDone=save.levelsDone||{};save.levelsDone[ID]=true;persist();
-  setTimeout(()=>{if(S.G===G)announce(L.win.text,'+'+L.win.reward.coins+' ZD i klucz. Gra toczy się dalej.')},1500);
+  setTimeout(()=>{if(S.G===G)announce(LV.win.text,'+'+LV.win.reward.coins+L(' ZD i klucz. Gra toczy się dalej.',' ZD and a key. The party goes on.'))},1500);
   DS.bus.emit('levelComplete',{level:ID,wave:G.wave});
 };
 DS.bus.on('kill',winOnKill);DS.bus.on('netKill',winOnKill);   // co-op: boss zabity przez zdalnego gracza też kończy poziom (u hosta)
