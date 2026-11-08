@@ -29,7 +29,7 @@ const T=[
 const MAP=new Map(T);
 export const staticT=s=>MAP.get(s);
 
-if(lang==='en'){
+if(lang==='en'){document.title='Disco Shooting Gallery';
   const w=document.createTreeWalker(document.getElementById('app'),NodeFilter.SHOW_TEXT);
   const nodes=[];while(w.nextNode())nodes.push(w.currentNode);
   for(const n of nodes){

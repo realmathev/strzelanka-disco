@@ -20,7 +20,7 @@ const topbar=(title,withKeys)=>h('div',{class:'topbar'},h('h2',null,title),
   const btn=(label,attrs,cls)=>h('button',Object.assign({class:'btn'+(cls?' '+cls:''),type:'button'},attrs),label);
   s.append(h('div',{class:'menu'},
     h('div',{class:'title'},
-      h('h1',{id:'menuTitle'},'Disco',h('em',null,'Strzelnica')),
+      h('h1',{id:'menuTitle'},'Disco',h('em',null,L('Strzelnica','Shooting Gallery'))),
       h('div',{class:'caption'},L('Godzina 23:14. Remiza w Dolnym Zadupiu. Gang Jednorękiego Bandyty przejął kasyno, a DJ nie przestaje grać. Masz pistolet i rytm.','11:14 PM. The fire station in Dolne Zadupie (Lower Nowheresville). The One-Armed Bandit gang has taken over the casino, and the DJ will not stop playing. You have a pistol and a beat.')),
       h('div',{class:'keysHelp',id:'keysHelp'}),
       h('div',{class:'hsTop3',id:'hsTop3',hidden:true,'aria-label':L('Najlepsi gracze','Top players')}),
