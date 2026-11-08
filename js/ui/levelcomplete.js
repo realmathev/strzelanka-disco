@@ -11,16 +11,17 @@ import {collectStats} from '../world/levels/common.js';
 import {startGame,toMenuMode,resume} from '../game/flow.js';
 import {show} from './screens.js';
 import {h,clear} from './dom.js';
+import {L as T} from '../core/i18n.js';
 
 const SHOW_DELAY=2200;     // po napisie poziomu ("WYCZYSZCZONE!"), żeby nie przykryć animacji zwycięstwa
 let cur=null;
 
 const stats=h('div',{class:'stats',id:'lcStats'});
-const title=h('h2',{id:'lcT'},'Poziom ukończony!');
+const title=h('h2',{id:'lcT'},T('Poziom ukończony!','Level complete!'));
 const cap=h('div',{class:'caption',id:'lcCap',style:'text-transform:none'});
-const bKeep=h('button',{class:'btn paper',id:'lcKeep',type:'button'},'Graj dalej');
-const bNext=h('button',{class:'btn red',id:'lcNext',type:'button','data-autofocus':''},'Dalej');
-const bMenu=h('button',{class:'btn paper',id:'lcMenu',type:'button'},'Menu');
+const bKeep=h('button',{class:'btn paper',id:'lcKeep',type:'button'},T('Graj dalej','Keep playing'));
+const bNext=h('button',{class:'btn red',id:'lcNext',type:'button','data-autofocus':''},T('Dalej','Next'));
+const bMenu=h('button',{class:'btn paper',id:'lcMenu',type:'button'},T('Menu','Menu'));
 const scr=h('section',{class:'screen dim',id:'scrLevelDone',hidden:true},
   h('div',{class:'panel card',role:'dialog','aria-modal':'true','aria-labelledby':'lcT'},title,cap,stats,h('div',{class:'row'},bNext,bKeep,bMenu)));
 (document.getElementById('scrOver').parentNode).append(scr);
@@ -32,15 +33,15 @@ function open(e){
   const G=S.G;if(!G||(G.dead&&!DS.net.active())||S.mode!=='game')return;   // co-op: ekran także u leżącego
   const L=DS.levels.get(e.level)||{},w=L.win||{},r=w.reward||{},st=collectStats(L);
   cur={id:e.level,next:nextLevel(e.level)};
-  title.textContent=w.text||'Poziom ukończony!';
-  cap.textContent=(L.name||e.level)+' · gra może toczyć się dalej';
-  const rw=[r.coins?'+'+r.coins+' ZD':'',r.keys?'+'+r.keys+(r.keys===1?' klucz':' klucze'):''].filter(Boolean).join(', ')||'brak';
+  title.textContent=w.text||T('Poziom ukończony!','Level complete!');
+  cap.textContent=(L.name||e.level)+T(' · gra może toczyć się dalej',' · the game can go on');
+  const rw=[r.coins?'+'+r.coins+' ZD':'',r.keys?'+'+r.keys+' '+T.n(r.keys,{pl:['klucz','klucze','kluczy'],en:['key','keys']}):''].filter(Boolean).join(', ')||T('brak','none');
   clear(stats);
-  for(const [k,v] of [['Fala',e.wave],['Zabici',G.kills],['Znajdźki',st.found+' / '+st.total],['Nagroda',rw]])stats.append(h('span',null,k),h('span',null,String(v)));
-  bNext.hidden=!cur.next;bNext.textContent=cur.next?'Dalej: '+(cur.next.name||cur.next.id):'Dalej';bNext.disabled=false;
+  for(const [k,v] of [[T('Fala','Wave'),e.wave],[T('Zabici','Kills'),G.kills],[T('Znajdźki','Collectibles'),st.found+' / '+st.total],[T('Nagroda','Reward'),rw]])stats.append(h('span',null,k),h('span',null,String(v)));
+  bNext.hidden=!cur.next;bNext.textContent=cur.next?T('Dalej: ','Next: ')+(cur.next.name||cur.next.id):T('Dalej','Next');bNext.disabled=false;
   // Co-op: świat się nie zatrzymuje (G.uiPause), „Dalej” klika tylko host, klient czeka.
   const coop=DS.net.active(),client=coop&&DS.net.isClient();
-  if(client&&cur.next){bNext.disabled=true;bNext.textContent='Czekamy na hosta…'}
+  if(client&&cur.next){bNext.disabled=true;bNext.textContent=T('Czekamy na hosta…','Waiting for the host…')}
   if(coop)G.uiPause=true;else G.paused=true;
   S.mouseDown=false;try{document.exitPointerLock&&document.exitPointerLock()}catch(_){}
   show('scrLevelDone');DS.bus.emit('pause',true);sfx('win');

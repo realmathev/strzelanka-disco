@@ -6,6 +6,7 @@ import {disposeObject} from '../render/materials.js';
 import {humanModel,assemble,humanBase,SKIN} from '../enemies/kit.js';
 import {COLORS,COLOR_CSS,colorOf,nameOf} from './session.js';
 import {DELAY} from './interp.js';
+import {L} from '../core/i18n.js';
 
 const tmp=new Float32Array(5);
 const FLASH_GEO=new THREE.SphereGeometry(.07,6,4);FLASH_GEO.userData.shared=true;
@@ -25,7 +26,7 @@ function avatarModel(ci){
 function nameTag(text,css,down){
   const c=document.createElement('canvas');c.width=256;c.height=64;
   const g=c.getContext('2d');g.font='bold 34px Bangers, "Barlow Condensed", sans-serif';g.textAlign='center';g.textBaseline='middle';
-  const label=String(text).slice(0,18)+(down?' · LEŻY':'');
+  const label=String(text).slice(0,18)+(down?L(' · LEŻY',' · DOWN'):'');
   g.lineWidth=7;g.strokeStyle='#15110e';g.strokeText(label,128,32);g.fillStyle=down?'#ff6b5a':css;g.fillText(label,128,32);
   const tex=new THREE.CanvasTexture(c);tex.ownedByLevel=true;            // disposeObject zwolni teksturę razem z materiałem
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}));

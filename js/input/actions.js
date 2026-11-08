@@ -7,16 +7,17 @@ import {DS} from '../core/ds.js';
 import {opt,persistOpt} from '../core/save.js';
 import './optdefs.js';
 import {codeLabel} from './labels.js';
+import {L} from '../core/i18n.js';
 import {SLOT_NAMES,SLOT_COUNT} from '../weapons/slots.js';
 
 const I=DS.input;
 
 export const GROUPS=[
-  {id:'move',label:'Ruch'},
-  {id:'combat',label:'Walka'},
-  {id:'weapons',label:'Wybór broni'},
-  {id:'misc',label:'Pozostałe'},
-  {id:'coop',label:'Gra ze znajomymi (zawołania)'},
+  {id:'move',label:L('Ruch','Movement')},
+  {id:'combat',label:L('Walka','Combat')},
+  {id:'weapons',label:L('Wybór broni','Weapon selection')},
+  {id:'misc',label:L('Pozostałe','Other')},
+  {id:'coop',label:L('Gra ze znajomymi (zawołania)','Playing with friends (calls)')},
 ];
 /** Kody, których nie wolno przypisać (Esc = anulowanie/pauza, klawisze systemowe przeglądarki). */
 export const RESERVED=['Escape','F1','F5','F11','F12','MetaLeft','MetaRight','ContextMenu'];
@@ -24,31 +25,31 @@ export const RESERVED=['Escape','F1','F5','F11','F12','MetaLeft','MetaRight','Co
 export const FIXED_FIRST={pause:'Escape'};
 
 const A=[
-  {id:'moveForward',label:'Do przodu',group:'move',codes:['KeyW','ArrowUp']},
-  {id:'moveBack',label:'Do tyłu',group:'move',codes:['KeyS','ArrowDown']},
-  {id:'moveLeft',label:'W lewo',group:'move',codes:['KeyA','ArrowLeft']},
-  {id:'moveRight',label:'W prawo',group:'move',codes:['KeyD','ArrowRight']},
+  {id:'moveForward',label:L('Do przodu','Forward'),group:'move',codes:['KeyW','ArrowUp']},
+  {id:'moveBack',label:L('Do tyłu','Backward'),group:'move',codes:['KeyS','ArrowDown']},
+  {id:'moveLeft',label:L('W lewo','Left'),group:'move',codes:['KeyA','ArrowLeft']},
+  {id:'moveRight',label:L('W prawo','Right'),group:'move',codes:['KeyD','ArrowRight']},
   {id:'sprint',label:'Sprint',group:'move',codes:['ShiftLeft','ShiftRight'],mode:'sprintMode'},
-  {id:'jump',label:'Skok',group:'move',codes:['Space']},
-  {id:'crouch',label:'Kucanie',group:'move',codes:['ControlLeft','KeyC'],mode:'crouchMode'},
-  {id:'fire',label:'Strzał',group:'combat',codes:['Mouse0']},
-  {id:'ads',label:'Celowanie (ADS)',group:'combat',codes:['Mouse2'],mode:'adsMode'},
-  {id:'reload',label:'Przeładuj',group:'combat',codes:['KeyR']},
-  {id:'melee',label:'Cios wręcz',group:'combat',codes:['KeyV']},
-  {id:'weaponNext',label:'Następna broń',group:'combat',codes:['WheelDown']},
-  {id:'weaponPrev',label:'Poprzednia broń',group:'combat',codes:['WheelUp']},
+  {id:'jump',label:L('Skok','Jump'),group:'move',codes:['Space']},
+  {id:'crouch',label:L('Kucanie','Crouch'),group:'move',codes:['ControlLeft','KeyC'],mode:'crouchMode'},
+  {id:'fire',label:L('Strzał','Fire'),group:'combat',codes:['Mouse0']},
+  {id:'ads',label:L('Celowanie (ADS)','Aim (ADS)'),group:'combat',codes:['Mouse2'],mode:'adsMode'},
+  {id:'reload',label:L('Przeładuj','Reload'),group:'combat',codes:['KeyR']},
+  {id:'melee',label:L('Cios wręcz','Melee'),group:'combat',codes:['KeyV']},
+  {id:'weaponNext',label:L('Następna broń','Next weapon'),group:'combat',codes:['WheelDown']},
+  {id:'weaponPrev',label:L('Poprzednia broń','Previous weapon'),group:'combat',codes:['WheelUp']},
 ];
 // Klawisze 1-6 = SLOT broni (pistolety, PM, strzelby, karabiny, wyborowe, LKM); ponowne naciśnięcie przełącza w obrębie slotu.
-for(let i=1;i<=SLOT_COUNT;i++)A.push({id:'weapon'+i,label:'Slot '+i+': '+SLOT_NAMES[i-1],group:'weapons',codes:['Digit'+i]});
+for(let i=1;i<=SLOT_COUNT;i++)A.push({id:'weapon'+i,label:L('Slot ','Slot ')+i+': '+SLOT_NAMES[i-1],group:'weapons',codes:['Digit'+i]});
 A.push(
-  {id:'use',label:'Użyj / interakcja',group:'misc',codes:['KeyE']},
-  {id:'medkit',label:'Apteczka (leczenie)',group:'misc',codes:['KeyH']},
-  {id:'perkMenu',label:'Menu perków',group:'misc',codes:['Tab']},
-  {id:'pause',label:'Pauza',group:'misc',codes:['Escape','KeyP']},
+  {id:'use',label:L('Użyj / interakcja','Use / interact'),group:'misc',codes:['KeyE']},
+  {id:'medkit',label:L('Apteczka (leczenie)','Medkit (heal)'),group:'misc',codes:['KeyH']},
+  {id:'perkMenu',label:L('Menu perków','Perk menu'),group:'misc',codes:['Tab']},
+  {id:'pause',label:L('Pauza','Pause'),group:'misc',codes:['Escape','KeyP']},
   // co-op: gotowe zawołania (bez wolnego tekstu, reguła JuicyJuicy); js/net/hud.js
-  {id:'callHere',label:'Zawołanie: „Tutaj!”',group:'coop',codes:['KeyZ']},
-  {id:'callHelp',label:'Zawołanie: „Pomocy!”',group:'coop',codes:['KeyX']},
-  {id:'callBoss',label:'Zawołanie: „Uwaga, boss!”',group:'coop',codes:['KeyB']},
+  {id:'callHere',label:L('Zawołanie: „Tutaj!”','Call: “Over here!”'),group:'coop',codes:['KeyZ']},
+  {id:'callHelp',label:L('Zawołanie: „Pomocy!”','Call: “Help!”'),group:'coop',codes:['KeyX']},
+  {id:'callBoss',label:L('Zawołanie: „Uwaga, boss!”','Call: “Watch out, boss!”'),group:'coop',codes:['KeyB']},
 );
 A.forEach(a=>I.register(a));
 

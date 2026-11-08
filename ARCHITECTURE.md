@@ -414,3 +414,12 @@ Wszystkie liczby feelingu (sprężyny odrzutu, sway, ADS, błysk, dźwięk) są 
 - Neony: migotanie to przygaszenie koloru (`animateWorld`), nigdy `visible=false`. Szyldy mają `polygonOffset`.
 - Szyldy rysują tekst fontem Bangers na canvasie; `main.js` czeka na font (max 1,5 s) przed `loadLevel`.
 - `hurt(d)` (`game/combat.js`) najpierw przepuszcza obrażenia przez `absorbDamage` (pancerz, `pickups/armor.js`), dopiero potem odejmuje HP.
+
+## Języki (i18n) - interfejs
+
+- `js/core/i18n.js`: `L('polski','English')`, `L.n(n,{pl:[...],en:[...]})`, `setLang(code)` (zapis `opt.lang` w `opt.v1` + przeładowanie). Język ustala się raz przy starcie; polski tekst w kodzie zostaje dokładnie taki, jaki był.
+- Liczby i daty: `js/core/fmt.js` (`fmtNum`, `fmtDate`, locale en-US / pl-PL). Nie używaj `toLocaleString('pl-PL')` wprost.
+- Statyczne teksty z `index.html` podmienia po angielsku `js/ui/static.js` (słownik polski -> angielski, importowany pierwszy w `ui/screens.js`); nowy statyczny tekst w HTML dopisz tam. Ekrany budowane w JS używają `L()` bezpośrednio.
+- Przełącznik `EN | PL`: `js/ui/lang.js` (`langSwitch()`), w menu głównym i w Opcje -> Gra.
+- W plikach, w których zmienna `L` oznacza coś innego (poziom), importuj `{L as Tr}`.
+- Testy: `cdp-run.js` domyślnie uruchamia grę po polsku (`--lang=en` po angielsku). `tests/i18n.js` skanuje DOM pod kątem resztek polskiego (tryb EN), `node tests/i18n-all.js 4204 --gpu` odpala EN 375/768/1280 + PL + przepełnienie.

@@ -6,6 +6,8 @@ import {save,persist} from '../core/save.js';
 import {S} from '../core/state.js';
 import {DS} from '../core/ds.js';
 import {h,clear} from './dom.js';
+import {L} from '../core/i18n.js';
+import {fmtNum} from '../core/fmt.js';
 
 const OPTS={order:'high',format:'points'};
 const scores=()=>window.juicy&&window.juicy.scores;
@@ -15,7 +17,7 @@ export function runScore(G){
   if(!G)return 0;
   return Math.max(0,Math.floor((G.wave|0)*1000+(G.kills|0)*10+(G.heads|0)*5));
 }
-export const fmt=n=>Number(n||0).toLocaleString('pl-PL');
+export const fmt=fmtNum;
 
 /** Wysyła wynik do JuicyJuicy. Zwraca obietnicę {cloud,best,rank,improved} albo null (błąd/brak snippetu); nigdy nie odrzuca. */
 export function sendScore(score){
@@ -60,39 +62,39 @@ setTimeout(()=>{syncOldBest().catch(()=>{})},400);
 
 /* ---- tablica: pobieranie i rysowanie ---- */
 let board=null,boardState='idle';   // idle|loading|ok|error
-const nameOf=(e,cloud)=>(!cloud&&e.me&&e.name==='You')?'Ty':String(e.name==null?'':e.name);
+const nameOf=(e,cloud)=>(!cloud&&e.me&&e.name==='You')?L('Ty','You'):String(e.name==null?'':e.name);
 
 function row(e,cloud){
   return h('tr',{class:'hsRow'+(e.me?' me':'')},
     h('td',{class:'hsRank'},'#'+e.rank),
-    h('td',{class:'hsName'},nameOf(e,cloud),e.me&&cloud?h('em',null,' (Ty)'):null),   // textContent przez węzeł tekstowy, nigdy innerHTML
+    h('td',{class:'hsName'},nameOf(e,cloud),e.me&&cloud?h('em',null,L(' (Ty)',' (you)')):null),   // textContent przez węzeł tekstowy, nigdy innerHTML
     h('td',{class:'hsScore'},fmt(e.score)));
 }
 
 /** Rysuje zawartość ekranu Ranking z danych `b` (wynik top()) lub stanu. */
 export function renderBoard(box,b,state,limit){
   clear(box);
-  if(state==='loading'){box.append(h('p',{class:'hsMsg',role:'status'},'Ładowanie rankingu…'));return}
-  if(state==='error'){box.append(h('p',{class:'hsMsg err',role:'alert'},'Nie udało się pobrać rankingu. Sprawdź połączenie i spróbuj ponownie.'),
-    h('button',{class:'btn paper sm',type:'button',onclick:()=>renderRanking()},'Spróbuj ponownie'));return}
+  if(state==='loading'){box.append(h('p',{class:'hsMsg',role:'status'},L('Ładowanie rankingu…','Loading leaderboard…')));return}
+  if(state==='error'){box.append(h('p',{class:'hsMsg err',role:'alert'},L('Nie udało się pobrać rankingu. Sprawdź połączenie i spróbuj ponownie.','Could not load the leaderboard. Check your connection and try again.')),
+    h('button',{class:'btn paper sm',type:'button',onclick:()=>renderRanking()},L('Spróbuj ponownie','Try again')));return}
   if(!b)return;
   const cloud=!!b.cloud;
   if(cloud&&b.signedIn===false){
-    box.append(h('p',{class:'hsMsg'},'Zaloguj się na JuicyJuicy, żeby trafić do rankingu.'));
+    box.append(h('p',{class:'hsMsg'},L('Zaloguj się na JuicyJuicy, żeby trafić do rankingu.','Sign in to JuicyJuicy to get on the leaderboard.')));
   }
   if(!cloud){
-    box.append(h('p',{class:'hsMsg'},'Zaloguj się na JuicyJuicy, żeby trafić do rankingu.'),
-      h('p',{class:'hsLocal'},'Twój rekord lokalny: ',h('b',null,fmt(Math.max(save.bestScore|0,b.me?b.me.score:0))+' pkt'),' · rekord fali: ',h('b',null,String(save.best|0))));
+    box.append(h('p',{class:'hsMsg'},L('Zaloguj się na JuicyJuicy, żeby trafić do rankingu.','Sign in to JuicyJuicy to get on the leaderboard.')),
+      h('p',{class:'hsLocal'},L('Twój rekord lokalny: ','Your local record: '),h('b',null,fmt(Math.max(save.bestScore|0,b.me?b.me.score:0))+L(' pkt',' pts')),L(' · rekord fali: ',' · best wave: '),h('b',null,String(save.best|0))));
   }
   const list=(b.entries||[]).slice(0,limit||10);
-  if(!list.length){box.append(h('p',{class:'hsMsg'},'Brak wyników. Zagraj i zostań pierwszy na tablicy.'));return}
+  if(!list.length){box.append(h('p',{class:'hsMsg'},L('Brak wyników. Zagraj i zostań pierwszy na tablicy.','No scores yet. Play and be the first on the board.')));return}
   const body=h('tbody',null,list.map(e=>row(e,cloud)));
   box.append(h('table',{class:'hsTable'},
-    h('caption',{class:'sr'},'Najlepsze wyniki'),
-    h('thead',null,h('tr',null,h('th',{scope:'col'},'Miejsce'),h('th',{scope:'col'},'Gracz'),h('th',{scope:'col'},'Punkty'))),body));
+    h('caption',{class:'sr'},L('Najlepsze wyniki','Top scores')),
+    h('thead',null,h('tr',null,h('th',{scope:'col'},L('Miejsce','Rank')),h('th',{scope:'col'},L('Gracz','Player')),h('th',{scope:'col'},L('Punkty','Points')))),body));
   // własna pozycja poza top 10
   if(b.me&&!list.some(e=>e.me)){
-    box.append(h('div',{class:'hsMe'},'Twoja pozycja: ',h('b',null,'#'+b.me.rank),' · ',h('b',null,fmt(b.me.score)+' pkt')));
+    box.append(h('div',{class:'hsMe'},L('Twoja pozycja: ','Your rank: '),h('b',null,'#'+b.me.rank),' · ',h('b',null,fmt(b.me.score)+L(' pkt',' pts'))));
   }
 }
 
@@ -136,6 +138,6 @@ export function fillOver(G){
   p.then(r=>{
     if(!r||S.G!==G||!r.improved)return;
     box.hidden=false;
-    box.append(h('b',null,'NOWY REKORD!'),r.cloud&&r.rank?h('span',null,' #'+r.rank):null);
+    box.append(h('b',null,L('NOWY REKORD!','NEW RECORD!')),r.cloud&&r.rank?h('span',null,' #'+r.rank):null);
   });
 }

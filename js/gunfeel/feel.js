@@ -7,6 +7,7 @@
 // Bazowe G.recoil/kick z weapons/viewmodel.js i losowy wstrząs z player.js są przez to zastąpione (shake czytany z G.shake).
 // DS.player.camOffset i vmOffset nadal są dodawane (kontrakt ARCHITECTURE.md).
 import {opt} from '../core/save.js';
+import {L} from '../core/i18n.js';
 import {S} from '../core/state.js';
 import {DS} from '../core/ds.js';
 import {camera} from '../render/renderer.js';
@@ -118,7 +119,7 @@ function impacts(e,W,c,G){
 }
 
 /* ───────── trafienie, zabicie ───────── */
-const ONO=['PAC!','CHLAST!','ŁUP!','BUCH!','PLASK!'],ONO_H=['TRACH!','CHRUP!','BAM!'];
+const ONO=[L('PAC!','POW!'),L('CHLAST!','WHACK!'),L('ŁUP!','THUD!'),L('BUCH!','BOOM!'),L('PLASK!','SPLAT!')],ONO_H=[L('TRACH!','CRACK!'),L('CHRUP!','CRUNCH!'),'BAM!'];
 function onHit(e){
   const G=S.G;if(!G||!e||!e.point)return;G.hitT=0;   // stary znacznik z comicfx: pokazuje go już celownik HUD
   v1.subVectors(e.point,camera.position);const d=v1.length();v1.multiplyScalar(1/(d||1));

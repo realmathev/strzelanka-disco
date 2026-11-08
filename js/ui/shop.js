@@ -4,8 +4,9 @@ import {save,persist} from '../core/save.js';
 import {DS} from '../core/ds.js';
 import {sfx} from '../audio/sfx.js';
 import {weaponsBySlot,weaponKeyHint} from '../weapons/slots.js';
+import {L} from '../core/i18n.js';
 export const PORTRAITS={
-heniek:`<svg viewBox="0 0 200 230" role="img" aria-label="Pan Heniek"><g stroke="#15110e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+heniek:`<svg viewBox="0 0 200 230" role="img" aria-label="${L('Pan Heniek','Mr. Heniek')}"><g stroke="#15110e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
 <path d="M14 232 C18 186 58 168 100 168 C142 168 182 186 186 232Z" fill="#e7a97f"/><path d="M50 232 L58 176 C80 186 120 186 142 176 L150 232Z" fill="#f5f2ea"/>
 <path d="M66 178 Q100 214 134 178" fill="none" stroke="#e3a91a" stroke-width="7"/><path d="M66 178 Q100 214 134 178" fill="none" stroke-width="2"/>
 <rect x="82" y="146" width="36" height="32" fill="#e7a97f"/>
@@ -30,7 +31,7 @@ zdzichu:`<svg viewBox="0 0 200 230" role="img" aria-label="Zdzichu Spluwa"><g st
 <path d="M100 104 C92 118 92 126 102 128" fill="none"/>
 <path d="M80 142 Q100 136 120 142" fill="none"/><path d="M118 140 L150 130" stroke="#d9b06a" stroke-width="4"/>
 <g fill="#15110e" stroke="none"><circle cx="76" cy="134" r="1.6"/><circle cx="84" cy="140" r="1.6"/><circle cx="70" cy="128" r="1.6"/><circle cx="126" cy="132" r="1.6"/><circle cx="132" cy="126" r="1.6"/><circle cx="96" cy="148" r="1.6"/><circle cx="106" cy="150" r="1.6"/></g></g></svg>`,
-halina:`<svg viewBox="0 0 200 230" role="img" aria-label="Siostra Halina"><g stroke="#15110e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+halina:`<svg viewBox="0 0 200 230" role="img" aria-label="${L('Siostra Halina','Sister Halina')}"><g stroke="#15110e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
 <path d="M14 232 C20 188 60 172 100 172 C140 172 180 188 186 232Z" fill="#f6f3ec"/><path d="M76 176 L100 200 L124 176" fill="none" stroke="#d3242a" stroke-width="7"/>
 <rect x="86" y="150" width="28" height="28" fill="#f0c4a2"/>
 <path d="M44 100 C36 130 46 150 60 156 L64 110Z" fill="#e8c35a"/><path d="M156 100 C164 130 154 150 140 156 L136 110Z" fill="#e8c35a"/>
@@ -46,19 +47,19 @@ halina:`<svg viewBox="0 0 200 230" role="img" aria-label="Siostra Halina"><g str
 <path d="M100 108 C96 118 96 122 102 124" fill="none"/>
 <path d="M86 136 Q100 128 114 136 Q100 148 86 136Z" fill="#d3242a"/></g></svg>`};
 export const NPCS={
-  heniek:{name:'Pan Heniek',role:'Sklep ogólnospożywczo-wojenny',say:['No co, kolego? Klucze, kamizelki, wszystko po kosztach. Prawie.','Klucz to inwestycja. Ja tak mówię każdemu.','Gotówka, karta, ZD. Biorę tylko ZD.','Jak skrzynka da Kulę Disco, to stawiasz piwo.'],
+  heniek:{name:L('Pan Heniek','Mr. Heniek'),role:L('Sklep ogólnospożywczo-wojenny','General grocery-and-war store'),say:[L('No co, kolego? Klucze, kamizelki, wszystko po kosztach. Prawie.','Well, buddy? Keys, vests, everything at cost. Almost.'),L('Klucz to inwestycja. Ja tak mówię każdemu.','A key is an investment. I tell everyone that.'),L('Gotówka, karta, ZD. Biorę tylko ZD.','Cash, card, ZD. I only take ZD.'),L('Jak skrzynka da Kulę Disco, to stawiasz piwo.','If a crate gives you the Disco Ball, you\'re buying the beer.')],
     items:()=>[
-      {id:'key1',name:'Klucz do skrzyni',desc:'Otwiera Skrzynię Remizową.',price:150,ok:()=>true,buy:()=>{save.keys++}},
-      {id:'key5',name:'Pęk 5 kluczy',desc:'Taniej o 100 ZD niż pojedynczo.',price:650,ok:()=>true,buy:()=>{save.keys+=5}},
-      {id:'hp',name:`Kamizelka z bazaru (poz. ${save.hpLvl}/4)`,desc:'+25 maks. zdrowia na każdym poziomie.',price:250*(save.hpLvl+1),ok:()=>save.hpLvl<4,buy:()=>{save.hpLvl++}},
-      {id:'dmg',name:`Ostra amunicja (poz. ${save.dmgLvl}/5)`,desc:'+10% obrażeń wszystkich broni.',price:300*(save.dmgLvl+1),ok:()=>save.dmgLvl<5,buy:()=>{save.dmgLvl++}},
+      {id:'key1',name:L('Klucz do skrzyni','Crate key'),desc:L('Otwiera Skrzynię Remizową.','Opens a Fire Station Crate.'),price:150,ok:()=>true,buy:()=>{save.keys++}},
+      {id:'key5',name:L('Pęk 5 kluczy','Bunch of 5 keys'),desc:L('Taniej o 100 ZD niż pojedynczo.','100 ZD cheaper than buying them one by one.'),price:650,ok:()=>true,buy:()=>{save.keys+=5}},
+      {id:'hp',name:L(`Kamizelka z bazaru (poz. ${save.hpLvl}/4)`,`Bazaar vest (lvl ${save.hpLvl}/4)`),desc:L('+25 maks. zdrowia na każdym poziomie.','+25 max health per level.'),price:250*(save.hpLvl+1),ok:()=>save.hpLvl<4,buy:()=>{save.hpLvl++}},
+      {id:'dmg',name:L(`Ostra amunicja (poz. ${save.dmgLvl}/5)`,`Live rounds (lvl ${save.dmgLvl}/5)`),desc:L('+10% obrażeń wszystkich broni.','+10% damage on all weapons.'),price:300*(save.dmgLvl+1),ok:()=>save.dmgLvl<5,buy:()=>{save.dmgLvl++}},
     ]},
-  zdzichu:{name:'Zdzichu Spluwa',role:'Handlarz bronią spod lady',say:['Te klamki są z pewnego źródła. Nie pytaj z jakiego.','Obrzyn „Sołtys”. Rozwiązuje spory sąsiedzkie.','Uzi na wesele, karabin na poprawiny.','Gotówka na stół, broń do ręki.'],
-    items:()=>weaponsBySlot().filter(w=>w!=='pistol').map(w=>{const W=DS.weapons.get(w);return{id:w,name:W.name,desc:`Obrażenia ${W.dmg}${W.pellets>1?'×'+W.pellets:''} · magazynek ${W.mag} · ${W.auto?'automat':'półautomat'} · ${weaponKeyHint(w)}`,price:W.price,ok:()=>!save.weapons.includes(w),owned:save.weapons.includes(w),buy:()=>{save.weapons.push(w)}}})},
-  halina:{name:'Siostra Halina',role:'Medyczka w uszance',say:['Siadaj, zszyję cię. Ale najpierw zapłać.','Apteczka pod H. Nie mów, że nie mówiłam.','Druga Szansa to nie cud, to procedura.','Zimno w tej remizie, dlatego uszanka.'],
+  zdzichu:{name:'Zdzichu Spluwa',role:L('Handlarz bronią spod lady','Under-the-counter arms dealer'),say:[L('Te klamki są z pewnego źródła. Nie pytaj z jakiego.','These pieces come from a reliable source. Don\'t ask which.'),L('Obrzyn „Sołtys”. Rozwiązuje spory sąsiedzkie.','The sawed-off “Sołtys” (the Village Mayor). Settles neighbourly disputes.'),L('Uzi na wesele, karabin na poprawiny.','Uzi for the wedding, rifle for the after-party.'),L('Gotówka na stół, broń do ręki.','Cash on the table, gun in your hand.')],
+    items:()=>weaponsBySlot().filter(w=>w!=='pistol').map(w=>{const W=DS.weapons.get(w);return{id:w,name:W.name,desc:L(`Obrażenia ${W.dmg}${W.pellets>1?'×'+W.pellets:''} · magazynek ${W.mag} · ${W.auto?'automat':'półautomat'} · ${weaponKeyHint(w)}`,`Damage ${W.dmg}${W.pellets>1?'×'+W.pellets:''} · magazine ${W.mag} · ${W.auto?'automatic':'semi-auto'} · ${weaponKeyHint(w)}`),price:W.price,ok:()=>!save.weapons.includes(w),owned:save.weapons.includes(w),buy:()=>{save.weapons.push(w)}}})},
+  halina:{name:L('Siostra Halina','Sister Halina'),role:L('Medyczka w uszance','Medic in a fur hat'),say:[L('Siadaj, zszyję cię. Ale najpierw zapłać.','Sit down, I\'ll stitch you up. But pay first.'),L('Apteczka pod H. Nie mów, że nie mówiłam.','Medkit on H. Don\'t say I didn\'t tell you.'),L('Druga Szansa to nie cud, to procedura.','Second Chance isn\'t a miracle, it\'s a procedure.'),L('Zimno w tej remizie, dlatego uszanka.','It\'s freezing in this fire station, hence the fur hat.')],
     items:()=>[
-      {id:'med',name:`Apteczka (masz ${save.medkits}/9)`,desc:'Klawisz H w grze: +50 zdrowia.',price:60,ok:()=>save.medkits<9,buy:()=>{save.medkits++}},
-      {id:'second',name:`Druga Szansa (masz ${save.secondChance}/1)`,desc:'Raz na grę wstajesz z pełnym zdrowiem.',price:450,ok:()=>save.secondChance<1,buy:()=>{save.secondChance++}},
+      {id:'med',name:L(`Apteczka (masz ${save.medkits}/9)`,`Medkit (you have ${save.medkits}/9)`),desc:L('Klawisz H w grze: +50 zdrowia.','Press H in game: +50 health.'),price:60,ok:()=>save.medkits<9,buy:()=>{save.medkits++}},
+      {id:'second',name:L(`Druga Szansa (masz ${save.secondChance}/1)`,`Second Chance (you have ${save.secondChance}/1)`),desc:L('Raz na grę wstajesz z pełnym zdrowiem.','Once per run you get back up at full health.'),price:450,ok:()=>save.secondChance<1,buy:()=>{save.secondChance++}},
     ]},
 };
 let curNpc='heniek';
@@ -68,10 +69,10 @@ export function renderShop(sayLine){
   $('#npcPic').innerHTML=PORTRAITS[curNpc];$('#npcName').textContent=N.name;$('#npcRole').textContent=N.role;$('#npcSay').textContent=sayLine||pick(N.say);
   $('#npcItems').innerHTML='';
   N.items().forEach(it=>{const d=document.createElement('div');d.className='item';
-    const can=it.ok()&&save.coins>=it.price;const label=it.owned?'Posiadasz':!it.ok()?'Maks.':'Kup';
+    const can=it.ok()&&save.coins>=it.price;const label=it.owned?L('Posiadasz','Owned'):!it.ok()?L('Maks.','Max'):L('Kup','Buy');
     d.innerHTML=`<div><b></b><p></p></div><button class="btn sm" ${can?'':'disabled'}><span class="price">${it.price} ZD</span> · ${label}</button>`;
     d.querySelector('b').textContent=it.name;d.querySelector('p').textContent=it.desc;
-    d.querySelector('button').addEventListener('click',()=>{if(save.coins<it.price||!it.ok()){sfx('error');return}save.coins-=it.price;it.buy();persist();sfx('buy');renderShop(pick(['Dobry wybór. Prawie tak dobry jak mój wąs.','Interes życia, kolego.','Dziękuję, przyjdź jeszcze.','Wiedziałem, że się dogadamy.']))});
+    d.querySelector('button').addEventListener('click',()=>{if(save.coins<it.price||!it.ok()){sfx('error');return}save.coins-=it.price;it.buy();persist();sfx('buy');renderShop(pick([L('Dobry wybór. Prawie tak dobry jak mój wąs.','Good choice. Almost as good as my moustache.'),L('Interes życia, kolego.','Deal of a lifetime, buddy.'),L('Dziękuję, przyjdź jeszcze.','Thanks, come again.'),L('Wiedziałem, że się dogadamy.','Knew we\'d get along.')]))});
     $('#npcItems').appendChild(d)});
 }
 $$('#shopTabs button').forEach(b=>b.addEventListener('click',()=>{curNpc=b.dataset.npc;sfx('tick',1100);renderShop()}));

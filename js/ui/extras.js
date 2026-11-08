@@ -6,6 +6,8 @@ import {save,persist} from '../core/save.js';
 import {S} from '../core/state.js';
 import {DS} from '../core/ds.js';
 import {h,clear} from './dom.js';
+import {L} from '../core/i18n.js';
+import {fmtDate} from '../core/fmt.js';
 import {motionReduced} from './uiopts.js';
 
 /* ---- toast ---- */
@@ -19,24 +21,24 @@ export function toast(title,sub){
 
 /* ---- osiągnięcia ---- */
 export const ACHIEVEMENTS=[
-  {id:'first',name:'Pierwsza krew',desc:'Zabij pierwszego wroga.'},
-  {id:'kills100',name:'Setka',desc:'Zabij łącznie 100 wrogów.'},
-  {id:'kills1000',name:'Rzeźnik z remizy',desc:'Zabij łącznie 1000 wrogów.'},
-  {id:'heads10',name:'Celne oko',desc:'Zrób 10 headshotów w jednym podejściu.'},
-  {id:'combo10',name:'Biesiada ołowiu',desc:'Osiągnij combo ×10.'},
-  {id:'wave5',name:'Piąta fala',desc:'Dotrwaj do 5. fali.'},
-  {id:'wave10',name:'Do rana',desc:'Dotrwaj do 10. fali.'},
-  {id:'boss',name:'Baron pokonany',desc:'Pokonaj bossa.'},
-  {id:'level5',name:'Awans',desc:'Osiągnij 5. poziom doświadczenia.'},
-  {id:'rich',name:'Złota rączka',desc:'Miej na koncie 5000 ZD.'},
-  {id:'arsenal',name:'Arsenał',desc:'Posiadaj 4 bronie.'},
-  {id:'skins5',name:'Kolekcjoner',desc:'Zdobądź 5 skórek.'},
+  {id:'first',name:L('Pierwsza krew','First Blood'),desc:L('Zabij pierwszego wroga.','Kill your first enemy.')},
+  {id:'kills100',name:L('Setka','The Hundred'),desc:L('Zabij łącznie 100 wrogów.','Kill 100 enemies in total.')},
+  {id:'kills1000',name:L('Rzeźnik z remizy','Butcher of the Fire Station'),desc:L('Zabij łącznie 1000 wrogów.','Kill 1000 enemies in total.')},
+  {id:'heads10',name:L('Celne oko','Sharp Eye'),desc:L('Zrób 10 headshotów w jednym podejściu.','Land 10 headshots in a single run.')},
+  {id:'combo10',name:L('Biesiada ołowiu','Lead Feast'),desc:L('Osiągnij combo ×10.','Reach a ×10 combo.')},
+  {id:'wave5',name:L('Piąta fala','Fifth Wave'),desc:L('Dotrwaj do 5. fali.','Survive until wave 5.')},
+  {id:'wave10',name:L('Do rana','Till Dawn'),desc:L('Dotrwaj do 10. fali.','Survive until wave 10.')},
+  {id:'boss',name:L('Baron pokonany','Baron Down'),desc:L('Pokonaj bossa.','Defeat a boss.')},
+  {id:'level5',name:L('Awans','Promotion'),desc:L('Osiągnij 5. poziom doświadczenia.','Reach experience level 5.')},
+  {id:'rich',name:L('Złota rączka','Moneybags'),desc:L('Miej na koncie 5000 ZD.','Hold 5000 ZD in your account.')},
+  {id:'arsenal',name:L('Arsenał','Arsenal'),desc:L('Posiadaj 4 bronie.','Own 4 weapons.')},
+  {id:'skins5',name:L('Kolekcjoner','Collector'),desc:L('Zdobądź 5 skórek.','Collect 5 skins.')},
 ];
 const ach=()=>save.ach||(save.ach={});
 function unlock(id){
   const a=ach();if(a[id])return;a[id]=Date.now();
   const def=ACHIEVEMENTS.find(x=>x.id===id);persist();
-  if(def)toast('Osiągnięcie: '+def.name,def.desc);
+  if(def)toast(L('Osiągnięcie: ','Achievement: ')+def.name,def.desc);
 }
 function checkTotals(){
   if(save.kills>=100)unlock('kills100');if(save.kills>=1000)unlock('kills1000');
@@ -55,18 +57,18 @@ DS.bus.on('save',checkTotals);
 
 export function renderAch(){
   const a=ach(),list=$('#achList'),n=ACHIEVEMENTS.filter(x=>a[x.id]).length;
-  $('#achSum').textContent=`Odblokowano ${n} z ${ACHIEVEMENTS.length}.`;
+  $('#achSum').textContent=L(`Odblokowano ${n} z ${ACHIEVEMENTS.length}.`,`Unlocked ${n} of ${ACHIEVEMENTS.length}.`);
   clear(list);
   for(const x of ACHIEVEMENTS){const got=!!a[x.id];
     list.append(h('li',{class:'ach'+(got?' got':'')},
-      h('span',{class:'achState'},got?'Zdobyte':'Zablokowane'),
+      h('span',{class:'achState'},got?L('Zdobyte','Unlocked'):L('Zablokowane','Locked')),
       h('b',null,got?x.name:x.name),h('p',null,x.desc),
-      got?h('small',null,new Date(a[x.id]).toLocaleDateString('pl-PL')):null));
+      got?h('small',null,fmtDate(a[x.id])):null));
   }
 }
 
 /* ---- kolekcja znajdziek ---- */
-const BASIC={coin:{name:'Złotówka disco',desc:'Waluta (ZD) wypadająca z wrogów.'},key:{name:'Klucz do skrzynki',desc:'Otwiera skrzynki.'},med:{name:'Apteczka z mapy',desc:'Leczy po podniesieniu.'}};
+const BASIC={coin:{name:L('Złotówka disco','Disco zloty'),desc:L('Waluta (ZD) wypadająca z wrogów.','Currency (ZD) dropped by enemies.')},key:{name:L('Klucz do skrzynki','Crate key'),desc:L('Otwiera skrzynki.','Opens crates.')},med:{name:L('Apteczka z mapy','Map medkit'),desc:L('Leczy po podniesieniu.','Heals when picked up.')}};
 const found=()=>save.found||(save.found={});
 DS.bus.on('pickup',e=>{if(!e||!e.type)return;const f=found();f[e.type]=(f[e.type]||0)+1});
 DS.bus.on('levelEnd',()=>{if(save.found)persist()});
@@ -80,8 +82,8 @@ export function renderCollection(){
     const n=f[id]||0,known=n>0||!!BASIC[id];if(n>0)seen++;
     list.append(h('div',{class:'collCard'+(n>0?' got':'')},
       h('b',null,known?(def.name||b.name||id):'???'),
-      h('p',null,known?(def.desc||b.desc||''):'Jeszcze nie znaleziono.'),
-      h('span',{class:'count'},n>0?'Zebrano: '+n:'Nie zebrano')));
+      h('p',null,known?(def.desc||b.desc||''):L('Jeszcze nie znaleziono.','Not found yet.')),
+      h('span',{class:'count'},n>0?L('Zebrano: ','Collected: ')+n:L('Nie zebrano','Not collected'))));
   }
-  if(!list.children.length)list.append(h('p',{class:'note'},'Znajdźki pojawią się wraz z nowymi poziomami.'));
+  if(!list.children.length)list.append(h('p',{class:'note'},L('Znajdźki pojawią się wraz z nowymi poziomami.','Collectibles will appear with new levels.')));
 }

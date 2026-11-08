@@ -2,6 +2,7 @@
 // Co-op (js/net/): damageEnemy na replice (klient) wysyła trafienie do hosta; host stosuje trafienia zdalne z `by` (id gracza);
 // hurt() u hosta może zostać przekierowane do zdalnego gracza (cel AI), die() w co-op = powalenie zamiast końca gry.
 import {rand,clamp,pick} from '../core/util.js';
+import {L} from '../core/i18n.js';
 import {save,opt,persist} from '../core/save.js';
 import {S} from '../core/state.js';
 import {DS} from '../core/ds.js';
@@ -46,11 +47,11 @@ export function killEnemy(e,head,by){
     if(Math.random()<(e.boss?1:.035))spawnPickup('key',pos,e.boss?2:1);
   }
   sfx('kill');
-  const words=head?['HEADSHOT!','W GŁOWĘ!','BLAM!']:['KLAP!','PAF!','ŁUP!'];
+  const words=head?['HEADSHOT!',L('W GŁOWĘ!','RIGHT IN THE HEAD!'),'BLAM!']:[L('KLAP!','SLAP!'),L('PAF!','POW!'),L('ŁUP!','WHAM!')];
   addFloater(pick(words),{world:pos.clone().setY(e.boss?3.6:2.4),size:head?46:36,life:.9,color:head?'#d3242a':'#ffe14a',vy:-40,rot:rand(-.25,.25),burst:head});
-  const streak={3:'TRZY NA RAZ!',5:'DISCO MASAKRA!',8:'BIESIADA OŁOWIU!',12:'KRÓL REMIZY!',16:'NIEPOWSTRZYMANY!'}[G.combo];
-  if(streak)announce(streak,`Mnożnik ×${comboMult().toFixed(1)}`);
-  if(e.boss)announce((e.name||'BOSS').toUpperCase()+' POKONANY!','+2 klucze leżą na ziemi');
+  const streak={3:L('TRZY NA RAZ!','TRIPLE KILL!'),5:L('DISCO MASAKRA!','DISCO MASSACRE!'),8:L('BIESIADA OŁOWIU!','LEAD FEAST!'),12:L('KRÓL REMIZY!','KING OF THE FIRE STATION!'),16:L('NIEPOWSTRZYMANY!','UNSTOPPABLE!')}[G.combo];
+  if(streak)announce(streak,L('Mnożnik ×','Multiplier ×')+comboMult().toFixed(1));
+  if(e.boss)announce((e.name||'BOSS').toUpperCase()+L(' POKONANY!',' DEFEATED!'),L('+2 klucze leżą na ziemi','+2 keys lie on the ground'));
   if(head&&opt.panels&&G.panelCD<=0){G.panelReq=e.g.localToWorld(new THREE.Vector3(0,e.headY||1.94,0));G.panelCD=5}
   G.shake+=.25;
   DS.bus.emit('kill',{enemy:e,head,value:val,combo:G.combo});
@@ -63,7 +64,7 @@ export function hurt(d){const G=S.G;if(DS.net.redirectHurt&&DS.net.redirectHurt(
   DS.bus.emit('damage',{amount:d,hp:G.hp})}finally{S.fxTap=tap}}
 export function die(){const G=S.G;G.dead=true;G.deadT=0;S.mouseDown=false;
   if(DS.net.active()&&DS.net.onDowned){DS.net.onDowned();return}   // co-op: powalenie (koniec runu, gdy leżą wszyscy)
-  announce('POLEGŁEŚ','Fala '+G.wave);try{document.exitPointerLock()}catch(e){}
+  announce(L('POLEGŁEŚ','YOU HAVE FALLEN'),L('Fala ','Wave ')+G.wave);try{document.exitPointerLock()}catch(e){}
   if(G.wave>save.best)save.best=G.wave;persist();
   submitRun(G);   // ranking JuicyJuicy: wynik wysyłany od razu przy śmierci (nie czeka na ekran końca)
   setTimeout(showOver,1400)}

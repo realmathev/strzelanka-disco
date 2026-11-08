@@ -5,6 +5,7 @@ import {S} from '../core/state.js';
 import {DS} from '../core/ds.js';
 import {canvas} from '../render/renderer.js';
 import {announce} from '../render/comicfx.js';
+import {L} from '../core/i18n.js';
 import {audioInit} from '../audio/init.js';
 import {setTrack,gameTrack} from '../audio/music.js';
 import {sfx} from '../audio/sfx.js';
@@ -27,5 +28,5 @@ export function pause(){const G=S.G;if(!G||G.dead||G.paused||G.uiPause)return;S.
   G.paused=true;show('scrPause');DS.bus.emit('pause',true)}
 export function resume(){S.G.paused=false;S.G.uiPause=false;hideAll();lockPointer();clock.getDelta();DS.bus.emit('pause',false)}
 export function quitToMenu(){persist();if(DS.net.active()&&DS.net.quitRun){DS.net.quitRun();return}toMenuMode();show('scrMenu')}
-export function revive(){const G=S.G;save.secondChance--;persist();G.revived=true;G.dead=false;G.hp=G.maxHp;G.deadT=0;P.pos.y=0;hideAll();announce('DRUGA SZANSA!','Siostra Halina postawiła cię na nogi');sfx('heal');G.enemies.forEach(e=>e.shootT=2.5);lockPointer();
+export function revive(){const G=S.G;save.secondChance--;persist();G.revived=true;G.dead=false;G.hp=G.maxHp;G.deadT=0;P.pos.y=0;hideAll();announce(L('DRUGA SZANSA!','SECOND CHANCE!'),L('Siostra Halina postawiła cię na nogi','Sister Halina put you back on your feet'));sfx('heal');G.enemies.forEach(e=>e.shootT=2.5);lockPointer();
   DS.bus.emit('heal',{amount:G.maxHp,source:'revive'})}

@@ -481,3 +481,9 @@ input[type=range]{height:28px;min-width:0}
 @keyframes coopPulse{to{transform:scale(1.15)}}
 @media (prefers-reduced-motion:reduce){.coopMark.call .coopMarkTxt{animation:none}}
 @media (max-width:800px){.coopTeam{top:172px}}
+
+/* przełącznik języka EN | PL */
+.langSw{display:flex;align-items:center;justify-content:center;gap:6px;align-self:center;margin-top:2px}
+.langSw .langBtn{border:3px solid var(--ink);background:var(--cream);min-width:52px;min-height:40px;padding:4px 12px;font-family:var(--display);font-size:calc(18px*var(--ts,1));color:var(--ink);cursor:pointer}
+.langSw .langBtn[aria-pressed=true]{background:var(--ink);color:var(--yellow)}
+.langSw .langSep{font-family:var(--display);font-size:calc(20px*var(--ts,1))}

@@ -1,9 +1,10 @@
 // Celownik: znacznik DOM + zastosowanie opcji (styl, kolor, rozmiar, kropka). Używany w HUD i w podglądzie opcji.
 import {opt} from '../core/save.js';
 import {h} from './dom.js';
+import {L} from '../core/i18n.js';
 
-export const XH_STYLES=[['cross','Krzyż'],['gap','Krzyż z przerwą'],['dot','Kropka'],['circle','Okrąg'],['brackets','Narożniki'],['none','Brak']];
-export const XH_COLORS=[['#fff8e6','Biały'],['#f7c51e','Żółty'],['#ff4a3d','Czerwony'],['#43f0a0','Zielony'],['#3ad7ff','Cyjan'],['#ff4fd8','Magenta']];
+export const XH_STYLES=[['cross',L('Krzyż','Cross')],['gap',L('Krzyż z przerwą','Cross with gap')],['dot',L('Kropka','Dot')],['circle',L('Okrąg','Circle')],['brackets',L('Narożniki','Corners')],['none',L('Brak','None')]];
+export const XH_COLORS=[['#fff8e6',L('Biały','White')],['#f7c51e',L('Żółty','Yellow')],['#ff4a3d',L('Czerwony','Red')],['#43f0a0',L('Zielony','Green')],['#3ad7ff',L('Cyjan','Cyan')],['#ff4fd8','Magenta']];
 
 /** Tworzy element celownika. */
 export function makeCrosshair(id){

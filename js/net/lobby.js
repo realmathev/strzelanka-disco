@@ -6,6 +6,7 @@ import {DS} from '../core/ds.js';
 import {sfx} from '../audio/sfx.js';
 import {show} from '../ui/screens.js';
 import {h,clear} from '../ui/dom.js';
+import {L as Tr} from '../core/i18n.js';
 import {DIFFS,levelList,levelName} from '../ui/menu.js';
 import {N,COLOR_CSS,colorOf,isHost,onChange,createRoom,joinRoom,leaveRoom,setReady,allReady,broadcastLobby,setMsg} from './session.js';
 import {hostStart} from './coop.js';
@@ -13,40 +14,40 @@ import {hostStart} from './coop.js';
 /* ---------- budowa ekranu ---------- */
 const el={};
 (function build(){
-  const back=h('button',{class:'btn paper sm',type:'button','data-go':'scrMenu',id:'coopBack'},'Wróć');
+  const back=h('button',{class:'btn paper sm',type:'button','data-go':'scrMenu',id:'coopBack'},Tr('Wróć','Back'));
   el.msg=h('p',{class:'coopMsg',id:'coopMsg',role:'alert','aria-live':'assertive'});
   // poza pokojem
-  el.code=h('input',{id:'coopCode',type:'text',maxLength:6,autocomplete:'off',spellcheck:false,placeholder:'KOD',class:'coopCode','aria-label':'Kod pokoju (6 znaków)'});
-  el.create=h('button',{class:'btn red',id:'coopCreate',type:'button','data-autofocus':''},'Utwórz pokój');
-  el.join=h('button',{class:'btn',id:'coopJoin',type:'button'},'Dołącz');
+  el.code=h('input',{id:'coopCode',type:'text',maxLength:6,autocomplete:'off',spellcheck:false,placeholder:Tr('KOD','CODE'),class:'coopCode','aria-label':Tr('Kod pokoju (6 znaków)','Room code (6 characters)')});
+  el.create=h('button',{class:'btn red',id:'coopCreate',type:'button','data-autofocus':''},Tr('Utwórz pokój','Create room'));
+  el.join=h('button',{class:'btn',id:'coopJoin',type:'button'},Tr('Dołącz','Join'));
   el.out=h('div',{class:'coopOut',id:'coopOut'},
-    h('p',{class:'note'},'Graj z 1–3 znajomymi. Host prowadzi wrogów i fale, każdy zbiera ZD i XP do własnego zapisu.'),
+    h('p',{class:'note'},Tr('Graj z 1–3 znajomymi. Host prowadzi wrogów i fale, każdy zbiera ZD i XP do własnego zapisu.','Play with 1–3 friends. The host runs the enemies and waves, and everyone collects ZD and XP into their own save.')),
     el.create,h('div',{class:'row coopJoinRow'},el.code,el.join));
   // w pokoju
   el.roomCode=h('b',{id:'coopRoomCode',class:'coopRoomCode'});
-  el.copy=h('button',{class:'btn paper sm',id:'coopCopy',type:'button'},'Kopiuj kod');
-  el.invite=h('button',{class:'btn paper sm',id:'coopInvite',type:'button'},'Zaproś');
-  el.list=h('ul',{class:'coopList',id:'coopList','aria-label':'Gracze w pokoju'});
-  el.lvl=h('select',{id:'coopLevel','aria-label':'Poziom'});
-  el.diff=h('select',{id:'coopDiff','aria-label':'Trudność'});
+  el.copy=h('button',{class:'btn paper sm',id:'coopCopy',type:'button'},Tr('Kopiuj kod','Copy code'));
+  el.invite=h('button',{class:'btn paper sm',id:'coopInvite',type:'button'},Tr('Zaproś','Invite'));
+  el.list=h('ul',{class:'coopList',id:'coopList','aria-label':Tr('Gracze w pokoju','Players in the room')});
+  el.lvl=h('select',{id:'coopLevel','aria-label':Tr('Poziom','Level')});
+  el.diff=h('select',{id:'coopDiff','aria-label':Tr('Trudność','Difficulty')});
   el.setup=h('p',{class:'note',id:'coopSetup'});
-  el.ready=h('button',{class:'btn',id:'coopReady',type:'button'},'Gotowy');
+  el.ready=h('button',{class:'btn',id:'coopReady',type:'button'},Tr('Gotowy','Ready'));
   el.start=h('button',{class:'btn red play',id:'coopStart',type:'button'},'Start');
-  el.leave=h('button',{class:'btn paper',id:'coopLeave',type:'button'},'Opuść pokój');
-  el.hostBox=h('div',{class:'coopHost'},h('label',null,'Poziom ',el.lvl),h('label',null,'Trudność ',el.diff));
+  el.leave=h('button',{class:'btn paper',id:'coopLeave',type:'button'},Tr('Opuść pokój','Leave room'));
+  el.hostBox=h('div',{class:'coopHost'},h('label',null,Tr('Poziom ','Level '),el.lvl),h('label',null,Tr('Trudność ','Difficulty '),el.diff));
   el.inRoom=h('div',{class:'coopIn',id:'coopIn',hidden:true},
-    h('div',{class:'row coopCodeRow'},h('span',null,'Kod pokoju: '),el.roomCode,el.copy,el.invite),
+    h('div',{class:'row coopCodeRow'},h('span',null,Tr('Kod pokoju: ','Room code: ')),el.roomCode,el.copy,el.invite),
     el.list,el.hostBox,el.setup,h('div',{class:'row'},el.ready,el.start,el.leave));
   $('#app').append(h('section',{class:'screen',id:'scrCoop',hidden:true,'aria-labelledby':'coopT'},
-    h('div',{class:'wrap'},h('div',{class:'topbar'},h('h2',{id:'coopT'},'Graj ze znajomymi'),h('div',{class:'wallet'},back)),
+    h('div',{class:'wrap'},h('div',{class:'topbar'},h('h2',{id:'coopT'},Tr('Graj ze znajomymi','Play with friends')),h('div',{class:'wallet'},back)),
       h('div',{class:'panel coopPanel'},el.out,el.inRoom,el.msg))));
   back.addEventListener('click',()=>{if(N.room)leaveRoom()});           // wyjście z ekranu = wyjście z pokoju
   el.create.addEventListener('click',()=>{sfx('tick',1000);createRoom()});
   el.join.addEventListener('click',()=>{sfx('tick',1000);joinRoom(el.code.value)});
   el.code.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();joinRoom(el.code.value)}});
   el.code.addEventListener('input',()=>{const v=el.code.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);if(v!==el.code.value)el.code.value=v});
-  el.copy.addEventListener('click',()=>copy(N.room&&N.room.code,'Kod skopiowany.'));
-  el.invite.addEventListener('click',()=>{if(!N.room)return;let link='';try{link=N.room.invite()}catch(e){}if(link)copy(link,'Link zaproszenia skopiowany: '+link)});
+  el.copy.addEventListener('click',()=>copy(N.room&&N.room.code,Tr('Kod skopiowany.','Code copied.')));
+  el.invite.addEventListener('click',()=>{if(!N.room)return;let link='';try{link=N.room.invite()}catch(e){}if(link)copy(link,Tr('Link zaproszenia skopiowany: ','Invite link copied: ')+link)});
   el.ready.addEventListener('click',()=>{sfx('tick',1200);setReady(N.lob.rd[N.me]!==1)});
   el.start.addEventListener('click',()=>{sfx('tick',1200);hostStart()});
   el.leave.addEventListener('click',()=>{sfx('tick',1000);leaveRoom();render()});
@@ -77,17 +78,17 @@ export function render(){
     el.list.append(h('li',{class:'coopPl'+(me?' me':'')},
       h('i',{class:'sw',style:'background:'+COLOR_CSS[colorOf(p.id)],'aria-hidden':'true'}),
       h('span',{class:'nm'},String(p.name==null?'':p.name)),                       // nazwa z relaya: tylko węzeł tekstowy
-      me?h('em',null,' (Ty)'):null,
-      h('span',{class:'tag'},host?'HOST':rd?'GOTOWY':'czeka')));
+      me?h('em',null,Tr(' (Ty)',' (you)')):null,
+      h('span',{class:'tag'},host?'HOST':rd?Tr('GOTOWY','READY'):Tr('czeka','waiting'))));
   }
   const H=isHost();
   el.hostBox.hidden=!H;
   if(H){fillSelect(el.lvl,levelList().map(L=>[L.id,L.name||L.id]),N.lob.lv);fillSelect(el.diff,DIFFS.map(d=>[d.id,d.name]),N.lob.df)}
-  el.setup.textContent='Misja: '+levelName(N.lob.lv)+' · '+((DIFFS.find(d=>d.id===N.lob.df)||DIFFS[1]).name)+
-    (N.inRun?' · trwa gra':room.locked?' · pokój zamknięty':'')+' · graczy: '+room.players.length+'/'+(room.max||4);
-  el.ready.hidden=H;el.ready.textContent=N.lob.rd[N.me]===1?'Nie jestem gotowy':'Gotowy';
+  el.setup.textContent=Tr('Misja: ','Mission: ')+levelName(N.lob.lv)+' · '+((DIFFS.find(d=>d.id===N.lob.df)||DIFFS[1]).name)+
+    (N.inRun?Tr(' · trwa gra',' · game in progress'):room.locked?Tr(' · pokój zamknięty',' · room locked'):'')+Tr(' · graczy: ',' · players: ')+room.players.length+'/'+(room.max||4);
+  el.ready.hidden=H;el.ready.textContent=N.lob.rd[N.me]===1?Tr('Nie jestem gotowy','Not ready'):Tr('Gotowy','Ready');
   el.start.hidden=!H;el.start.disabled=!allReady()||N.inRun;
-  el.start.title=allReady()?'':'Czekam na gotowość wszystkich graczy';
+  el.start.title=allReady()?'':Tr('Czekam na gotowość wszystkich graczy','Waiting for all players to be ready');
 }
 onChange(()=>{if(!$('#scrCoop').hidden)render()});
 
@@ -99,7 +100,7 @@ export function showLobby(){
 // Przycisk w menu głównym.
 (function menuButton(){
   const play=$('#mSetup');if(!play)return;
-  const b=h('button',{class:'btn coop',id:'mCoop',type:'button'},'Graj ze znajomymi');
+  const b=h('button',{class:'btn coop',id:'mCoop',type:'button'},Tr('Graj ze znajomymi','Play with friends'));
   b.addEventListener('click',()=>{sfx('tick',1000);showLobby()});
   play.after(b);
 })();

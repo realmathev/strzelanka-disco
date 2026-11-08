@@ -1,6 +1,9 @@
 // Ekrany (sekcje .screen), portfel, nawigacja, ostrzeżenie, ekran końca gry.
 // Ekrany menu/opcji/pauzy buduje build.js (importowany pierwszy, żeby DOM był gotowy).
+import './static.js';
 import './build.js';
+import {L} from '../core/i18n.js';
+import {fmtNum} from '../core/fmt.js';
 import {$,$$,pick} from '../core/util.js';
 import {save,opt,persistOpt} from '../core/save.js';
 import {S} from '../core/state.js';
@@ -40,7 +43,7 @@ export function show(id){
   }
 }
 export function hideAll(){$$('.screen').forEach(s=>s.hidden=true);stopPreview()}
-export function updateWallet(){$$('.w-coins').forEach(e=>e.textContent=save.coins.toLocaleString('pl-PL'));$$('.w-keys').forEach(e=>e.textContent=save.keys);$$('.w-best').forEach(e=>e.textContent=save.best)}
+export function updateWallet(){$$('.w-coins').forEach(e=>e.textContent=fmtNum(save.coins));$$('.w-keys').forEach(e=>e.textContent=save.keys);$$('.w-best').forEach(e=>e.textContent=save.best)}
 DS.bus.on('save',updateWallet);
 
 // Przyciski nawigacji [data-go] (delegacja: ekrany są budowane dynamicznie).
@@ -91,8 +94,8 @@ initNav({back:goBack,start:()=>pause()});
 
 export function showOver(){
   if(S.mode!=='game')return;const G=S.G;
-  $('#overCap').textContent=pick(['Orkiestra gra dalej, ale już bez ciebie.','Gang zabrał ci portfel, ale ZD zostały na koncie.','Siostra Halina wzdycha i sięga po bandaż.']);
+  $('#overCap').textContent=pick([L('Orkiestra gra dalej, ale już bez ciebie.','The band plays on, but without you.'),L('Gang zabrał ci portfel, ale ZD zostały na koncie.','The gang took your wallet, but your ZD stayed in the bank.'),L('Siostra Halina wzdycha i sięga po bandaż.','Sister Halina sighs and reaches for a bandage.')]);
   const pts=G.score||0;
-  $('#overStats').innerHTML=`<span>Punkty</span><span>${fmt(pts)}</span><span>Rekord punktowy</span><span>${fmt(save.bestScore)}</span><span>Fala</span><span>${G.wave}</span><span>Rekord fali</span><span>${save.best}</span><span>Zabici</span><span>${G.kills}</span><span>Headshoty</span><span>${G.heads}</span><span>Zarobione ZD</span><span>${G.earned}</span><span>Znalezione klucze</span><span>${G.keysFound}</span>`;fillOver(G);
+  $('#overStats').innerHTML=`<span>${L('Punkty','Points')}</span><span>${fmt(pts)}</span><span>${L('Rekord punktowy','Best score')}</span><span>${fmt(save.bestScore)}</span><span>${L('Fala','Wave')}</span><span>${G.wave}</span><span>${L('Rekord fali','Best wave')}</span><span>${save.best}</span><span>${L('Zabici','Kills')}</span><span>${G.kills}</span><span>${L('Headshoty','Headshots')}</span><span>${G.heads}</span><span>${L('Zarobione ZD','ZD earned')}</span><span>${G.earned}</span><span>${L('Znalezione klucze','Keys found')}</span><span>${G.keysFound}</span>`;fillOver(G);
   $('#oRevive').hidden=!(save.secondChance>0&&!G.revived);show('scrOver');
 }

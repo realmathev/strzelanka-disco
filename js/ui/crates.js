@@ -5,13 +5,14 @@ import {SKINS,RAR,CRATES} from '../core/meta.js';
 import {sfx} from '../audio/sfx.js';
 import {applySkin} from '../weapons/viewmodel.js';
 import {gunSVG} from './skinart.js';
+import {L} from '../core/i18n.js';
 function rollRarity(w){const tot=Object.values(w).reduce((a,b)=>a+b,0);let r=Math.random()*tot;for(const k in w){r-=w[k];if(r<=0)return k}return 'common'}
 function rollSkin(w){const r=rollRarity(w);return pick(SKINS.filter(s=>s.r===r))}
 let crateBusy=false;
 $$('[data-open]').forEach(b=>b.addEventListener('click',()=>openCrate(b.dataset.open)));
 export function openCrate(type){
   if(crateBusy)return;const C=CRATES[type];
-  if(save.keys<C.cost){sfx('error');const r=$('#cresult');r.hidden=false;r.innerHTML='<div><h3>Brak kluczy</h3><p>Kup je u Pana Heńka albo zdobądź w strzelaninie.</p></div>';return}
+  if(save.keys<C.cost){sfx('error');const r=$('#cresult');r.hidden=false;r.innerHTML=`<div><h3>${L('Brak kluczy','No keys')}</h3><p>${L('Kup je u Pana Heńka albo zdobądź w strzelaninie.','Buy them from Mr. Heniek or win them in a shootout.')}</p></div>`;return}
   save.keys-=C.cost;persist();crateBusy=true;$('#cresult').hidden=true;
   const N=52,WIN=44;const items=[];for(let i=0;i<N;i++)items.push(rollSkin(C.w));const result=items[WIN];
   // tease: put a legendary right next to the winner sometimes
@@ -32,8 +33,8 @@ function crateDone(s){
   if(dup)save.coins+=RAR[s.r].dup;else save.skins.push(s.id);persist();
   sfx('reveal',{common:0,rare:2,epic:5,legend:12}[s.r]);if(s.r==='legend')setTimeout(()=>sfx('jackpot'),500);
   const r=$('#cresult');r.hidden=false;
-  r.innerHTML=`<div class="big">${gunSVG(s)}</div><div style="display:flex;flex-direction:column;gap:8px"><span class="rlabel" style="background:${RAR[s.r].c};align-self:flex-start">${RAR[s.r].n}</span><h3>${s.name}</h3><p style="margin:0">${dup?`Duplikat. Pan Heniek odkupił go za ${RAR[s.r].dup} ZD.`:'Nowa skórka trafiła do ekwipunku.'}</p><div class="row">${dup?'':'<button class="btn red sm" id="equipNew">Załóż teraz</button>'}<button class="btn sm" id="again">Otwórz kolejną</button></div></div>`;
+  r.innerHTML=`<div class="big">${gunSVG(s)}</div><div style="display:flex;flex-direction:column;gap:8px"><span class="rlabel" style="background:${RAR[s.r].c};align-self:flex-start">${RAR[s.r].n}</span><h3>${s.name}</h3><p style="margin:0">${dup?L(`Duplikat. Pan Heniek odkupił go za ${RAR[s.r].dup} ZD.`,`Duplicate. Mr. Heniek bought it off you for ${RAR[s.r].dup} ZD.`):L('Nowa skórka trafiła do ekwipunku.','New skin added to your inventory.')}</p><div class="row">${dup?'':`<button class="btn red sm" id="equipNew">${L('Załóż teraz','Equip now')}</button>`}<button class="btn sm" id="again">${L('Otwórz kolejną','Open another')}</button></div></div>`;
   r.style.background=s.r==='legend'?'var(--yellow)':'';
-  const eq=$('#equipNew');if(eq)eq.addEventListener('click',()=>{save.skin=s.id;persist();applySkin();eq.textContent='Założona';eq.disabled=true;sfx('buy')});
+  const eq=$('#equipNew');if(eq)eq.addEventListener('click',()=>{save.skin=s.id;persist();applySkin();eq.textContent=L('Założona','Equipped');eq.disabled=true;sfx('buy')});
   $('#again').addEventListener('click',()=>openCrate(save.keys>=2&&s.r!=='common'?'remiza':'remiza'));
 }

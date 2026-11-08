@@ -8,6 +8,7 @@ import {DS} from '../core/ds.js';
 import {comboMult} from '../game/run.js';
 import '../input/optdefs.js';
 import {h} from './dom.js';
+import {L} from '../core/i18n.js';
 import {makeCrosshair,applyCrosshair} from './crosshair.js';
 import {motionReduced} from './uiopts.js';
 
@@ -22,9 +23,9 @@ const oldCross=hud.querySelector('.cross');if(oldCross)oldCross.replaceWith(xh);
 applyCrosshair(xh);
 
 const hpbar=hud.querySelector('.hpbar');
-const armorBar=h('div',{class:'armorbar',id:'hArmorBar',hidden:true,role:'img','aria-label':'Pancerz'},h('i',{id:'hArmor'}),h('span',{id:'hArmorTxt'},'0'));
+const armorBar=h('div',{class:'armorbar',id:'hArmorBar',hidden:true,role:'img','aria-label':L('Pancerz','Armor')},h('i',{id:'hArmor'}),h('span',{id:'hArmorTxt'},'0'));
 const barRow=h('div',{class:'bars'});hpbar.replaceWith(barRow);barRow.append(hpbar,armorBar);
-const xpBar=h('div',{class:'xpbar',id:'hXpBar',role:'progressbar','aria-label':'Doświadczenie','aria-valuemin':'0','aria-valuemax':'100','aria-valuenow':'0'},
+const xpBar=h('div',{class:'xpbar',id:'hXpBar',role:'progressbar','aria-label':L('Doświadczenie','Experience'),'aria-valuemin':'0','aria-valuemax':'100','aria-valuenow':'0'},
   h('b',{id:'hLvl'},'LV 1'),h('span',{class:'xptrack'},h('i',{id:'hXp'})),h('small',{id:'hXpTxt'},''));
 $('.hud-bl').insertBefore(xpBar,barRow);
 const vig=h('div',{class:'vig',id:'hVig','aria-hidden':'true'});hud.prepend(vig);
@@ -38,18 +39,18 @@ DS.bus.on('xp',e=>{
   setTxt('hLvl','LV '+(e.level||1));
   setTxt('hXpTxt',next>0?`${Math.floor(e.xp)}/${next}`:'');
   xpBar.setAttribute('aria-valuenow',String(Math.round(frac*100)));
-  xpBar.setAttribute('aria-valuetext',`Poziom ${e.level||1}, ${Math.floor(e.xp)} z ${next} XP`);
+  xpBar.setAttribute('aria-valuetext',L(`Poziom ${e.level||1}, ${Math.floor(e.xp)} z ${next} XP`,`Level ${e.level||1}, ${Math.floor(e.xp)} of ${next} XP`));
 });
 let lvlT=0;
 DS.bus.on('levelup',e=>{
-  lvlBanner.textContent='POZIOM '+(e&&e.level!=null?e.level:'')+'!';lvlBanner.hidden=false;lvlT=2.4;
+  lvlBanner.textContent=L('POZIOM ','LEVEL ')+(e&&e.level!=null?e.level:'')+'!';lvlBanner.hidden=false;lvlT=2.4;
   lvlBanner.classList.remove('pulse');if(opt.fx>0&&!motionReduced()){void lvlBanner.offsetWidth;lvlBanner.classList.add('pulse')}
 });
 DS.bus.on('armor',e=>{
   if(!e)return;const max=e.max||0;armorBar.hidden=!(max>0);if(!(max>0))return;
   $('#hArmor').style.transform=`scaleX(${clamp01(e.armor/max)})`;
   setTxt('hArmorTxt',String(Math.ceil(e.armor)));
-  armorBar.setAttribute('aria-label',`Pancerz ${Math.ceil(e.armor)} z ${max}`);
+  armorBar.setAttribute('aria-label',L(`Pancerz ${Math.ceil(e.armor)} z ${max}`,`Armor ${Math.ceil(e.armor)} of ${max}`));
 });
 DS.bus.on('levelEnd',()=>{
   armorBar.hidden=true;lvlBanner.hidden=true;lvlT=0;vigT=0;setVig(0);hitT=0;
@@ -78,9 +79,9 @@ DS.bus.on('update',dt=>{
 /* ---- aktualizacja co klatkę ---- */
 export function updateHud(alive){
   const G=S.G,W=DS.weapons.get(G.weapon);
-  setTxt('hWave','Fala '+G.wave+(G.boss?' · BOSS':''));setTxt('hLeft','Wrogowie: '+(alive+G.queue));
-  setTxt('hCoins',String(save.coins));setTxt('hCombo',G.combo>1?'×'+comboMult().toFixed(1):'');setTxt('hKeys','Klucze: '+save.keys);
+  setTxt('hWave',L('Fala ','Wave ')+G.wave+(G.boss?' · BOSS':''));setTxt('hLeft',L('Wrogowie: ','Enemies: ')+(alive+G.queue));
+  setTxt('hCoins',String(save.coins));setTxt('hCombo',G.combo>1?'×'+comboMult().toFixed(1):'');setTxt('hKeys',L('Klucze: ','Keys: ')+save.keys);
   setTxt('hHpTxt',String(Math.ceil(G.hp)));$('#hHp').style.transform=`scaleX(${G.hp/G.maxHp})`;
-  setTxt('hMed','Apteczki: '+save.medkits+' ['+DS.input.keyFor('medkit')+']');setTxt('hWeap',W.name);setTxt('hAmmo',String(G.ammo[G.weapon]));setTxt('hMag',String(W.mag));
+  setTxt('hMed',L('Apteczki: ','Medkits: ')+save.medkits+' ['+DS.input.keyFor('medkit')+']');setTxt('hWeap',W.name);setTxt('hAmmo',String(G.ammo[G.weapon]));setTxt('hMag',String(W.mag));
   $('#hReload').hidden=!(G.reloadT>0);
 }

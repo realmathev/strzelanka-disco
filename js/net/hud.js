@@ -9,12 +9,13 @@ import {sfx} from '../audio/sfx.js';
 import {P} from '../player/player.js';
 import {h,clear} from '../ui/dom.js';
 import {N,send,COLOR_CSS,colorOf,nameOf} from './session.js';
+import {L} from '../core/i18n.js';
 
-export const CALLS=['Tutaj!','Pomocy!','Uwaga, boss!'];
+export const CALLS=[L('Tutaj!','Over here!'),L('Pomocy!','Help!'),L('Uwaga, boss!','Watch out, boss!')];
 const CALL_ACTIONS=['callHere','callHelp','callBoss'];
 
 const hud=$('#hud');
-const team=h('div',{class:'coopTeam',id:'coopTeam',hidden:true,'aria-label':'Drużyna'});
+const team=h('div',{class:'coopTeam',id:'coopTeam',hidden:true,'aria-label':L('Drużyna','Team')});
 const feedBox=h('div',{class:'coopFeed',id:'coopFeed',role:'log','aria-live':'polite'});
 const banner=h('div',{class:'coopBanner',id:'coopBanner',role:'alert',hidden:true});
 const marks=h('div',{class:'coopMarks',id:'coopMarks','aria-hidden':'true'});
@@ -56,7 +57,7 @@ export function hudUpdate(dt){
     if(!r.inRun){dropRow(r.id);continue}
     n++;const o=rowFor(r);
     const f=Math.max(0,Math.min(1,r.hp/(r.mhp||100)));o.fill.style.transform='scaleX('+f.toFixed(3)+')';
-    const st=r.down?'POWALONY':r.stun?'OGŁUSZONY':'';if(o.state.textContent!==st)o.state.textContent=st;
+    const st=r.down?L('POWALONY','DOWN'):r.stun?L('OGŁUSZONY','STUNNED'):'';if(o.state.textContent!==st)o.state.textContent=st;
     o.row.classList.toggle('down',r.down);
     if(r.callT>0)r.callT-=dt;
     // znacznik: kolega poza ekranem (strzałka na krawędzi) albo leżący na ekranie („PODNIEŚ”); zawołanie pulsuje
@@ -64,7 +65,7 @@ export function hudUpdate(dt){
     const behind=V.z>1;let x=V.x,y=V.y;if(behind){x=-x;y=-y}
     const on=!behind&&Math.abs(x)<.95&&Math.abs(y)<.95,dist=Math.round(Math.hypot(r.pos.x-P.pos.x,r.pos.z-P.pos.z));
     let txt='';
-    if(r.down)txt=(on?'PODNIEŚ ['+DS.input.keyFor('use')+'] ':'LEŻY ')+dist+' m'+(r.callT>0?' · '+r.callTxt:'');   // powalenie ma pierwszeństwo
+    if(r.down)txt=(on?L('PODNIEŚ [','REVIVE [')+DS.input.keyFor('use')+'] ':L('LEŻY ','DOWN '))+dist+' m'+(r.callT>0?' · '+r.callTxt:'');   // powalenie ma pierwszeństwo
     else if(r.callT>0)txt=r.callTxt;
     else if(!on)txt=dist+' m';
     const show=!!txt;o.mark.hidden=!show;
@@ -89,16 +90,16 @@ addEventListener('keydown',e=>{
   if(e.repeat||!DS.net.active()||S.mode!=='game'||!S.G||S.G.uiPause||S.G.paused)return;
   const i=CALL_ACTIONS.findIndex(a=>DS.input.matches(a,e.code));if(i<0)return;
   if(callCd>0)return;callCd=1.2;
-  send({k:'call',c:i});feed('Ty: '+CALLS[i],COLOR_CSS[colorOf(N.me)]);sfx('tick',1400);
+  send({k:'call',c:i});feed(L('Ty: ','You: ')+CALLS[i],COLOR_CSS[colorOf(N.me)]);sfx('tick',1400);
 });
-DS.net.call=i=>{if(!DS.net.active()||!(i>=0&&i<3))return;send({k:'call',c:i});feed('Ty: '+CALLS[i])};
+DS.net.call=i=>{if(!DS.net.active()||!(i>=0&&i<3))return;send({k:'call',c:i});feed(L('Ty: ','You: ')+CALLS[i])};
 
 /** Podgląd HUD co-op bez sieci (tests/viewport.js): 3 przykładowych kolegów, komunikaty, baner. */
 DS.net.hudDemo=on=>{
   if(!on){for(const id of ['demo1','demo2','demo3']){dropRow(id)}setBanner(null);clear(feedBox);team.hidden=true;return}
   const fake=[{id:'demo1',hp:80,mhp:100},{id:'demo2',hp:20,mhp:125,down:true},{id:'demo3',hp:55,mhp:100,stun:true}];
   fake.forEach((r,i)=>{const o=rowFor(r);o.name.textContent=['Zdzisiek','Halinka_z_Remizy','Mietek'][i];o.fill.style.transform='scaleX('+(r.hp/r.mhp)+')';
-    o.state.textContent=r.down?'POWALONY':r.stun?'OGŁUSZONY':'';o.mark.hidden=false;o.mtxt.textContent=['12 m','LEŻY 30 m','Pomocy!'][i];
+    o.state.textContent=r.down?L('POWALONY','DOWN'):r.stun?L('OGŁUSZONY','STUNNED'):'';o.mark.hidden=false;o.mtxt.textContent=['12 m',L('LEŻY 30 m','DOWN 30 m'),CALLS[1]][i];
     o.mark.classList.add('edge');o.mark.style.transform='translate('+[44,innerWidth-44,innerWidth/2][i]+'px,'+[innerHeight/2,innerHeight/3,44][i]+'px)'});
-  team.hidden=false;feed('Mietek dołącza do gry');feed('Halinka_z_Remizy: Pomocy!');setBanner('Host zminimalizował grę — wrogowie stoją');
+  team.hidden=false;feed('Mietek'+L(' dołącza do gry',' joins the game'));feed('Halinka_z_Remizy: '+CALLS[1]);setBanner(L('Host zminimalizował grę — wrogowie stoją','Host minimised the game — enemies are frozen'));
 };

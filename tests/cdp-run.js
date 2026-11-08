@@ -1,11 +1,13 @@
 // Uruchamia skrypt QA z tests/ w headless Chrome przez CDP (okno 1280x720), bez zależności.
 // node tests/cdp-run.js <plik.js> [port=4202] [--noclear] [--size=1280x720] [--gpu]
-// Przed testem: localStorage.clear() i opt {"level":"remiza"}, przeładowanie przez nawigację.
+// Przed testem: localStorage.clear() i opt {"level":"remiza","lang":"pl"}, przeładowanie przez nawigację.
+// Język testów: domyślnie polski (stare asercje po polsku), --lang=en uruchamia grę po angielsku.
 // Skrypt zwracający tekst z "reload" (np. oldsave.js, highscores.js) jest uruchamiany drugi raz po nawigacji.
 // Zmienna CHROME wskazuje chrome.exe (domyślnie typowe ścieżki Windows). Serwer: node tests/serve.js <port>.
 const {spawn}=require('child_process'),fs=require('fs'),path=require('path'),os=require('os'),http=require('http');
 const file=process.argv[2],port=+(process.argv[3]&&!process.argv[3].startsWith('--')?process.argv[3]:4202);
 const flags=process.argv.slice(2).filter(a=>a.startsWith('--'));
+const lang=((flags.find(f=>f.startsWith('--lang='))||'--lang=pl').slice(7))||'pl';
 const size=((flags.find(f=>f.startsWith('--size='))||'--size=1280x720').slice(7)).split('x').map(Number);
 const cands=[process.env.CHROME,process.env.LOCALAPPDATA+'\\Google\\Chrome\\Application\\chrome.exe','C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe','C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe','C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'].filter(Boolean);
 const exe=cands.find(p=>fs.existsSync(p));if(!exe){console.error('Brak Chrome');process.exit(2)}
@@ -25,7 +27,7 @@ const getJson=u=>new Promise((res,rej)=>http.get(u,r=>{let d='';r.on('data',c=>d
   await send('Emulation.setDeviceMetricsOverride',{width:size[0],height:size[1],deviceScaleFactor:1,mobile:false});
   const base='http://127.0.0.1:'+port+'/';
   await nav(base);
-  if(!flags.includes('--noclear')){await ev(`localStorage.clear();sessionStorage.clear();localStorage.setItem('discoStrzelnica.opt.v1','{"level":"remiza"}');1`);await nav(base)}
+  if(!flags.includes('--noclear')){await ev(`localStorage.clear();sessionStorage.clear();localStorage.setItem('discoStrzelnica.opt.v1','{"level":"remiza","lang":"${lang}"}');1`);await nav(base)}
   const run=`(0,eval)(await (await fetch('/tests/${file}')).text())`;
   let res=await ev(`(async()=>JSON.stringify(await ${run},null,1))()`);
   if(/reload/.test(String(res))){await nav(base);res=await ev(`(async()=>JSON.stringify(await ${run},null,1))()`)}

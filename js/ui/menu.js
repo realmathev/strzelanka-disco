@@ -6,11 +6,12 @@ import {sfx} from '../audio/sfx.js';
 import {world} from '../world/state.js';
 import '../input/optdefs.js';
 import {h,clear} from './dom.js';
+import {L as Tr} from '../core/i18n.js';
 
 export const DIFFS=[
-  {id:'easy',name:'Łatwy',desc:'Luźna strzelanina na rozgrzewkę.'},
-  {id:'normal',name:'Normalny',desc:'Tak, jak zamierzył DJ.'},
-  {id:'hard',name:'Trudny',desc:'Więcej wrogów, mniej litości.'},
+  {id:'easy',name:Tr('Łatwy','Easy'),desc:Tr('Luźna strzelanina na rozgrzewkę.','A relaxed warm-up shootout.')},
+  {id:'normal',name:Tr('Normalny','Normal'),desc:Tr('Tak, jak zamierzył DJ.','The way the DJ intended.')},
+  {id:'hard',name:Tr('Trudny','Hard'),desc:Tr('Więcej wrogów, mniej litości.','More enemies, less mercy.')},
 ];
 const I=()=>DS.input;
 
@@ -35,14 +36,14 @@ export function refreshMenu(){
   // skrót sterowania z aktualnych przypisań
   const I_=I(),k=id=>I_.keyFor(id);
   const items=[
-    [[k('moveForward'),k('moveLeft'),k('moveBack'),k('moveRight')].join(' '),'ruch'],
-    [k('fire'),'strzał'],[k('ads'),'celowanie'],[k('reload'),'przeładuj'],
-    ['1–6 / '+(I_.get('weaponNext').codes.every(c=>/^Wheel/.test(c))?'kółko':k('weaponNext')),'broń'],[k('sprint'),'sprint'],[k('jump'),'skok'],[k('crouch'),'kucanie'],
-    [k('medkit'),'apteczka'],[k('pause'),'pauza'],
+    [[k('moveForward'),k('moveLeft'),k('moveBack'),k('moveRight')].join(' '),Tr('ruch','move')],
+    [k('fire'),Tr('strzał','fire')],[k('ads'),Tr('celowanie','aim')],[k('reload'),Tr('przeładuj','reload')],
+    ['1–6 / '+(I_.get('weaponNext').codes.every(c=>/^Wheel/.test(c))?Tr('kółko','wheel'):k('weaponNext')),Tr('broń','weapon')],[k('sprint'),'sprint'],[k('jump'),Tr('skok','jump')],[k('crouch'),Tr('kucanie','crouch')],
+    [k('medkit'),Tr('apteczka','medkit')],[k('pause'),Tr('pauza','pause')],
   ];
   const box=$('#keysHelp');clear(box);
   items.forEach(([key,txt],i)=>{box.append(h('b',null,key),' '+txt+(i<items.length-1?' · ':''))});
-  const ph=$('#pauseHint');if(ph)ph.textContent=`${k('pause')} lub P wznawia grę. Sterowanie możesz zmienić w Opcjach.`;
+  const ph=$('#pauseHint');if(ph)ph.textContent=Tr(`${k('pause')} lub P wznawia grę. Sterowanie możesz zmienić w Opcjach.`,`${k('pause')} or P resumes the game. You can change the controls in Options.`);
 }
 DS.bus.on('keys',refreshMenu);
 
@@ -51,8 +52,8 @@ export function renderPausePerks(){
   const box=$('#pausePerks');if(!box)return;clear(box);
   let owned={};try{owned=(DS.progression&&DS.progression.owned&&DS.progression.owned())||{}}catch(e){}
   const ids=Object.keys(owned);box.hidden=!ids.length;if(!ids.length)return;
-  const RN={common:'zwykły',rare:'rzadki',epic:'epicki',legend:'legendarny'};
-  box.append(h('h3',null,'Perki w tym podejściu'),h('ul',null,ids.map(id=>{
+  const RN={common:Tr('zwykły','common'),rare:Tr('rzadki','rare'),epic:Tr('epicki','epic'),legend:Tr('legendarny','legendary')};
+  box.append(h('h3',null,Tr('Perki w tym podejściu','Perks this run')),h('ul',null,ids.map(id=>{
     const d=DS.perks.get(id)||{};
     return h('li',{title:d.desc||''},h('b',null,(d.name||id)+(owned[id]>1?' ×'+owned[id]:'')),h('span',null,' · '+(RN[d.rarity]||''),d.desc?' · '+d.desc:''));
   })));
@@ -67,16 +68,16 @@ export function renderPlay(){
     ll.append(h('button',{class:'pick'+(on?' on':''),type:'button',role:'radio','aria-checked':String(on),'data-id':L.id,
         onclick:()=>{opt.level=L.id;persistOpt();sfx('tick',1200);DS.bus.emit('levelSelect',{level:L.id});renderPlay();refreshMenu();const b=$('#levelList .pick.on');if(b)b.focus({preventScroll:true})}},
       h('b',null,L.name||L.id),
-      h('span',{class:'meta'},L.arena?`Arena ${L.arena} m`:'Poziom',save.levelsDone&&save.levelsDone[L.id]?h('em',{class:'done'},' · ✓ UKOŃCZONY'):null),
+      h('span',{class:'meta'},L.arena?Tr(`Arena ${L.arena} m`,`Arena ${L.arena} m`):Tr('Poziom','Level'),save.levelsDone&&save.levelsDone[L.id]?h('em',{class:'done'},Tr(' · ✓ UKOŃCZONY',' · ✓ COMPLETED')):null),
       L.desc||L.tagline?h('span',{class:'desc'},L.desc||L.tagline):null,
-      h('span',{class:'tick','aria-hidden':'true'},on?'WYBRANY':'')));
+      h('span',{class:'tick','aria-hidden':'true'},on?Tr('WYBRANY','SELECTED'):'')));
   }
   const dl=$('#diffList');clear(dl);
   for(const d of DIFFS){
     const on=d.id===opt.difficulty;
     dl.append(h('button',{class:'pick'+(on?' on':''),type:'button',role:'radio','aria-checked':String(on),'data-id':d.id,
         onclick:()=>{opt.difficulty=d.id;persistOpt();sfx('tick',1200);renderPlay();refreshMenu();const b=$('#diffList .pick.on');if(b)b.focus({preventScroll:true})}},
-      h('b',null,d.name),h('span',{class:'desc'},d.desc),h('span',{class:'tick','aria-hidden':'true'},on?'WYBRANY':'')));
+      h('b',null,d.name),h('span',{class:'desc'},d.desc),h('span',{class:'tick','aria-hidden':'true'},on?Tr('WYBRANY','SELECTED'):'')));
   }
   $('#playNote').textContent=`${levelName(opt.level)} · ${(DIFFS.find(d=>d.id===opt.difficulty)||DIFFS[1]).name}`;
 }

@@ -20,6 +20,7 @@ import {show} from '../ui/screens.js';
 import {h,clear} from '../ui/dom.js';
 import {showLobby} from './lobby.js';
 import {N,rec,send,handle,hooks,isHost,nameOf,changed,setMsg,errText,allReady} from './session.js';
+import {L as Tr} from '../core/i18n.js';
 import {q2,IN_HZ,SNAP_HZ,MAX_HITS,isVec} from './proto.js';
 import {buildAvatar,destroyAvatar,updateAvatar,flashAvatar} from './avatars.js';
 import {updateReplicas,clearReplicas,setReplicaHooks,replicaCount} from './replicas.js';
@@ -39,14 +40,14 @@ const V1=new THREE.Vector3(),V2=new THREE.Vector3();
 /** Host: start runu dla wszystkich (wymaga gotowości pozostałych). */
 export function hostStart(){
   if(!isHost()||N.inRun)return false;
-  if(!allReady()){setMsg('Czekam, aż wszyscy będą gotowi.',true);return false}
+  if(!allReady()){setMsg(Tr('Czekam, aż wszyscy będą gotowi.','Waiting for everyone to be ready.'),true);return false}
   const lv=DS.levels.has(N.lob.lv)?N.lob.lv:'remiza',df=N.lob.df,seed=Math.floor(Math.random()*2147483647);
   try{N.room.lock(true)}catch(e){}          // w trakcie gry nikt nie dołącza (dołączanie między falami: etap 3)
   send({k:'start',lv,df,seed});
   beginRun(lv,df,seed);
   return true;
 }
-handle('start',(d,from)=>{if(!N.room||from!==N.room.host||isHost())return;if(!DS.levels.has(d.lv)){setMsg('Host wybrał poziom, którego ta wersja gry nie zna.',true);return}beginRun(d.lv,d.df,d.seed)});
+handle('start',(d,from)=>{if(!N.room||from!==N.room.host||isHost())return;if(!DS.levels.has(d.lv)){setMsg(Tr('Host wybrał poziom, którego ta wersja gry nie zna.','The host picked a level this version of the game does not know.'),true);return}beginRun(d.lv,d.df,d.seed)});
 
 let prevDiff=null;
 function beginRun(lv,df,seed){
@@ -73,7 +74,7 @@ function sendIn(){
 }
 handle('in',(d,from,r)=>{
   if(!r||!N.inRun)return;
-  if(!r.inRun){if(r.outed)return;r.inRun=true;r.seen=false;feed(nameOf(from)+' dołącza do gry')}   // dołączył w trakcie runu (dostał `full` od hosta)
+  if(!r.inRun){if(r.outed)return;r.inRun=true;r.seen=false;feed(nameOf(from)+Tr(' dołącza do gry',' joins the game'))}   // dołączył w trakcie runu (dostał `full` od hosta)
   const now=performance.now(),x=d.p[0],y=d.p[1],z=d.p[2];
   if(r.seen&&now>r.lastIn){const dt=Math.max(.03,(now-r.lastIn)/1000);r.vel.set((x-r.pos.x)/dt,0,(z-r.pos.z)/dt);if(r.vel.length()>25)r.vel.setLength(25)}
   r.pos.set(x,y,z);r.yaw=d.y;r.pitch=d.pi;r.down=d.dn===1;r.hp=d.hp;r.mhp=d.mhp;r.kl=d.kl;r.hd=d.hd;r.zd=d.zd;r.ads=d.a|0;r.stun=d.st===1;
@@ -117,7 +118,7 @@ DS.bus.on('netKill',ev=>{
 DS.bus.on('waveStart',ev=>{
   if(!DS.net.active())return;
   if(DS.net.isHost()){const v={t:'wave',w:ev.wave|0,c:ev.count|0};if(ev.boss){v.b=1;if(ev.bossName)v.n=String(ev.bossName).slice(0,40)}queueEv(v)}
-  const G=S.G;if(G&&G.dead&&!G.coopEnded)reviveLocal(BACK_HP,'Nowa fala: wracasz do gry z połową zdrowia');
+  const G=S.G;if(G&&G.dead&&!G.coopEnded)reviveLocal(BACK_HP,Tr('Nowa fala: wracasz do gry z połową zdrowia','New wave: you are back in the game at half health'));
 });
 DS.bus.on('waveClear',ev=>{if(DS.net.isHost())queueEv({t:'clear',w:ev.wave|0})});
 /** Asysta (≥25% obrażeń): 50% XP zabójstwa. */
@@ -130,7 +131,7 @@ setReplicaHooks({
   onKill(e,v){
     if(v.by===N.me)killEnemy(e,v.hd===1);   // moje zabójstwo: XP, combo, napisy jak w solo (monety i dropy rzuca host)
     else{e.alive=false;e.mats.forEach(m=>m.emissive.setRGB(0,0,0));if(v.a.includes(N.me))assistXp(e);
-      if(e.boss)announce((e.name||'BOSS').toUpperCase()+' POKONANY!',nameOf(v.by)+' zadał ostatni cios')}
+      if(e.boss)announce((e.name||'BOSS').toUpperCase()+Tr(' POKONANY!',' DEFEATED!'),nameOf(v.by)+Tr(' zadał ostatni cios',' landed the final blow'))}
   },
   onWave(v){const G=S.G;if(!G)return;G.boss=v.b===1;waveIntro(G,v.n||undefined);DS.bus.emit('waveStart',{wave:v.w,boss:G.boss,count:v.c})},
   onClear(){if(S.G)waveClearReward(S.G)},
@@ -148,7 +149,7 @@ function winLevel(lv,w){
   const r=(L.win&&L.win.reward)||{};
   save.coins+=r.coins|0;save.keys+=r.keys|0;G.earned+=r.coins|0;G.keysFound+=r.keys|0;
   save.levelsDone=save.levelsDone||{};save.levelsDone[lv]=true;persist();
-  setTimeout(()=>{if(S.G===G&&L.win)announce(L.win.text||'POZIOM UKOŃCZONY!','+'+(r.coins|0)+' ZD'+(r.keys?' i klucze: '+r.keys:''))},1500);
+  setTimeout(()=>{if(S.G===G&&L.win)announce(L.win.text||Tr('POZIOM UKOŃCZONY!','LEVEL COMPLETE!'),'+'+(r.coins|0)+' ZD'+(r.keys?Tr(' i klucze: ',' and keys: ')+r.keys:''))},1500);
   DS.bus.emit('levelComplete',{level:lv,wave:w});
 }
 /** Host: „Dalej” = kolejny poziom u wszystkich (ta sama drużyna, nowy run). */
@@ -171,15 +172,15 @@ DS.net.nextLevel=nextLevel;DS.net.toLobbyAll=toLobbyAll;
 /* ---------- powalenie i podnoszenie ---------- */
 /** combat.die w co-op: zamiast końca gry gracz leży (G.dead), czeka na kumpla albo następną falę. */
 DS.net.onDowned=()=>{
-  N.down=true;announce('POWALONY!','Kumpel podniesie cię klawiszem '+DS.input.keyFor('use')+', albo wrócisz w następnej fali');
+  N.down=true;announce(Tr('POWALONY!','YOU\'RE DOWN!'),Tr('Kumpel podniesie cię klawiszem ','A teammate can pick you up with ')+DS.input.keyFor('use')+Tr(', albo wrócisz w następnej fali',', or you will be back next wave'));
   sendIn();
 };
 function reviveLocal(frac,txt){
   const G=S.G;if(!G||!G.dead)return;
   G.dead=false;G.deadT=0;G.hp=Math.max(1,Math.round(G.maxHp*frac));P.pos.y=0;P.vy=0;N.down=false;
-  announce('WSTAJESZ!',txt||'');sfx('heal');DS.bus.emit('heal',{amount:G.hp,source:'revive'});sendIn();
+  announce(Tr('WSTAJESZ!','GETTING UP!'),txt||'');sfx('heal');DS.bus.emit('heal',{amount:G.hp,source:'revive'});sendIn();
 }
-handle('rev',(d,from,r)=>{if(!r||!N.inRun||!r.inRun)return;const G=S.G;if(G&&G.dead&&!G.coopEnded)reviveLocal(BACK_HP,nameOf(from)+' postawił cię na nogi')});
+handle('rev',(d,from,r)=>{if(!r||!N.inRun||!r.inRun)return;const G=S.G;if(G&&G.dead&&!G.coopEnded)reviveLocal(BACK_HP,nameOf(from)+Tr(' postawił cię na nogi',' got you back on your feet'))});
 
 let tipEl=null;
 function tip(t){
@@ -189,14 +190,14 @@ function tip(t){
 /** Podnoszenie: przytrzymaj „use” przy leżącym koledze (≤2 m) przez 3 s. */
 function reviveTick(dt){
   const G=S.G;
-  if(G.dead){tip(N.down?'Leżysz. Poczekaj na pomoc albo na następną falę.':'');N.revT=0;return}
+  if(G.dead){tip(N.down?Tr('Leżysz. Poczekaj na pomoc albo na następną falę.','You are down. Wait for help or for the next wave.'):'');N.revT=0;return}
   let best=null,bd=REVIVE_R;
   for(const r of N.players.values()){r.revCd=Math.max(0,r.revCd-dt);if(!r.inRun||!r.down||r.revCd>0)continue;const d=Math.hypot(r.pos.x-P.pos.x,r.pos.z-P.pos.z);if(d<=bd){bd=d;best=r}}
   if(!best){N.revT=0;tip('');return}
   if(DS.input.isDown('use')&&!G.uiPause)N.revT+=dt;else N.revT=0;
   const pct=Math.min(100,Math.round(N.revT/REVIVE_TIME*100));
-  tip('Przytrzymaj '+DS.input.keyFor('use')+': podnieś '+nameOf(best.id)+(N.revT>0?' ('+pct+'%)':''));
-  if(N.revT>=REVIVE_TIME){N.revT=0;best.revCd=2;send({k:'rev'},best.id);announce('PODNIOSŁEŚ KUMPLA!',nameOf(best.id)+' wraca do gry');sfx('heal')}
+  tip(Tr('Przytrzymaj ','Hold ')+DS.input.keyFor('use')+Tr(': podnieś ',': revive ')+nameOf(best.id)+(N.revT>0?' ('+pct+'%)':''));
+  if(N.revT>=REVIVE_TIME){N.revT=0;best.revCd=2;send({k:'rev'},best.id);announce(Tr('PODNIOSŁEŚ KUMPLA!','TEAMMATE REVIVED!'),nameOf(best.id)+Tr(' wraca do gry',' is back in the game'));sfx('heal')}
 }
 
 /* ---------- pętla ---------- */
@@ -218,7 +219,7 @@ DS.bus.on('update',dt=>{
   }else{
     // brak snapshotów > 1,5 s: host w tle (karta zminimalizowana) albo przerwa w sieci; rozłączenie ma własny komunikat
     const quiet=performance.now()-(N.lastSnapAt||0)>1500;
-    setBanner(N.reconnecting?'Rozłączono — próbuję wrócić…':quiet?'Host zminimalizował grę — wrogowie stoją, czekamy na hosta':null);
+    setBanner(N.reconnecting?Tr('Rozłączono — próbuję wrócić…','Disconnected — trying to reconnect…'):quiet?Tr('Host zminimalizował grę — wrogowie stoją, czekamy na hosta','Host minimised the game — enemies are frozen, waiting for the host'):null);
   }
 });
 DS.net.updateReplicas=updateReplicas;
@@ -236,7 +237,7 @@ function lockTick(){
 }
 /** Host: nowy gracz w pokoju w trakcie runu dostaje pełny stan (`full`) i staje na punkcie startu z pełnym HP. */
 hooks.onJoin=r=>{
-  feed(nameOf(r.id)+' dołącza do pokoju');
+  feed(nameOf(r.id)+Tr(' dołącza do pokoju',' joins the room'));
   if(!isHost()||!N.inRun||!S.G)return;
   r.inRun=true;r.outed=false;r.lastIn=performance.now();
   send(buildFull(),r.id);
@@ -250,13 +251,13 @@ handle('full',(d,from)=>{
   if(!N.room||from!==N.room.host||isHost()||!DS.levels.has(d.lv))return;
   const resync=N.inRun&&S.mode==='game'&&S.G&&!S.G.coopEnded&&world.level&&world.level.id===d.lv;
   N.lob.df=d.df;
-  if(!resync){beginRun(d.lv,d.df,d.seed);feed('Dołączasz do gry: fala '+d.w)}
-  else feed('Połączenie wróciło');
+  if(!resync){beginRun(d.lv,d.df,d.seed);feed(Tr('Dołączasz do gry: fala ','Joining the game: wave ')+d.w)}
+  else feed(Tr('Połączenie wróciło','Connection restored'));
   applyFull(d);
 });
 hooks.onReconnect=ok=>{
-  if(!ok){feed('Rozłączono — próbuję wrócić…');return}
-  feed('Połączenie wróciło');
+  if(!ok){feed(Tr('Rozłączono — próbuję wrócić…','Disconnected — trying to reconnect…'));return}
+  feed(Tr('Połączenie wróciło','Connection restored'));
   if(N.inRun&&N.room&&!isHost())send({k:'hi'},N.room.host);
 };
 
@@ -295,7 +296,7 @@ function hostEnd(reason){
 handle('end',(d,from)=>{if(!N.room||from!==N.room.host||!N.inRun)return;
   const s=d.s.filter(x=>Array.isArray(x)&&x.length===4&&typeof x[0]==='string'&&x.slice(1).every(n=>Number.isInteger(n)&&n>=0&&n<1e9));
   showEnd(d.r,s,d.w)});
-handle('out',(d,from,r)=>{if(!r)return;r.inRun=false;r.outed=true;destroyAvatar(r);if(N.inRun){announce(nameOf(from).toUpperCase()+' WYSZEDŁ','Gra toczy się dalej');feed(nameOf(from)+' wychodzi do lobby')}});
+handle('out',(d,from,r)=>{if(!r)return;r.inRun=false;r.outed=true;destroyAvatar(r);if(N.inRun){announce(nameOf(from).toUpperCase()+Tr(' WYSZEDŁ',' LEFT'),Tr('Gra toczy się dalej','The game goes on'));feed(nameOf(from)+Tr(' wychodzi do lobby',' leaves for the lobby'))}});
 
 let lobbyBtn=null;
 function showEnd(reason,s,w){
@@ -306,14 +307,14 @@ function showEnd(reason,s,w){
   if((G.wave|0)>save.best)save.best=G.wave;persist();
   submitRun(G);
   {
-    $('#overCap').textContent=reason==='quit'?'Host zakończył grę.':reason==='host'?errText('HOST_LEFT'):'Cała ekipa leży. Fala '+w+'.';
+    $('#overCap').textContent=reason==='quit'?Tr('Host zakończył grę.','The host ended the game.'):reason==='host'?errText('HOST_LEFT'):Tr('Cała ekipa leży. Fala ','The whole crew is down. Wave ')+w+'.';
     const st=$('#overStats');clear(st);
-    st.append(h('span',null,'Fala'),h('span',null,String(w)),h('span',null,'Punkty (Ty)'),h('span',null,String(G.score||0)));
-    const tb=h('table',{class:'coopStats'},h('thead',null,h('tr',null,h('th',null,'Gracz'),h('th',null,'Zabici'),h('th',null,'Headshoty'),h('th',null,'ZD'))),
+    st.append(h('span',null,Tr('Fala','Wave')),h('span',null,String(w)),h('span',null,Tr('Punkty (Ty)','Points (you)')),h('span',null,String(G.score||0)));
+    const tb=h('table',{class:'coopStats'},h('thead',null,h('tr',null,h('th',null,Tr('Gracz','Player')),h('th',null,Tr('Zabici','Kills')),h('th',null,Tr('Headshoty','Headshots')),h('th',null,'ZD'))),
       h('tbody',null,s.map(x=>h('tr',null,h('td',null,nameOf(x[0])),h('td',null,String(x[1])),h('td',null,String(x[2])),h('td',null,String(x[3]))))));   // nazwy wyłącznie jako tekst
     st.append(tb);
     $('#oRevive').hidden=true;$('#oAgain').hidden=true;
-    if(!lobbyBtn){lobbyBtn=h('button',{class:'btn red',id:'oLobby',type:'button',onclick:()=>backToLobby()},'Wróć do lobby');$('#oAgain').parentNode.prepend(lobbyBtn)}
+    if(!lobbyBtn){lobbyBtn=h('button',{class:'btn red',id:'oLobby',type:'button',onclick:()=>backToLobby()},Tr('Wróć do lobby','Back to lobby'));$('#oAgain').parentNode.prepend(lobbyBtn)}
     lobbyBtn.hidden=false;
     show('scrOver');fillOver(G);
   }
@@ -334,7 +335,7 @@ DS.bus.on('levelEnd',()=>{
   if(prevDiff!==null){opt.difficulty=prevDiff;prevDiff=null}
   if(lobbyBtn){lobbyBtn.hidden=true;$('#oAgain').hidden=false}
 });
-hooks.onPlayerGone=r=>{destroyAvatar(r);if(N.inRun&&r.inRun){announce(nameOf(r.id).toUpperCase()+' WYSZEDŁ','Gra toczy się dalej');feed(nameOf(r.id)+' opuszcza pokój')}};
+hooks.onPlayerGone=r=>{destroyAvatar(r);if(N.inRun&&r.inRun){announce(nameOf(r.id).toUpperCase()+Tr(' WYSZEDŁ',' LEFT'),Tr('Gra toczy się dalej','The game goes on'));feed(nameOf(r.id)+Tr(' opuszcza pokój',' leaves the room'))}};
 hooks.beforeLeave=()=>{if(N.inRun){if(isHost())hostEnd('quit');else send({k:'out'})}};
 /** JuicyJuicy przekazał rolę hosta (stary host wyszedł): bez migracji stanu run kończy się u wszystkich, drużyna wraca do lobby z nowym hostem. */
 hooks.onHostChange=id=>{
@@ -342,7 +343,7 @@ hooks.onHostChange=id=>{
   N.inRun=false;if(S.G)S.G.coopEnded=true;
   if(N.room&&N.room.isHost())try{N.room.lock(false)}catch(e){}
   backToLobby();
-  setMsg('Host wyszedł z gry — run zakończony. Nowy host: '+(id===N.me?'Ty':nameOf(id))+'.',true);
+  setMsg(Tr('Host wyszedł z gry — run zakończony. Nowy host: ','The host left — run over. New host: ')+(id===N.me?Tr('Ty','You'):nameOf(id))+'.',true);
 };
 hooks.onClosed=(reason,wasRun)=>{
   if(wasRun&&S.G&&S.mode==='game')backToLobby();

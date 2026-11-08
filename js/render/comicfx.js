@@ -1,6 +1,7 @@
 // Nakładka 2D (canvas #fx): napisy komiksowe, hitmarker, winieta, ogłoszenia, kadry przy headshocie.
 import {$,$$,clamp,pick} from '../core/util.js';
 import {opt} from '../core/save.js';
+import {L} from '../core/i18n.js';
 import {S} from '../core/state.js';
 import {canvas,camera} from './renderer.js';
 
@@ -53,7 +54,7 @@ export function capturePanels(){
   panelEls.forEach((c,i)=>{const g=c.getContext('2d');const h=sizes[i],w=h*4/3;const x=clamp(sx-w/2,0,Math.max(cw-w,0)),y=clamp(sy-h*(i===2?.5:.45),0,Math.max(ch-h,0));
     g.fillStyle='#f4e7c5';g.fillRect(0,0,c.width,c.height);try{g.drawImage(canvas,x,y,w,h,0,0,c.width,c.height)}catch(e){}
     g.fillStyle='rgba(21,17,14,.18)';for(let yy=0;yy<c.height;yy+=4)for(let xx=(yy/4%2)*2;xx<c.width;xx+=4)g.fillRect(xx,yy,1.2,1.2)});
-  $('#pc1').textContent=pick(['BLAM!','BANG!','PAF!']);$('#pc2').textContent=pick(['UGH...','AAARGH','OJ...']);$('#pc3').textContent=pick(['KONIEC.','DOBRANOC.','ŁUP.']);
+  $('#pc1').textContent=pick(['BLAM!','BANG!',L('PAF!','POW!')]);$('#pc2').textContent=pick(['UGH...','AAARGH',L('OJ...','OW...')]);$('#pc3').textContent=pick([L('KONIEC.','THE END.'),L('DOBRANOC.','GOODNIGHT.'),L('ŁUP.','THUD.')]);
   const el=$('#panels');el.hidden=true;void el.offsetWidth;el.hidden=false;panelHide=2.4;
 }
 /** Odlicza czas widoczności kadrów (wołane z pętli gry). */

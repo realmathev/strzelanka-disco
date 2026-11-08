@@ -4,6 +4,7 @@ import {DS} from '../core/ds.js';
 import {opt} from '../core/save.js';
 import {SampleBuf} from './interp.js';
 import {V,MAX_BYTES,RATE_MAX,sizeOf,isId} from './proto.js';
+import {L} from '../core/i18n.js';
 
 export const COLORS=[0xffcf2e,0x35c8ff,0xff4fb4,0x6cf06a];
 export const COLOR_CSS=['#ffcf2e','#35c8ff','#ff4fb4','#6cf06a'];
@@ -24,7 +25,7 @@ function makeRec(id,name){
 }
 export function rec(id){return N.players.get(id)||null}
 export const isHost=()=>!!(N.room&&N.room.isHost());
-export const nameOf=id=>{if(id===N.me)return 'Ty';const p=N.room&&N.room.player(id);return p?String(p.name||'Gracz'):'Gracz'};
+export const nameOf=id=>{if(id===N.me)return L('Ty','You');const p=N.room&&N.room.player(id);return p?String(p.name||L('Gracz','Player')):L('Gracz','Player')};
 export const colorOf=id=>{const c=N.lob.c&&N.lob.c[id];return Number.isInteger(c)&&c>=0&&c<COLORS.length?c:0};
 /** Gracze w runie: ja + zdalni z inRun. */
 export const runCount=()=>{let n=1;for(const r of N.players.values())if(r.inRun)n++;return n};
@@ -60,25 +61,25 @@ function receive(d,from){
 
 /* ---------- pokój ---------- */
 const ERR={
-  ROOM_NOT_FOUND:'Nie ma pokoju o tym kodzie. Sprawdź kod i spróbuj jeszcze raz.',
-  ROOM_FULL:'Pokój jest pełny (maksymalnie 4 graczy).',
-  ROOM_LOCKED:'Pokój jest zamknięty, bo trwa fala. Spróbuj za chwilę: pokój otwiera się między falami.',
-  KICKED:'Host usunął cię z pokoju.',
-  TICKET:'Zaloguj się na JuicyJuicy, żeby grać ze znajomymi.',
-  SIGNED_OUT:'Zaloguj się na JuicyJuicy, żeby grać ze znajomymi.',
-  TIMEOUT:'JuicyJuicy nie odpowiada. Spróbuj ponownie za chwilę.',
-  DISCONNECTED:'Połączenie z pokojem zostało przerwane (host wyszedł albo zerwało sieć).',
-  REPLACED:'Ten pokój jest otwarty w innej karcie.',
-  TOO_FAST:'Za dużo wiadomości naraz: serwer rozłączył pokój.',
-  GAME_GONE:'Ta wersja gry nie jest już dostępna na JuicyJuicy.',
-  OFF:'Gra ze znajomymi jest chwilowo wyłączona.',
-  FAILED:'Nie udało się połączyć z pokojem.',
-  NOT_HOST:'Tylko host może to zrobić.',
-  NO_ROOMS:'Ta przeglądarka nie obsługuje pokoi (brak BroadcastChannel/WebSocket).',
-  HOST_LEFT:'Host wyszedł. Wróć do lobby i załóż nowy pokój.',
+  ROOM_NOT_FOUND:L('Nie ma pokoju o tym kodzie. Sprawdź kod i spróbuj jeszcze raz.','There is no room with that code. Check the code and try again.'),
+  ROOM_FULL:L('Pokój jest pełny (maksymalnie 4 graczy).','The room is full (4 players max).'),
+  ROOM_LOCKED:L('Pokój jest zamknięty, bo trwa fala. Spróbuj za chwilę: pokój otwiera się między falami.','The room is locked because a wave is in progress. Try again in a moment: the room opens between waves.'),
+  KICKED:L('Host usunął cię z pokoju.','The host removed you from the room.'),
+  TICKET:L('Zaloguj się na JuicyJuicy, żeby grać ze znajomymi.','Sign in to JuicyJuicy to play with friends.'),
+  SIGNED_OUT:L('Zaloguj się na JuicyJuicy, żeby grać ze znajomymi.','Sign in to JuicyJuicy to play with friends.'),
+  TIMEOUT:L('JuicyJuicy nie odpowiada. Spróbuj ponownie za chwilę.','JuicyJuicy is not responding. Try again in a moment.'),
+  DISCONNECTED:L('Połączenie z pokojem zostało przerwane (host wyszedł albo zerwało sieć).','The connection to the room was lost (the host left or the network dropped).'),
+  REPLACED:L('Ten pokój jest otwarty w innej karcie.','This room is open in another tab.'),
+  TOO_FAST:L('Za dużo wiadomości naraz: serwer rozłączył pokój.','Too many messages at once: the server closed the room.'),
+  GAME_GONE:L('Ta wersja gry nie jest już dostępna na JuicyJuicy.','This version of the game is no longer available on JuicyJuicy.'),
+  OFF:L('Gra ze znajomymi jest chwilowo wyłączona.','Playing with friends is temporarily disabled.'),
+  FAILED:L('Nie udało się połączyć z pokojem.','Could not connect to the room.'),
+  NOT_HOST:L('Tylko host może to zrobić.','Only the host can do that.'),
+  NO_ROOMS:L('Ta przeglądarka nie obsługuje pokoi (brak BroadcastChannel/WebSocket).','This browser does not support rooms (no BroadcastChannel/WebSocket).'),
+  HOST_LEFT:L('Host wyszedł. Wróć do lobby i załóż nowy pokój.','The host left. Go back to the lobby and create a new room.'),
 };
 /** Czytelny komunikat po polsku dla kodu błędu JuicyJuicy (nieznany kod: ogólny tekst z kodem). */
-export function errText(code){return ERR[code]||('Błąd połączenia ('+String(code||'nieznany').slice(0,24)+').')}
+export function errText(code){return ERR[code]||(L('Błąd połączenia (','Connection error (')+String(code||L('nieznany','unknown')).slice(0,24)+').')}
 export function setMsg(t,err){N.msg=t||'';N.msgErr=!!err;changed()}
 
 function rooms(){return window.juicy&&window.juicy.rooms}
@@ -87,16 +88,16 @@ function rooms(){return window.juicy&&window.juicy.rooms}
 export function createRoom(){
   if(N.room||N.busy)return Promise.resolve(false);
   const R=rooms();if(!R){setMsg(errText('NO_ROOMS'),true);return Promise.resolve(false)}
-  N.busy=true;setMsg('Tworzę pokój…');
+  N.busy=true;setMsg(L('Tworzę pokój…','Creating room…'));
   return R.create({max:4}).then(room=>{N.busy=false;attach(room);setMsg('');return true},e=>{N.busy=false;setMsg(errText(e&&e.code),true);return false});
 }
 /** Dołącza do pokoju o kodzie (6 znaków). */
 export function joinRoom(code){
   if(N.room||N.busy)return Promise.resolve(false);
   code=String(code||'').trim().toUpperCase();
-  if(!/^[A-Z0-9]{6}$/.test(code)){setMsg('Kod pokoju ma 6 znaków (litery i cyfry).',true);return Promise.resolve(false)}
+  if(!/^[A-Z0-9]{6}$/.test(code)){setMsg(L('Kod pokoju ma 6 znaków (litery i cyfry).','The room code has 6 characters (letters and digits).'),true);return Promise.resolve(false)}
   const R=rooms();if(!R){setMsg(errText('NO_ROOMS'),true);return Promise.resolve(false)}
-  N.busy=true;setMsg('Dołączam do pokoju '+code+'…');
+  N.busy=true;setMsg(L('Dołączam do pokoju ','Joining room ')+code+'…');
   return R.join(code).then(room=>{N.busy=false;attach(room);setMsg('');return true},e=>{N.busy=false;setMsg(errText(e&&e.code),true);return false});
 }
 /** Opuszcza pokój (kończy też trwający run co-op). */
@@ -145,7 +146,7 @@ function detach(reason){
   hooks.onClosed&&hooks.onClosed(reason,wasRun);
   for(const r of N.players.values())hooks.onPlayerGone&&hooks.onPlayerGone(r);
   N.players.clear();N.inRun=false;N.me=null;N.reconnecting=false;N.lob={lv:'remiza',df:'normal',rd:{},c:{}};
-  if(wasRun&&reason==='DISCONNECTED')setMsg('Nie udało się wrócić do gry: połączenie zerwane (host wyszedł albo brak sieci).',true);
+  if(wasRun&&reason==='DISCONNECTED')setMsg(L('Nie udało się wrócić do gry: połączenie zerwane (host wyszedł albo brak sieci).','Could not get back into the game: connection lost (the host left or there is no network).'),true);
   else if(reason&&reason!=='LEFT')setMsg(errText(reason),true);else changed();
 }
 /* ---------- zerwane połączenie ---------- */

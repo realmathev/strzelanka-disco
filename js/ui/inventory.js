@@ -8,6 +8,7 @@ import {applySkin} from '../weapons/viewmodel.js';
 import {weaponsBySlot,weaponKeyHint} from '../weapons/slots.js';
 import {gunSVG} from './skinart.js';
 import {h,clear} from './dom.js';
+import {L} from '../core/i18n.js';
 import {setWeapon,startPreview,stopPreview as stop3d} from './preview3d.js';
 
 export {stop3d as stopPreview};
@@ -15,7 +16,7 @@ let sel=null,stage=null;
 
 function buildStage(){
   if(stage)return stage;
-  const canvas=h('canvas',{id:'pvCanvas',tabindex:'0',role:'img','aria-label':'Podgląd 3D broni. Przeciągnij lub użyj strzałek, aby obrócić.'});
+  const canvas=h('canvas',{id:'pvCanvas',tabindex:'0',role:'img','aria-label':L('Podgląd 3D broni. Przeciągnij lub użyj strzałek, aby obrócić.','3D weapon preview. Drag or use the arrow keys to rotate.')});
   stage={
     canvas,fallback:h('div',{class:'pvFallback',hidden:true,'aria-hidden':'true'}),
     name:h('h3',{id:'pvName'}),info:h('dl',{class:'pvStats',id:'pvStats'}),note:h('p',{class:'note',id:'pvNote'}),
@@ -33,9 +34,9 @@ function renderPreview(){
   const W=DS.weapons.get(sel),skin=SKINS.find(k=>k.id===save.skin)||SKINS[0],own=save.weapons.includes(sel);
   st.name.textContent=W.name;
   clear(st.info);
-  st.info.append(...stat('Obrażenia',W.dmg+(W.pellets>1?' ×'+W.pellets:'')),...stat('Kadencja',(1/W.rate).toFixed(1)+' strz./s'),
-    ...stat('Magazynek',String(W.mag)),...stat('Przeładowanie',W.reload+' s'),...stat('Tryb',W.auto?'automat':'pojedynczy'));
-  st.note.textContent=own?`Posiadasz · ${weaponKeyHint(sel)}`:(W.price?`Do kupienia u Zdzicha: ${W.price} ZD`:'Niedostępna');
+  st.info.append(...stat(L('Obrażenia','Damage'),W.dmg+(W.pellets>1?' ×'+W.pellets:'')),...stat(L('Kadencja','Fire rate'),(1/W.rate).toFixed(1)+L(' strz./s',' shots/s')),
+    ...stat(L('Magazynek','Magazine'),String(W.mag)),...stat(L('Przeładowanie','Reload'),W.reload+' s'),...stat(L('Tryb','Mode'),W.auto?L('automat','automatic'):L('pojedynczy','single shot')));
+  st.note.textContent=own?L(`Posiadasz · ${weaponKeyHint(sel)}`,`Owned · ${weaponKeyHint(sel)}`):(W.price?L(`Do kupienia u Zdzicha: ${W.price} ZD`,`Buy from Zdzichu: ${W.price} ZD`):L('Niedostępna','Unavailable'));
   const ok=setWeapon(st.canvas,sel,skin);
   st.canvas.hidden=!ok;st.fallback.hidden=ok;
   if(!ok){st.fallback.innerHTML=gunSVG(skin)}
@@ -48,8 +49,8 @@ export function renderInv(){
     const d=h('button',{class:'wcard'+(w===sel?' on':''),type:'button','aria-pressed':String(w===sel),style:'opacity:'+(own?1:.7),
         onclick:()=>{sel=w;sfx('tick',1100);renderInv();const b=$('#wlist .wcard.on');if(b)b.focus({preventScroll:true})}},
       h('b',null,W.name),
-      h('p',null,own?'Posiadasz · '+weaponKeyHint(w):'Do kupienia u Zdzicha: '+W.price+' ZD'),
-      h('p',null,`Obrażenia ${W.dmg}${W.pellets>1?'×'+W.pellets:''} · magazynek ${W.mag}`));
+      h('p',null,own?L('Posiadasz · ','Owned · ')+weaponKeyHint(w):L('Do kupienia u Zdzicha: ','Buy from Zdzichu: ')+W.price+' ZD'),
+      h('p',null,L(`Obrażenia ${W.dmg}${W.pellets>1?'×'+W.pellets:''} · magazynek ${W.mag}`,`Damage ${W.dmg}${W.pellets>1?'×'+W.pellets:''} · magazine ${W.mag}`)));
     wl.appendChild(d)});
   const g=$('#skinGrid');g.innerHTML='';
   SKINS.forEach(s=>{const own=save.skins.includes(s.id);const d=document.createElement('button');d.className='skin'+(own?'':' locked')+(save.skin===s.id?' on':'');
